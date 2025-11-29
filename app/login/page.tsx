@@ -1,0 +1,90 @@
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+
+export default function LoginPage() {
+  const router = useRouter()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    if (!email || !password) {
+      setError('กรุณากรอกอีเมลและรหัสผ่าน')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), password }),
+      })
+      const data = await res.json()
+      setLoading(false)
+      if (!res.ok) {
+        setError(data?.error || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง')
+        return
+      }
+      // successful, redirect
+      router.push('/')
+    } catch (err) {
+      setLoading(false)
+      setError('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้')
+      console.error(err)
+    }
+  }
+
+  return (
+    <main className="min-h-screen bg-gray-50 py-16">
+      <section className="max-w-md mx-auto p-6 bg-white dark:bg-gray-900 rounded-lg shadow">
+        <h1 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-100">เข้าสู่ระบบ</h1>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">อีเมล</label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-3 py-2 border rounded-md outline-none focus:ring-2 focus:ring-primary-500 text-black dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 disabled:opacity-70 disabled:cursor-not-allowed"
+              placeholder="example@email.com"
+              required
+              autoComplete="email"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">รหัสผ่าน</label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-3 py-2 border rounded-md outline-none focus:ring-2 focus:ring-primary-500 text-black dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-700 disabled:opacity-70 disabled:cursor-not-allowed"
+              placeholder="รหัสผ่าน"
+              required
+              autoComplete="current-password"
+            />
+          </div>
+
+          {error && <div className="text-sm text-red-600">{error}</div>}
+
+          <div className="flex items-center justify-between">
+            <button type="submit" disabled={loading} className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md disabled:opacity-60">
+              {loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
+            </button>
+
+            <Link href="/register" className="text-sm text-primary-600 hover:underline">ยังไม่เป็นสมาชิก? สมัครเลย</Link>
+          </div>
+        </form>
+      </section>
+    </main>
+  )
+}
