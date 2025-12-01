@@ -100,7 +100,7 @@ export default function AdminPage() {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-gray-900 mb-2">แอดมิน Dashboard</h1>
-            <p className="text-gray-600">จัดการระบบจองห้องพักและห้องพัก</p>
+            <p className="text-gray-600">จัดการระบบจองบ้านพัก Poolvilla</p>
           </div>
 
           {/* Tabs */}
@@ -133,7 +133,7 @@ export default function AdminPage() {
                   : 'border-transparent text-gray-600 hover:text-gray-900'
               }`}
             >
-              จัดการห้องพัก
+              จัดการบ้านพัก
             </button>
           </div>
 
@@ -145,7 +145,7 @@ export default function AdminPage() {
                 <div className="bg-white rounded-xl shadow-lg p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-gray-500 text-sm mb-1">ห้องพักทั้งหมด</p>
+                      <p className="text-gray-500 text-sm mb-1">บ้านพักทั้งหมด</p>
                       <p className="text-3xl font-bold text-gray-900">{stats.totalRooms}</p>
                     </div>
                     <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
@@ -157,7 +157,7 @@ export default function AdminPage() {
                 <div className="bg-white rounded-xl shadow-lg p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-gray-500 text-sm mb-1">ห้องว่าง</p>
+                      <p className="text-gray-500 text-sm mb-1">บ้านพักว่าง</p>
                       <p className="text-3xl font-bold text-gray-900">{stats.availableRooms}</p>
                     </div>
                     <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
@@ -204,7 +204,7 @@ export default function AdminPage() {
                           ชื่อผู้จอง
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                          ห้องพัก
+                          บ้านพัก
                         </th>
                         <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                           วันที่
@@ -272,7 +272,7 @@ export default function AdminPage() {
                         ชื่อผู้จอง
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        ห้องพัก
+                        บ้านพัก
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                         เช็คอิน
@@ -339,10 +339,10 @@ export default function AdminPage() {
           {activeTab === 'rooms' && (
             <div className="bg-white rounded-xl shadow-lg p-6">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">จัดการห้องพัก</h2>
+                <h2 className="text-2xl font-bold text-gray-900">จัดการบ้านพัก</h2>
                 <button className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition">
                   <FaPlus />
-                  <span>เพิ่มห้องพักใหม่</span>
+                  <span>เพิ่มบ้านพักใหม่</span>
                 </button>
               </div>
 

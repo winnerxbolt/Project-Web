@@ -25,6 +25,9 @@ export default function Navbar() {
             <Link href="/rooms" className="text-gray-700 hover:text-primary-600 transition font-medium">
               Poolvilla
             </Link>
+            <Link href="/reviews" className="text-gray-700 hover:text-primary-600 transition font-medium">
+              Reviews
+            </Link>
             <Link href="/about" className="text-gray-700 hover:text-primary-600 transition font-medium">
               About Us
             </Link>
@@ -67,6 +70,13 @@ export default function Navbar() {
               onClick={() => setIsOpen(false)}
             >
               Poolvilla
+            </Link>
+            <Link
+              href="/reviews"
+              className="block px-3 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 rounded-md"
+              onClick={() => setIsOpen(false)}
+            >
+              Reviews
             </Link>
             <Link
               href="/about"
