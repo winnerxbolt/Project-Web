@@ -16,10 +16,10 @@ export default function About({
     <>
       <div className="flex items-center space-x-2 mb-4">
         <FaHotel className="text-3xl text-primary-500" />
-        <span className="text-2xl font-bold text-white">Booking Poolvilla Pattaya</span>
+        <span className="text-2xl font-bold text-white">Poolvilla Pattaya</span>
       </div>
       <p className="text-gray-400 mb-4">
-        ระบบจอง Poolvilla ออนไลน์ที่ทันสมัย ให้บริการจอง Poolvilla คุณภาพทั่วประเทศไทย
+        ระบบจองบ้านพัก Poolvilla ออนไลน์ที่ทันสมัย ให้บริการจองบ้านพัก Poolvilla คุณภาพ ทั่วประเทศไทย
       </p>
       {showCta && (
         <Link href={href} aria-label="ดูเพิ่มเติมเกี่ยวกับเรา">

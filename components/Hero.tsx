@@ -41,7 +41,7 @@ export default function Hero() {
       {/* Content */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 animate-fade-in">
-          ค้นหาที่พักในฝันของคุณ
+          SEARCH POOLVILLA
         </h1>
         <p className="text-xl md:text-2xl text-white/90 mb-12">
           จองง่าย สะดวก รวดเร็ว ด้วยระบบที่ทันสมัย
@@ -70,7 +70,7 @@ export default function Hero() {
 
             {/* Check-in */}
             <div className="relative">
-              <label className="flex items-center text-sm font-medium text-primary-600 mb-2">
+              <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
                 <FaCalendarAlt className="mr-2 text-primary-600" />
                 เช็คอิน
               </label>

@@ -14,29 +14,29 @@ export default function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
             <FaHotel className="text-3xl text-primary-600" />
-            <span className="text-2xl font-bold text-gray-800">BookingHotel</span>
+            <span className="text-2xl font-bold text-gray-800">Poolvilla Pattaya</span>
           </Link>
 
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-8">
             <Link href="/" className="text-gray-700 hover:text-primary-600 transition font-medium">
-              หน้าแรก
+              Home
             </Link>
             <Link href="/rooms" className="text-gray-700 hover:text-primary-600 transition font-medium">
-              ห้องพัก
+              Poolvilla
             </Link>
             <Link href="/about" className="text-gray-700 hover:text-primary-600 transition font-medium">
-              เกี่ยวกับเรา
+              About Us
             </Link>
             <Link href="/contact" className="text-gray-700 hover:text-primary-600 transition font-medium">
-              ติดต่อ
+              Contact
             </Link>
             <Link
               href="/admin"
               className="flex items-center space-x-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition"
             >
               <FaUserShield />
-              <span>แอดมิน</span>
+              <span>Admin Mode</span>
             </Link>
           </div>
 
@@ -59,28 +59,28 @@ export default function Navbar() {
               className="block px-3 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 rounded-md"
               onClick={() => setIsOpen(false)}
             >
-              หน้าแรก
+              Home
             </Link>
             <Link
               href="/rooms"
               className="block px-3 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 rounded-md"
               onClick={() => setIsOpen(false)}
             >
-              ห้องพัก
+              Poolvilla
             </Link>
             <Link
               href="/about"
               className="block px-3 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 rounded-md"
               onClick={() => setIsOpen(false)}
             >
-              เกี่ยวกับเรา
+              About Us
             </Link>
             <Link
               href="/contact"
               className="block px-3 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 rounded-md"
               onClick={() => setIsOpen(false)}
             >
-              ติดต่อ
+              Contact
             </Link>
             <Link
               href="/admin"
@@ -88,7 +88,7 @@ export default function Navbar() {
               onClick={() => setIsOpen(false)}
             >
               <FaUserShield className="inline mr-2" />
-              แอดมิน
+              Admin Mode
             </Link>
           </div>
         </div>

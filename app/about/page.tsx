@@ -4,8 +4,8 @@ import Link from 'next/link'
 import { FaHistory, FaShieldAlt, FaHeadset } from 'react-icons/fa'
 
 export const metadata: Metadata = {
-  title: 'เกี่ยวกับเรา - Booking Poolvilla Pattaya',
-  description: 'ข้อมูลเกี่ยวกับ Booking Poolvilla Pattaya และบริการของเรา',
+  title: 'เกี่ยวกับเรา - Poolvilla Pattaya',
+  description: 'ข้อมูลเกี่ยวกับ Poolvilla Pattaya และบริการของเรา',
 }
 
 export default function AboutPage() {
@@ -15,7 +15,7 @@ export default function AboutPage() {
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-primary-600 mb-4">เกี่ยวกับเรา</h1>
           <p className="text-gray-600 max-w-3xl mx-auto">
-            Booking Poolvilla Pattaya เป็นแพลตฟอร์มที่ช่วยให้การค้นหาและจอง Poolvilla ในพัทยาและพื้นที่ใกล้เคียงเป็นเรื่องง่าย
+            Poolvilla Pattaya เป็นแพลตฟอร์มที่ช่วยให้การค้นหาและจองบ้านพัก Poolvilla ในพัทยาและพื้นที่ใกล้เคียงเป็นเรื่องง่าย
           </p>
         </div>
 
