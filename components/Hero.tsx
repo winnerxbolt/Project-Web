@@ -56,13 +56,13 @@ export default function Hero() {
             {/* Location */}
             <div className="relative">
               <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-                <FaMapMarkerAlt className="mr-2 text-primary-600" />
+                <FaMapMarkerAlt className="mr-2 text-ocean-600" />
                 สถานที่
               </label>
               <input
                 type="text"
                 placeholder="กรุงเทพ, ภูเก็ต, เชียงใหม่..."
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-transparent outline-none"
                 value={searchData.location}
                 onChange={(e) => setSearchData({ ...searchData, location: e.target.value })}
               />
@@ -71,12 +71,12 @@ export default function Hero() {
             {/* Check-in */}
             <div className="relative">
               <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-                <FaCalendarAlt className="mr-2 text-primary-600" />
+                <FaCalendarAlt className="mr-2 text-ocean-600" />
                 เช็คอิน
               </label>
               <input
                 type="date"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-primary-1000"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-transparent outline-none text-gray-800"
                 value={searchData.checkIn}
                 onChange={(e) => setSearchData({ ...searchData, checkIn: e.target.value })}
               />
@@ -85,12 +85,12 @@ export default function Hero() {
             {/* Check-out */}
             <div className="relative">
               <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-                <FaCalendarAlt className="mr-2 text-primary-600" />
+                <FaCalendarAlt className="mr-2 text-ocean-600" />
                 เช็คเอาท์
               </label>
               <input
                 type="date"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-primary-1000"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-transparent outline-none text-gray-800"
                 value={searchData.checkOut}
                 onChange={(e) => setSearchData({ ...searchData, checkOut: e.target.value })}
               />
@@ -99,11 +99,11 @@ export default function Hero() {
             {/* Guests */}
             <div className="relative">
               <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-                <FaUsers className="mr-2 text-primary-600" />
+                <FaUsers className="mr-2 text-ocean-600" />
                 ผู้เข้าพัก
               </label>
               <select
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none text-primary-1000"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-transparent outline-none text-gray-800"
                 value={searchData.guests}
                 onChange={(e) => setSearchData({ ...searchData, guests: e.target.value })}
               >
@@ -119,10 +119,10 @@ export default function Hero() {
           {/* Search Button */}
           <button
             type="submit"
-            className="w-full md:w-auto px-8 py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition flex items-center justify-center mx-auto space-x-2 shadow-lg hover:shadow-xl"
+            className="w-full md:w-auto px-8 py-3 bg-gradient-to-r from-ocean-500 to-primary-500 text-white font-semibold rounded-lg hover:from-ocean-600 hover:to-primary-600 transition flex items-center justify-center mx-auto space-x-2 shadow-lg hover:shadow-xl"
           >
             <FaSearch />
-            <span>ค้นหาห้องพัก</span>
+            <span>ค้นหาบ้านพัก Poolvilla</span>
           </button>
         </form>
       </div>

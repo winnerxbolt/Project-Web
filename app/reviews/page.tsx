@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import StarRating from '@/components/StarRating'
 import ReviewCard from '@/components/ReviewCard'
-import { FaComments, FaPaperPlane } from 'react-icons/fa'
+import { FaComments, FaPaperPlane, FaHome } from 'react-icons/fa'
 
 interface Review {
   id: string
@@ -95,12 +96,23 @@ export default function ReviewsPage() {
     : '0'
 
   return (
-    <main className="min-h-screen bg-gray-50 py-20">
+    <main className="min-h-screen bg-white py-20">
       <div className="max-w-6xl mx-auto px-4">
+        {/* Back Button */}
+        <div className="mb-6">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-black hover:text-blackfont-medium transition group"
+          >
+            <FaHome className="text-xl group-hover:scale-110 transition-transform" />
+            <span>Home</span>
+          </Link>
+        </div>
+
         {/* Header */}
         <div className="text-center mb-12">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <FaComments className="text-5xl text-primary-600" />
+            <FaComments className="text-5xl text-ocean-600" />
             <h1 className="text-4xl font-bold text-gray-800">รีวิวจากลูกค้า</h1>
           </div>
           <p className="text-gray-600 text-lg">แบ่งปันประสบการณ์ของคุณกับเรา</p>
@@ -129,7 +141,7 @@ export default function ReviewsPage() {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-transparent text-black"
                   placeholder="ชื่อของคุณ"
                   required
                 />
@@ -141,7 +153,7 @@ export default function ReviewsPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-transparent text-black"
                   placeholder="อีเมลของคุณ"
                   required
                 />
@@ -157,7 +169,7 @@ export default function ReviewsPage() {
                 <textarea
                   value={comment}
                   onChange={(e) => setComment(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-transparent text-black"
                   rows={5}
                   placeholder="แบ่งปันประสบการณ์ของคุณ..."
                   required
@@ -179,7 +191,7 @@ export default function ReviewsPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full bg-primary-600 text-white py-3 rounded-lg font-semibold hover:bg-primary-700 transition flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full bg-gradient-to-r from-ocean-500 to-primary-500 text-white py-3 rounded-lg font-semibold hover:from-ocean-600 hover:to-primary-600 transition flex items-center justify-center gap-2 disabled:opacity-50 shadow-md"
               >
                 <FaPaperPlane />
                 {submitting ? 'กำลังส่ง...' : 'ส่งรีวิว'}
