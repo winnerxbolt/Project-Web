@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import Navbar from '@/components/Navbar'
-import { FaHotel, FaCalendarCheck, FaDollarSign, FaUsers, FaPlus, FaEdit, FaTrash } from 'react-icons/fa'
+import { useAuth } from '@/contexts/AuthContext'
+import { FaHotel, FaCalendarCheck, FaDollarSign, FaUsers, FaPlus, FaEdit, FaTrash, FaUserShield, FaSearch } from 'react-icons/fa'
 
 interface Booking {
   id: number
@@ -25,7 +26,14 @@ interface Room {
 }
 
 export default function AdminPage() {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings' | 'rooms'>('dashboard')
+  const { user, isAdmin, promoteToAdmin, demoteFromAdmin } = useAuth()
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings' | 'rooms' | 'users'>('dashboard')
+  const [searchEmail, setSearchEmail] = useState('')
+  const [demoteEmail, setDemoteEmail] = useState('')
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
+  const [userLoading, setUserLoading] = useState(false)
+  const [demoteLoading, setDemoteLoading] = useState(false)
 
   // Sample data
   const [bookings, setBookings] = useState<Booking[]>([
@@ -91,6 +99,56 @@ export default function AdminPage() {
     }
   }
 
+  const handlePromoteUser = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setUserLoading(true)
+    setError('')
+    setMessage('')
+
+    if (!searchEmail) {
+      setError('กรุณากรอกอีเมลผู้ใช้')
+      setUserLoading(false)
+      return
+    }
+
+    const success = await promoteToAdmin(searchEmail)
+    
+    if (success) {
+      setMessage(`เพิ่มสิทธิ์ Admin ให้กับ ${searchEmail} สำเร็จ!`)
+      setSearchEmail('')
+      setTimeout(() => setMessage(''), 5000)
+    } else {
+      setError('ไม่พบผู้ใช้หรือเกิดข้อผิดพลาด')
+    }
+    
+    setUserLoading(false)
+  }
+
+  const handleDemoteUser = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setDemoteLoading(true)
+    setError('')
+    setMessage('')
+
+    if (!demoteEmail) {
+      setError('กรุณากรอกอีเมลผู้ใช้')
+      setDemoteLoading(false)
+      return
+    }
+
+    const success = await demoteFromAdmin(demoteEmail)
+    
+    if (success) {
+      setMessage(`ถอดสิทธิ์ Admin ของ ${demoteEmail} สำเร็จ!`)
+      setDemoteEmail('')
+      setTimeout(() => setMessage(''), 5000)
+    } else {
+      setError('ไม่พบผู้ใช้หรือเกิดข้อผิดพลาด')
+    }
+    
+    setDemoteLoading(false)
+  }
+
   return (
     <main className="min-h-screen bg-gray-50">
       <Navbar />
@@ -134,6 +192,17 @@ export default function AdminPage() {
               }`}
             >
               จัดการบ้านพัก
+            </button>
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`px-6 py-3 font-semibold border-b-2 transition ${
+                activeTab === 'users'
+                  ? 'border-primary-600 text-primary-600'
+                  : 'border-transparent text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              <FaUserShield className="inline mr-2" />
+              จัดการสิทธิ์
             </button>
           </div>
 
@@ -220,9 +289,9 @@ export default function AdminPage() {
                     <tbody className="divide-y divide-gray-200">
                       {bookings.slice(0, 5).map((booking) => (
                         <tr key={booking.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">{booking.guestName}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">{booking.roomName}</td>
-                          <td className="px-6 py-4 whitespace-nowrap">
+                          <td className="px-6 py-4 whitespace-nowrap text-black">{booking.guestName}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-black">{booking.roomName}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-black">
                             {booking.checkIn} ถึง {booking.checkOut}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -234,7 +303,7 @@ export default function AdminPage() {
                               {getStatusText(booking.status)}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap font-semibold">
+                          <td className="px-6 py-4 whitespace-nowrap font-semibold text-black">
                             ฿{booking.total.toLocaleString()}
                           </td>
                         </tr>
@@ -297,14 +366,14 @@ export default function AdminPage() {
                   <tbody className="divide-y divide-gray-200">
                     {bookings.map((booking) => (
                       <tr key={booking.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">#{booking.id}</td>
-                        <td className="px-6 py-4 whitespace-nowrap font-medium">
+                        <td className="px-6 py-4 whitespace-nowrap text-black">#{booking.id}</td>
+                        <td className="px-6 py-4 whitespace-nowrap font-medium text-black">
                           {booking.guestName}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">{booking.roomName}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">{booking.checkIn}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">{booking.checkOut}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">{booking.guests} คน</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-black">{booking.roomName}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-black">{booking.checkIn}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-black">{booking.checkOut}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-black">{booking.guests} คน</td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span
                             className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(
@@ -314,7 +383,7 @@ export default function AdminPage() {
                             {getStatusText(booking.status)}
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap font-semibold">
+                        <td className="px-6 py-4 whitespace-nowrap font-semibold text-black">
                           ฿{booking.total.toLocaleString()}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -386,6 +455,121 @@ export default function AdminPage() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* Users Management Tab */}
+          {activeTab === 'users' && (
+            <div>
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">จัดการสิทธิ์ Admin</h2>
+                <p className="text-gray-600">เพิ่มสิทธิ์ Admin ให้กับผู้ใช้</p>
+              </div>
+
+              {/* Messages */}
+              {message && (
+                <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+                  {message}
+                </div>
+              )}
+
+              {error && (
+                <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                  {error}
+                </div>
+              )}
+
+              {/* Form */}
+              <div className="bg-white border border-gray-200 rounded-xl p-8 shadow-sm">
+                <h3 className="text-xl font-bold text-gray-800 mb-6">เพิ่มสิทธิ์ Admin</h3>
+                
+                <form onSubmit={handlePromoteUser} className="space-y-6">
+                  <div>
+                    <label className="block text-gray-700 font-medium mb-2">
+                      อีเมลผู้ใช้
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="email"
+                        value={searchEmail}
+                        onChange={(e) => setSearchEmail(e.target.value)}
+                        className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-transparent text-black"
+                        placeholder="example@email.com"
+                        required
+                      />
+                      <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    </div>
+                    <p className="text-sm text-gray-500 mt-2">
+                      กรอกอีเมลของผู้ใช้ที่ต้องการเพิ่มสิทธิ์ Admin
+                    </p>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={userLoading}
+                    className="w-full px-8 py-3 bg-gradient-to-r from-ocean-500 to-primary-500 text-white rounded-lg font-semibold hover:from-ocean-600 hover:to-primary-600 transition disabled:opacity-50 shadow-md flex items-center justify-center gap-2"
+                  >
+                    <FaUserShield />
+                    {userLoading ? 'กำลังดำเนินการ...' : 'เพิ่มสิทธิ์ Admin'}
+                  </button>
+                </form>
+              </div>
+
+              {/* Demote Admin Section */}
+              <div className="bg-white border border-gray-200 rounded-xl p-8 shadow-sm mt-6">
+                <h3 className="text-xl font-bold text-gray-800 mb-6">ถอดสิทธิ์ Admin</h3>
+                
+                <form onSubmit={handleDemoteUser} className="space-y-6">
+                  <div>
+                    <label className="block text-gray-700 font-medium mb-2">
+                      อีเมลผู้ใช้
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="email"
+                        value={demoteEmail}
+                        onChange={(e) => setDemoteEmail(e.target.value)}
+                        className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-black"
+                        placeholder="example@email.com"
+                        required
+                      />
+                      <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    </div>
+                    <p className="text-sm text-gray-500 mt-2">
+                      กรอกอีเมลของผู้ใช้ที่ต้องการถอดสิทธิ์ Admin
+                    </p>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={demoteLoading}
+                    className="w-full px-8 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg font-semibold hover:from-red-600 hover:to-red-700 transition disabled:opacity-50 shadow-md flex items-center justify-center gap-2"
+                  >
+                    <FaUserShield />
+                    {demoteLoading ? 'กำลังดำเนินการ...' : 'ถอดสิทธิ์ Admin'}
+                  </button>
+                </form>
+
+                {/* Warning Box */}
+                <div className="mt-8 bg-red-50 border border-red-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-red-900 mb-2">⚠️ คำเตือน:</h3>
+                  <ul className="text-sm text-red-800 space-y-1 list-disc list-inside">
+                    <li>การถอดสิทธิ์จะทำให้ผู้ใช้ไม่สามารถเข้าถึง Admin Mode ได้</li>
+                    <li>ไม่สามารถถอดสิทธิ์ตัวเองได้</li>
+                    <li>ใช้ความระมัดระวังในการถอดสิทธิ์ Admin</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Info Box */}
+              <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 className="font-semibold text-blue-900 mb-2">หมายเหตุ:</h3>
+                <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
+                  <li>เฉพาะ Admin เท่านั้นที่สามารถจัดการสิทธิ์ได้</li>
+                  <li>ผู้ใช้ที่ได้รับสิทธิ์ Admin จะสามารถเข้าถึง Admin Mode ได้</li>
+                  <li>ใช้ความระมัดระวังในการให้และถอดสิทธิ์ Admin</li>
+                </ul>
               </div>
             </div>
           )}

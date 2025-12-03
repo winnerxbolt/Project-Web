@@ -1,0 +1,20 @@
+[
+  {
+    "id": "501cf967-7be2-43b9-a765-73166f06177a",
+    "name": "Winnerboy",
+    "email": "wave.wavekung@hotmail.com",
+    "salt": "e0350a1411c7efd0b2eb969973851020",
+    "hash": "96fff8ef5ec40622f023cadd4cf9f8d91d9593a4d1c063c13380ee248fbd5379",
+    "role": "admin",
+    "createdAt": "2025-12-03T06:27:46.280Z"
+  },
+  {
+    "id": "e2fd5a8e-edce-4cce-8c90-99fb3088dbd6",
+    "name": "Winnerx",
+    "email": "wavegood@outlook.com",
+    "salt": "f57f1a6949f0ad52108fed01f5ad52ac",
+    "hash": "7fc9926eb2815a7d946e60c64eb8625251688b8954884a568aa416ff7d619471",
+    "role": "user",
+    "createdAt": "2025-12-03T06:49:29.321Z"
+  }
+]

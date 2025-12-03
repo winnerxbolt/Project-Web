@@ -33,11 +33,11 @@ export default function RegisterPage() {
   return (
     <main className="min-h-screen bg-gray-50 py-16">
       <section className="max-w-md mx-auto p-6 bg-white rounded shadow">
-        <h1 className="text-2xl font-semibold mb-4">สมัครสมาชิก</h1>
+        <h1 className="text-2xl font-semibold text-black mb-4">สมัครสมาชิก</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="ชื่อ" className="w-full p-2 border rounded" required />
-          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="อีเมล" type="email" className="w-full p-2 border rounded" required />
-          <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="รหัสผ่าน" type="password" className="w-full p-2 border rounded" required />
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="ชื่อ" className="w-full p-2 text-black border rounded" required />
+          <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="อีเมล" type="email" className="w-full p-2 text-black border rounded" required />
+          <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="รหัสผ่าน" type="password" className="w-full p-2 text-black border rounded" required />
           {error && <div className="text-sm text-red-600">{error}</div>}
           <div className="flex items-center justify-between">
             <button disabled={loading} className="bg-primary-600 text-white px-4 py-2 rounded">

@@ -129,8 +129,8 @@ export default function RoomsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">ห้องพักทั้งหมด</h1>
-            <p className="text-gray-600">พบ {filteredRooms.length} ห้องพัก</p>
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">บ้านพัก Poolvilla ทั้งหมด</h1>
+            <p className="text-gray-600">พบ {filteredRooms.length} บ้านพัก Poolvilla</p>
           </div>
 
           <div className="flex flex-col lg:flex-row gap-8">

@@ -7,6 +7,7 @@ export type User = {
   email: string
   salt: string
   hash: string
+  role: 'user' | 'admin'
   createdAt: string
 }
 
@@ -34,7 +35,15 @@ export async function createUser(name: string, email: string, password: string) 
   const arr = (await readJson<User[]>(USERS_PATH)) || []
   const salt = crypto.randomBytes(16).toString('hex')
   const hash = hashPassword(password, salt)
-  const user: User = { id: crypto.randomUUID(), name, email: email.toLowerCase(), salt, hash, createdAt: new Date().toISOString() }
+  const user: User = { 
+    id: crypto.randomUUID(), 
+    name, 
+    email: email.toLowerCase(), 
+    salt, 
+    hash, 
+    role: 'user', // Default role is 'user'
+    createdAt: new Date().toISOString() 
+  }
   arr.push(user)
   await writeJson(USERS_PATH, arr)
   return user
@@ -75,4 +84,19 @@ export async function findSession(token: string) {
     return null
   }
   return s
+}
+
+export async function updateUserRole(userId: string, role: 'user' | 'admin') {
+  const arr = (await readJson<User[]>(USERS_PATH)) || []
+  const user = arr.find((u) => u.id === userId)
+  if (!user) return null
+  
+  user.role = role
+  await writeJson(USERS_PATH, arr)
+  return user
+}
+
+export async function findUserById(userId: string) {
+  const arr = (await readJson<User[]>(USERS_PATH)) || []
+  return arr.find((u) => u.id === userId) || null
 }

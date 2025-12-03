@@ -23,7 +23,13 @@ export async function POST(req: Request) {
     }
 
     const session = await createSession(user.id)
-    const res = NextResponse.json({ id: user.id, name: user.name, email: user.email })
+    const userData = { 
+      id: user.id, 
+      name: user.name, 
+      email: user.email,
+      role: user.role || 'user' // Use role from database, default to 'user'
+    }
+    const res = NextResponse.json({ user: userData })
     res.headers.set('Set-Cookie', `session=${session.token}; Path=/; HttpOnly; Max-Age=${60 * 60 * 24 * 7}; SameSite=Lax; Secure`)
     return res
   } catch (err) {

@@ -3,9 +3,11 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function LoginPage() {
   const router = useRouter()
+  const { login } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -20,24 +22,13 @@ export default function LoginPage() {
     }
 
     setLoading(true)
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), password }),
-      })
-      const data = await res.json()
-      setLoading(false)
-      if (!res.ok) {
-        setError(data?.error || 'อีเมลหรือรหัสผ่านไม่ถูกต้อง')
-        return
-      }
-      // successful, redirect
+    const success = await login(email.trim(), password)
+    setLoading(false)
+    
+    if (success) {
       router.push('/')
-    } catch (err) {
-      setLoading(false)
-      setError('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้')
-      console.error(err)
+    } else {
+      setError('อีเมลหรือรหัสผ่านไม่ถูกต้อง')
     }
   }
 

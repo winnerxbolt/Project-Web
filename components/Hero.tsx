@@ -32,7 +32,7 @@ export default function Hero() {
         className="absolute inset-0 bg-cover bg-center"
         style={{
           backgroundImage:
-            'url(https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=2070)',
+            'url(https://img2.pic.in.th/pic/20250727104645_1224da2197.jpg)',
         }}
       >
         <div className="absolute inset-0 bg-black/50"></div>
