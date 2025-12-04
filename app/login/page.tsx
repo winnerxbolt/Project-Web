@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
+import { FaHome } from 'react-icons/fa'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -35,6 +36,17 @@ export default function LoginPage() {
   return (
     <main className="min-h-screen bg-gray-50 py-16">
       <section className="max-w-md mx-auto p-6 bg-white dark:bg-gray-900 rounded-lg shadow">
+        {/* Home Button */}
+        <div className="mb-6">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-primary-600 hover:text-primary-700 transition font-medium"
+          >
+            <FaHome className="text-xl" />
+            <span>กลับหน้าหลัก</span>
+          </Link>
+        </div>
+
         <h1 className="text-2xl font-semibold mb-4 text-gray-900 dark:text-gray-100">เข้าสู่ระบบ</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

@@ -1,9 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import Navbar from '@/components/Navbar'
+import RoomCalendar from '@/components/RoomCalendar'
 import { useAuth } from '@/contexts/AuthContext'
-import { FaHotel, FaCalendarCheck, FaDollarSign, FaUsers, FaPlus, FaEdit, FaTrash, FaUserShield, FaSearch } from 'react-icons/fa'
+import { FaHotel, FaCalendarCheck, FaDollarSign, FaUsers, FaPlus, FaEdit, FaTrash, FaUserShield, FaSearch, FaTimes, FaCalendarAlt, FaFire } from 'react-icons/fa'
 
 interface Booking {
   id: number
@@ -14,56 +16,295 @@ interface Booking {
   guests: number
   status: 'confirmed' | 'pending' | 'cancelled'
   total: number
+  slipImage?: string
+  email?: string
+  phone?: string
+}
+
+interface BookingFormData {
+  roomName: string
+  guestName: string
+  checkIn: string
+  checkOut: string
+  guests: string
+  total: string
+  email?: string
+  phone?: string
 }
 
 interface Room {
   id: number
   name: string
   price: number
-  available: boolean
-  beds: number
+  description: string
   guests: number
+  beds?: number
+  size?: number
+  image?: string
+  images?: string[]
+  rating?: number
+  reviews?: number
+  amenities?: string[]
+  location?: string
+  available: boolean
+  deposit?: number
+  checkInTime?: string
+  checkOutTime?: string
+  minNights?: number
+  bedrooms?: number
+  bathrooms?: number
+  kitchen?: boolean
+  parking?: boolean
+  pool?: boolean
+  wifi?: boolean
+  extraEquipment?: string
+  houseRules?: string
+  singleRoomPrice?: number
+  promotion?: string
+  cancellationPolicy?: string
+}
+
+interface RoomFormData {
+  name: string
+  price: string
+  description: string
+  guests: string
+  beds?: string
+  size?: string
+  image?: string
+  images?: string[]
+  amenities?: string
+  location?: string
+  deposit?: string
+  checkInTime?: string
+  checkOutTime?: string
+  minNights?: string
+  bedrooms?: string
+  bathrooms?: string
+  kitchen?: string
+  parking?: string
+  pool?: string
+  wifi?: string
+  extraEquipment?: string
+  houseRules?: string
+  singleRoomPrice?: string
+  promotion?: string
+  cancellationPolicy?: string
 }
 
 export default function AdminPage() {
   const { user, isAdmin, promoteToAdmin, demoteFromAdmin } = useAuth()
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings' | 'rooms' | 'users'>('dashboard')
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings' | 'rooms' | 'calendar' | 'users'>('dashboard')
   const [searchEmail, setSearchEmail] = useState('')
   const [demoteEmail, setDemoteEmail] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [userLoading, setUserLoading] = useState(false)
   const [demoteLoading, setDemoteLoading] = useState(false)
+  
+  // Room management states
+  const [rooms, setRooms] = useState<Room[]>([])
+  const [showRoomModal, setShowRoomModal] = useState(false)
+  const [editingRoom, setEditingRoom] = useState<Room | null>(null)
+  const [uploadedImages, setUploadedImages] = useState<string[]>([])
+  const [isDragging, setIsDragging] = useState(false)
+  const [roomFormData, setRoomFormData] = useState<RoomFormData>({
+    name: '',
+    price: '',
+    description: '',
+    guests: '',
+    beds: '',
+    size: '',
+    image: '',
+    images: [],
+    amenities: 'WiFi, TV, แอร์',
+    location: 'กรุงเทพ',
+    deposit: '',
+    checkInTime: '14:00',
+    checkOutTime: '11:00',
+    minNights: '1',
+    bedrooms: '',
+    bathrooms: '',
+    kitchen: 'false',
+    parking: 'false',
+    pool: 'false',
+    wifi: 'true',
+    extraEquipment: '',
+    houseRules: '',
+    singleRoomPrice: '',
+    promotion: '',
+    cancellationPolicy: ''
+  })
+  const [roomLoading, setRoomLoading] = useState(false)
+
+  // Booking management states
+  const [showBookingModal, setShowBookingModal] = useState(false)
+  const [editingBooking, setEditingBooking] = useState<Booking | null>(null)
+  const [showSlipModal, setShowSlipModal] = useState(false)
+  const [selectedSlip, setSelectedSlip] = useState<string>('')
+  const [bookingFormData, setBookingFormData] = useState<BookingFormData>({
+    roomName: '',
+    guestName: '',
+    checkIn: '',
+    checkOut: '',
+    guests: '',
+    total: '',
+    email: '',
+    phone: ''
+  })
+  const [bookingLoading, setBookingLoading] = useState(false)
+
+  // Calendar management states
+  const [selectedRoom, setSelectedRoom] = useState<number | null>(null)
+  const [selectedDate, setSelectedDate] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [selectedStatus, setSelectedStatus] = useState<'available' | 'booked' | 'pending' | 'holiday' | 'maintenance'>('available')
+  const [hasDiscount, setHasDiscount] = useState(false)
+  const [note, setNote] = useState('')
+  const [calendarMessage, setCalendarMessage] = useState('')
+  const [calendarKey, setCalendarKey] = useState(0) // สำหรับ force refresh calendar
 
   // Sample data
-  const [bookings, setBookings] = useState<Booking[]>([
-    {
-      id: 1,
-      roomName: 'Deluxe Suite',
-      guestName: 'สมชาย ใจดี',
-      checkIn: '2025-11-30',
-      checkOut: '2025-12-02',
-      guests: 2,
-      status: 'confirmed',
-      total: 5000,
-    },
-    {
-      id: 2,
-      roomName: 'Executive Room',
-      guestName: 'สมหญิง สวยงาม',
-      checkIn: '2025-12-01',
-      checkOut: '2025-12-03',
-      guests: 1,
-      status: 'pending',
-      total: 3600,
-    },
-  ])
+  const [bookings, setBookings] = useState<Booking[]>([])
 
-  const [rooms, setRooms] = useState<Room[]>([
-    { id: 1, name: 'Deluxe Suite', price: 2500, available: true, beds: 2, guests: 4 },
-    { id: 2, name: 'Executive Room', price: 1800, available: true, beds: 1, guests: 2 },
-    { id: 3, name: 'Family Room', price: 3200, available: false, beds: 3, guests: 6 },
-  ])
+  // Image upload handlers
+  const convertToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result as string)
+      reader.onerror = reject
+      reader.readAsDataURL(file)
+    })
+  }
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files) return
+
+    const newImages: string[] = []
+    for (let i = 0; i < files.length; i++) {
+      const base64 = await convertToBase64(files[i])
+      newImages.push(base64)
+    }
+
+    setUploadedImages(prev => [...prev, ...newImages])
+    setRoomFormData(prev => ({
+      ...prev,
+      images: [...(prev.images || []), ...newImages],
+      image: prev.image || newImages[0] // Set first image as main if no main image
+    }))
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = () => {
+    setIsDragging(false)
+  }
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragging(false)
+
+    const files = Array.from(e.dataTransfer.files).filter(file => file.type.startsWith('image/'))
+    const newImages: string[] = []
+    
+    for (const file of files) {
+      const base64 = await convertToBase64(file)
+      newImages.push(base64)
+    }
+
+    setUploadedImages(prev => [...prev, ...newImages])
+    setRoomFormData(prev => ({
+      ...prev,
+      images: [...(prev.images || []), ...newImages],
+      image: prev.image || newImages[0]
+    }))
+  }
+
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    const items = e.clipboardData.items
+    const newImages: string[] = []
+
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        const file = items[i].getAsFile()
+        if (file) {
+          const base64 = await convertToBase64(file)
+          newImages.push(base64)
+        }
+      }
+    }
+
+    if (newImages.length > 0) {
+      setUploadedImages(prev => [...prev, ...newImages])
+      setRoomFormData(prev => ({
+        ...prev,
+        images: [...(prev.images || []), ...newImages],
+        image: prev.image || newImages[0]
+      }))
+    }
+  }
+
+  const removeImage = (index: number) => {
+    setUploadedImages(prev => prev.filter((_, i) => i !== index))
+    setRoomFormData(prev => {
+      const newImages = (prev.images || []).filter((_, i) => i !== index)
+      return {
+        ...prev,
+        images: newImages,
+        image: prev.image === prev.images?.[index] ? newImages[0] || '' : prev.image
+      }
+    })
+  }
+
+  const setMainImage = (index: number) => {
+    const selectedImage = uploadedImages[index]
+    setRoomFormData(prev => ({
+      ...prev,
+      image: selectedImage
+    }))
+  }
+
+  // Fetch rooms and bookings from API
+  useEffect(() => {
+    const initializeAdmin = async () => {
+      // เรียก auto-checkout ก่อน
+      await fetch('/api/auto-checkout').catch(err => console.error('Auto-checkout error:', err))
+      
+      // แล้วค่อยโหลดข้อมูล
+      fetchRooms()
+      fetchBookings()
+    }
+    initializeAdmin()
+  }, [])
+
+  const fetchBookings = async () => {
+    try {
+      const response = await fetch('/api/bookings')
+      const data = await response.json()
+      if (data.success) {
+        setBookings(data.bookings)
+      }
+    } catch (error) {
+      console.error('Error fetching bookings:', error)
+    }
+  }
+
+  const fetchRooms = async () => {
+    try {
+      const response = await fetch('/api/rooms')
+      const data = await response.json()
+      if (data.success) {
+        setRooms(data.rooms)
+      }
+    } catch (error) {
+      console.error('Error fetching rooms:', error)
+    }
+  }
 
   const stats = {
     totalRooms: rooms.length,
@@ -149,6 +390,531 @@ export default function AdminPage() {
     setDemoteLoading(false)
   }
 
+  // Room management functions
+  const openAddRoomModal = () => {
+    setEditingRoom(null)
+    setRoomFormData({
+      name: '',
+      price: '',
+      description: '',
+      guests: '',
+      beds: '',
+      size: '',
+      image: '',
+      amenities: 'WiFi, TV, แอร์',
+      location: 'กรุงเทพ'
+    })
+    setShowRoomModal(true)
+  }
+
+  const openEditRoomModal = (room: Room) => {
+    setEditingRoom(room)
+    const existingImages = room.images || (room.image ? [room.image] : [])
+    setUploadedImages(existingImages)
+    setRoomFormData({
+      name: room.name,
+      price: room.price.toString(),
+      description: room.description,
+      guests: room.guests.toString(),
+      beds: room.beds?.toString() || '',
+      size: room.size?.toString() || '',
+      image: room.image || '',
+      images: existingImages,
+      amenities: room.amenities?.join(', ') || 'WiFi, TV, แอร์',
+      location: room.location || 'กรุงเทพ',
+      deposit: room.deposit?.toString() || '',
+      checkInTime: room.checkInTime || '14:00',
+      checkOutTime: room.checkOutTime || '11:00',
+      minNights: room.minNights?.toString() || '1',
+      bedrooms: room.bedrooms?.toString() || '',
+      bathrooms: room.bathrooms?.toString() || '',
+      kitchen: room.kitchen ? 'true' : 'false',
+      parking: room.parking ? 'true' : 'false',
+      pool: room.pool ? 'true' : 'false',
+      wifi: room.wifi !== false ? 'true' : 'false',
+      extraEquipment: room.extraEquipment || '',
+      houseRules: room.houseRules || '',
+      singleRoomPrice: room.singleRoomPrice?.toString() || '',
+      promotion: room.promotion || '',
+      cancellationPolicy: room.cancellationPolicy || ''
+    })
+    setShowRoomModal(true)
+  }
+
+  const closeRoomModal = () => {
+    setShowRoomModal(false)
+    setEditingRoom(null)
+    setUploadedImages([])
+    setRoomFormData({
+      name: '',
+      price: '',
+      description: '',
+      guests: '',
+      beds: '',
+      size: '',
+      image: '',
+      images: [],
+      amenities: 'WiFi, TV, แอร์',
+      location: 'กรุงเทพ',
+      deposit: '',
+      checkInTime: '14:00',
+      checkOutTime: '11:00',
+      minNights: '1',
+      bedrooms: '',
+      bathrooms: '',
+      kitchen: 'false',
+      parking: 'false',
+      pool: 'false',
+      wifi: 'true',
+      extraEquipment: '',
+      houseRules: '',
+      singleRoomPrice: '',
+      promotion: '',
+      cancellationPolicy: ''
+    })
+    setError('')
+    setMessage('')
+  }
+
+  const handleRoomFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target
+    setRoomFormData(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleSubmitRoom = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setRoomLoading(true)
+    setError('')
+    setMessage('')
+
+    try {
+      const amenitiesArray = roomFormData.amenities?.split(',').map(a => a.trim()).filter(a => a) || []
+      
+      const roomData = {
+        name: roomFormData.name,
+        price: Number(roomFormData.price),
+        description: roomFormData.description,
+        guests: Number(roomFormData.guests),
+        beds: roomFormData.beds ? Number(roomFormData.beds) : undefined,
+        size: roomFormData.size ? Number(roomFormData.size) : undefined,
+        image: roomFormData.image || uploadedImages[0] || undefined,
+        images: uploadedImages.length > 0 ? uploadedImages : undefined,
+        amenities: amenitiesArray,
+        location: roomFormData.location,
+        deposit: roomFormData.deposit ? Number(roomFormData.deposit) : undefined,
+        checkInTime: roomFormData.checkInTime || undefined,
+        checkOutTime: roomFormData.checkOutTime || undefined,
+        minNights: roomFormData.minNights ? Number(roomFormData.minNights) : undefined,
+        bedrooms: roomFormData.bedrooms ? Number(roomFormData.bedrooms) : undefined,
+        bathrooms: roomFormData.bathrooms ? Number(roomFormData.bathrooms) : undefined,
+        kitchen: roomFormData.kitchen === 'true',
+        parking: roomFormData.parking === 'true',
+        pool: roomFormData.pool === 'true',
+        wifi: roomFormData.wifi === 'true',
+        extraEquipment: roomFormData.extraEquipment || undefined,
+        houseRules: roomFormData.houseRules || undefined,
+        singleRoomPrice: roomFormData.singleRoomPrice ? Number(roomFormData.singleRoomPrice) : undefined,
+        promotion: roomFormData.promotion || undefined,
+        cancellationPolicy: roomFormData.cancellationPolicy || undefined
+      }
+
+      if (editingRoom) {
+        // Update existing room
+        const response = await fetch('/api/rooms', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...roomData, id: editingRoom.id })
+        })
+
+        const data = await response.json()
+
+        if (data.success) {
+          setMessage('อัพเดทบ้านพักสำเร็จ!')
+          await fetchRooms()
+          setTimeout(() => {
+            closeRoomModal()
+            setMessage('')
+          }, 1500)
+        } else {
+          setError(data.error || 'เกิดข้อผิดพลาดในการอัพเดท')
+        }
+      } else {
+        // Create new room
+        const response = await fetch('/api/rooms', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(roomData)
+        })
+
+        const data = await response.json()
+
+        if (data.success) {
+          setMessage('เพิ่มบ้านพักสำเร็จ!')
+          await fetchRooms()
+          setTimeout(() => {
+            closeRoomModal()
+            setMessage('')
+          }, 1500)
+        } else {
+          setError(data.error || 'เกิดข้อผิดพลาดในการเพิ่มบ้านพัก')
+        }
+      }
+    } catch (error) {
+      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
+    } finally {
+      setRoomLoading(false)
+    }
+  }
+
+  const handleDeleteRoom = async (roomId: number) => {
+    if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบบ้านพักนี้?')) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/rooms?id=${roomId}`, {
+        method: 'DELETE'
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setMessage('ลบบ้านพักสำเร็จ!')
+        await fetchRooms()
+        setTimeout(() => setMessage(''), 3000)
+      } else {
+        setError(data.error || 'เกิดข้อผิดพลาดในการลบบ้านพัก')
+      }
+    } catch (error) {
+      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
+    }
+  }
+
+  // Booking management functions
+  const openEditBookingModal = (booking: Booking) => {
+    setEditingBooking(booking)
+    setBookingFormData({
+      roomName: booking.roomName,
+      guestName: booking.guestName,
+      checkIn: booking.checkIn,
+      checkOut: booking.checkOut,
+      guests: booking.guests.toString(),
+      total: booking.total.toString(),
+      email: booking.email || '',
+      phone: booking.phone || ''
+    })
+    setShowBookingModal(true)
+  }
+
+  const closeBookingModal = () => {
+    setShowBookingModal(false)
+    setEditingBooking(null)
+    setError('')
+    setMessage('')
+  }
+
+  const handleBookingFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setBookingFormData(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleSubmitBooking = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setBookingLoading(true)
+    setError('')
+    setMessage('')
+
+    try {
+      const bookingData = {
+        roomName: bookingFormData.roomName,
+        guestName: bookingFormData.guestName,
+        checkIn: bookingFormData.checkIn,
+        checkOut: bookingFormData.checkOut,
+        guests: Number(bookingFormData.guests),
+        total: Number(bookingFormData.total),
+        email: bookingFormData.email,
+        phone: bookingFormData.phone
+      }
+
+      if (editingBooking) {
+        // Update existing booking
+        const response = await fetch('/api/bookings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...bookingData, id: editingBooking.id })
+        })
+
+        const data = await response.json()
+
+        if (data.success) {
+          setMessage('อัพเดทการจองสำเร็จ!')
+          await fetchBookings()
+          setTimeout(() => {
+            closeBookingModal()
+            setMessage('')
+          }, 1500)
+        } else {
+          setError(data.error || 'เกิดข้อผิดพลาดในการอัพเดท')
+        }
+      }
+    } catch (error) {
+      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
+    } finally {
+      setBookingLoading(false)
+    }
+  }
+
+  const handleDeleteBooking = async (bookingId: number) => {
+    if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบการจองนี้?')) {
+      return
+    }
+
+    try {
+      // หาข้อมูลการจองก่อนลบ
+      const booking = bookings.find(b => b.id === bookingId)
+      
+      const response = await fetch(`/api/bookings?id=${bookingId}`, {
+        method: 'DELETE'
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        // เปลี่ยนสถานะห้องกลับเป็นว่าง
+        if (booking) {
+          const room = rooms.find(r => r.name === booking.roomName)
+          if (room) {
+            await fetch('/api/rooms', {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ...room, id: room.id, available: true })
+            })
+            await fetchRooms()
+          }
+        }
+        
+        setMessage('ลบการจองสำเร็จ! สถานะห้องถูกเปลี่ยนเป็นว่างแล้ว')
+        await fetchBookings()
+        setTimeout(() => setMessage(''), 3000)
+      } else {
+        setError(data.error || 'เกิดข้อผิดพลาดในการลบการจอง')
+      }
+    } catch (error) {
+      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
+    }
+  }
+
+  const handleConfirmBooking = async (bookingId: number) => {
+    try {
+      const booking = bookings.find(b => b.id === bookingId)
+      if (!booking) return
+
+      const response = await fetch('/api/bookings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...booking, id: bookingId, status: 'confirmed' })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        // อัพเดทสถานะห้องเป็นไม่ว่าง
+        const room = rooms.find(r => r.name === booking.roomName)
+        if (room) {
+          await fetch('/api/rooms', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...room, id: room.id, available: false })
+          })
+          await fetchRooms()
+        }
+        
+        setMessage('ยืนยันการจองสำเร็จ! สถานะห้องถูกเปลี่ยนเป็นไม่ว่างแล้ว')
+        await fetchBookings()
+        setTimeout(() => setMessage(''), 3000)
+      } else {
+        setError(data.error || 'เกิดข้อผิดพลาดในการยืนยันการจอง')
+      }
+    } catch (error) {
+      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
+    }
+  }
+
+  const handleCancelBooking = async (bookingId: number) => {
+    if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการปฏิเสธการจองนี้?')) {
+      return
+    }
+
+    try {
+      const booking = bookings.find(b => b.id === bookingId)
+      if (!booking) return
+
+      const response = await fetch('/api/bookings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...booking, id: bookingId, status: 'cancelled' })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        // เปลี่ยนสถานะห้องกลับเป็นว่าง (เพราะปฏิเสธการจอง)
+        const room = rooms.find(r => r.name === booking.roomName)
+        if (room) {
+          await fetch('/api/rooms', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ...room, id: room.id, available: true })
+          })
+          await fetchRooms()
+        }
+        
+        setMessage('ปฏิเสธการจองสำเร็จ! สถานะห้องถูกเปลี่ยนเป็นว่างแล้ว')
+        await fetchBookings()
+        setTimeout(() => setMessage(''), 3000)
+      } else {
+        setError(data.error || 'เกิดข้อผิดพลาดในการปฏิเสธการจอง')
+      }
+    } catch (error) {
+      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
+    }
+  }
+
+  const openSlipModal = (slipImage: string) => {
+    setSelectedSlip(slipImage)
+    setShowSlipModal(true)
+  }
+
+  // Calendar management functions
+  const handleUpdateDay = async () => {
+    if (!selectedRoom || !selectedDate) {
+      setCalendarMessage('กรุณาเลือกห้องและวันที่')
+      return
+    }
+
+    try {
+      const response = await fetch('/api/calendar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomId: selectedRoom,
+          date: selectedDate,
+          status: selectedStatus,
+          hasSpecialDiscount: hasDiscount,
+          note: note
+        })
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        setCalendarMessage('✅ อัปเดตสถานะสำเร็จ!')
+        setSelectedDate('')
+        setNote('')
+        setHasDiscount(false)
+        setCalendarKey(prev => prev + 1) // Force refresh calendar
+        setTimeout(() => setCalendarMessage(''), 3000)
+      } else {
+        setCalendarMessage('❌ เกิดข้อผิดพลาด: ' + data.error)
+      }
+    } catch (error) {
+      setCalendarMessage('❌ เกิดข้อผิดพลาดในการอัปเดต')
+      console.error('Error updating calendar:', error)
+    }
+  }
+
+  const handleBulkUpdate = async () => {
+    if (!selectedRoom) {
+      setCalendarMessage('กรุณาเลือกห้องพัก')
+      return
+    }
+
+    // ตรวจสอบว่าใช้ date picker หรือ text input
+    let start = startDate
+    let end = endDate
+    
+    if (!start || !end) {
+      // ถ้าไม่มีค่าจาก date picker ให้ลองดูจาก text input
+      const dates = selectedDate.split(' to ')
+      if (dates.length === 2) {
+        start = dates[0].trim()
+        end = dates[1].trim()
+      } else {
+        setCalendarMessage('กรุณาเลือกช่วงวันที่')
+        return
+      }
+    }
+
+    try {
+      const response = await fetch('/api/calendar', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomId: selectedRoom,
+          startDate: start,
+          endDate: end,
+          status: selectedStatus,
+          note: note
+        })
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        setCalendarMessage(`✅ อัปเดต ${data.updatedDates.length} วันสำเร็จ!`)
+        setSelectedDate('')
+        setStartDate('')
+        setEndDate('')
+        setNote('')
+        setCalendarKey(prev => prev + 1) // Force refresh calendar
+        setTimeout(() => setCalendarMessage(''), 3000)
+      } else {
+        setCalendarMessage('❌ เกิดข้อผิดพลาด: ' + data.error)
+      }
+    } catch (error) {
+      setCalendarMessage('❌ เกิดข้อผิดพลาดในการอัปเดต')
+      console.error('Error bulk updating calendar:', error)
+    }
+  }
+
+  const handleRemoveDiscount = async () => {
+    if (!selectedRoom || !selectedDate) {
+      setCalendarMessage('กรุณาเลือกห้องและวันที่')
+      return
+    }
+
+    try {
+      const response = await fetch('/api/calendar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomId: selectedRoom,
+          date: selectedDate,
+          status: selectedStatus,
+          hasSpecialDiscount: false, // ลบสติ๊กเกอร์
+          note: note
+        })
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        setCalendarMessage('✅ ลบสติ๊กเกอร์ราคาพิเศษสำเร็จ!')
+        setHasDiscount(false)
+        setCalendarKey(prev => prev + 1) // Force refresh calendar
+        setTimeout(() => setCalendarMessage(''), 3000)
+      } else {
+        setCalendarMessage('❌ เกิดข้อผิดพลาด: ' + data.error)
+      }
+    } catch (error) {
+      setCalendarMessage('❌ เกิดข้อผิดพลาดในการลบสติ๊กเกอร์')
+      console.error('Error removing discount:', error)
+    }
+  }
+
+  useEffect(() => {
+    if (rooms.length > 0 && !selectedRoom) {
+      setSelectedRoom(rooms[0].id)
+    }
+  }, [rooms])
+
   return (
     <main className="min-h-screen bg-gray-50">
       <Navbar />
@@ -162,43 +928,57 @@ export default function AdminPage() {
           </div>
 
           {/* Tabs */}
-          <div className="flex space-x-4 mb-8 border-b">
+          <div className="flex flex-wrap gap-2 mb-8 border-b">
             <button
               onClick={() => setActiveTab('dashboard')}
-              className={`px-6 py-3 font-semibold border-b-2 transition ${
+              className={`px-6 py-3 font-semibold border-b-2 transition text-black ${
                 activeTab === 'dashboard'
-                  ? 'border-primary-600 text-primary-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
+                  ? 'border-ocean-600 text-ocean-600 bg-ocean-50'
+                  : 'border-transparent hover:text-ocean-600 hover:bg-ocean-50'
               }`}
             >
+              <FaHotel className="inline mr-2" />
               ภาพรวม
             </button>
             <button
               onClick={() => setActiveTab('bookings')}
-              className={`px-6 py-3 font-semibold border-b-2 transition ${
+              className={`px-6 py-3 font-semibold border-b-2 transition text-black ${
                 activeTab === 'bookings'
-                  ? 'border-primary-600 text-primary-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
+                  ? 'border-ocean-600 text-ocean-600 bg-ocean-50'
+                  : 'border-transparent hover:text-ocean-600 hover:bg-ocean-50'
               }`}
             >
+              <FaCalendarCheck className="inline mr-2" />
               การจอง
             </button>
             <button
               onClick={() => setActiveTab('rooms')}
-              className={`px-6 py-3 font-semibold border-b-2 transition ${
+              className={`px-6 py-3 font-semibold border-b-2 transition text-black ${
                 activeTab === 'rooms'
-                  ? 'border-primary-600 text-primary-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
+                  ? 'border-ocean-600 text-ocean-600 bg-ocean-50'
+                  : 'border-transparent hover:text-ocean-600 hover:bg-ocean-50'
               }`}
             >
+              <FaHotel className="inline mr-2" />
               จัดการบ้านพัก
             </button>
             <button
+              onClick={() => setActiveTab('calendar')}
+              className={`px-6 py-3 font-semibold border-b-2 transition text-black ${
+                activeTab === 'calendar'
+                  ? 'border-ocean-600 text-ocean-600 bg-ocean-50'
+                  : 'border-transparent hover:text-ocean-600 hover:bg-ocean-50'
+              }`}
+            >
+              <FaCalendarAlt className="inline mr-2" />
+              จัดการปฏิทิน
+            </button>
+            <button
               onClick={() => setActiveTab('users')}
-              className={`px-6 py-3 font-semibold border-b-2 transition ${
+              className={`px-6 py-3 font-semibold border-b-2 transition text-black ${
                 activeTab === 'users'
-                  ? 'border-primary-600 text-primary-600'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
+                  ? 'border-ocean-600 text-ocean-600 bg-ocean-50'
+                  : 'border-transparent hover:text-ocean-600 hover:bg-ocean-50'
               }`}
             >
               <FaUserShield className="inline mr-2" />
@@ -330,6 +1110,18 @@ export default function AdminPage() {
                 </div>
               </div>
 
+              {message && (
+                <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+                  {message}
+                </div>
+              )}
+
+              {error && (
+                <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                  {error}
+                </div>
+              )}
+
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50">
@@ -341,16 +1133,19 @@ export default function AdminPage() {
                         ชื่อผู้จอง
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        ติดต่อ
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                         บ้านพัก
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        เช็คอิน
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        เช็คเอาท์
+                        วันที่เข้าพัก
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                         ผู้เข้าพัก
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        สลิป
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                         สถานะ
@@ -370,10 +1165,29 @@ export default function AdminPage() {
                         <td className="px-6 py-4 whitespace-nowrap font-medium text-black">
                           {booking.guestName}
                         </td>
+                        <td className="px-6 py-4 text-black">
+                          <div className="text-sm">
+                            <div>{booking.email}</div>
+                            <div className="text-gray-500">{booking.phone}</div>
+                          </div>
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-black">{booking.roomName}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-black">{booking.checkIn}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-black">{booking.checkOut}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-black text-sm">
+                          {booking.checkIn} - {booking.checkOut}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap text-black">{booking.guests} คน</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {booking.slipImage ? (
+                            <button
+                              onClick={() => openSlipModal(booking.slipImage!)}
+                              className="text-blue-600 hover:text-blue-800 underline"
+                            >
+                              ดูสลิป
+                            </button>
+                          ) : (
+                            <span className="text-gray-400">ไม่มี</span>
+                          )}
+                        </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span
                             className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(
@@ -386,14 +1200,40 @@ export default function AdminPage() {
                         <td className="px-6 py-4 whitespace-nowrap font-semibold text-black">
                           ฿{booking.total.toLocaleString()}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex space-x-2">
-                            <button className="text-blue-600 hover:text-blue-800">
-                              <FaEdit />
-                            </button>
-                            <button className="text-red-600 hover:text-red-800">
-                              <FaTrash />
-                            </button>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col space-y-2">
+                            <div className="flex space-x-2">
+                              <button 
+                                onClick={() => openEditBookingModal(booking)}
+                                className="text-blue-600 hover:text-blue-800 p-1"
+                                title="แก้ไข"
+                              >
+                                <FaEdit />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteBooking(booking.id)}
+                                className="text-red-600 hover:text-red-800 p-1"
+                                title="ลบ"
+                              >
+                                <FaTrash />
+                              </button>
+                            </div>
+                            {booking.status === 'pending' && (
+                              <div className="flex space-x-1">
+                                <button
+                                  onClick={() => handleConfirmBooking(booking.id)}
+                                  className="px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 transition"
+                                >
+                                  ยืนยัน
+                                </button>
+                                <button
+                                  onClick={() => handleCancelBooking(booking.id)}
+                                  className="px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 transition"
+                                >
+                                  ปฏิเสธ
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -409,11 +1249,26 @@ export default function AdminPage() {
             <div className="bg-white rounded-xl shadow-lg p-6">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-gray-900">จัดการบ้านพัก</h2>
-                <button className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition">
+                <button 
+                  onClick={openAddRoomModal}
+                  className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
+                >
                   <FaPlus />
                   <span>เพิ่มบ้านพักใหม่</span>
                 </button>
               </div>
+
+              {message && (
+                <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+                  {message}
+                </div>
+              )}
+
+              {error && (
+                <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                  {error}
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {rooms.map((room) => (
@@ -441,20 +1296,267 @@ export default function AdminPage() {
                     </div>
 
                     <div className="space-y-2 text-sm text-gray-600 mb-4">
-                      <p>เตียง: {room.beds}</p>
+                      <p className="line-clamp-2">{room.description}</p>
+                      {room.beds && <p>เตียง: {room.beds}</p>}
                       <p>รองรับผู้เข้าพัก: {room.guests} คน</p>
+                      {room.location && <p>สถานที่: {room.location}</p>}
                     </div>
 
                     <div className="flex space-x-2">
-                      <button className="flex-1 py-2 border border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition">
+                      <button 
+                        onClick={() => openEditRoomModal(room)}
+                        className="flex-1 py-2 border border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition"
+                      >
                         แก้ไข
                       </button>
-                      <button className="flex-1 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+                      <button 
+                        onClick={() => handleDeleteRoom(room.id)}
+                        className="flex-1 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                      >
                         ลบ
                       </button>
                     </div>
                   </div>
                 ))}
+              </div>
+
+              {rooms.length === 0 && (
+                <div className="text-center py-12 text-gray-500">
+                  <FaHotel className="mx-auto text-6xl mb-4 text-gray-300" />
+                  <p className="text-xl">ยังไม่มีบ้านพักในระบบ</p>
+                  <p className="text-sm mt-2">คลิกปุ่ม "เพิ่มบ้านพักใหม่" เพื่อเริ่มต้น</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Calendar Management Tab */}
+          {activeTab === 'calendar' && (
+            <div>
+              <div className="mb-6">
+                <h2 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+                  <FaCalendarAlt className="text-ocean-600" />
+                  จัดการปฏิทินจองห้องพัก
+                </h2>
+                <p className="text-gray-700 text-lg">อัปเดตสถานะและจัดการปฏิทินการจองทุกห้องพัก</p>
+              </div>
+
+              {/* Calendar Control Panel */}
+              <div className="bg-gradient-to-br from-white to-ocean-50 rounded-xl shadow-lg p-8 mb-8 border border-ocean-200">
+                <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                  <FaEdit className="text-ocean-600" />
+                  ตั้งค่าสถานะปฏิทิน
+                </h3>
+
+                {/* Room Selection */}
+                <div className="mb-6">
+                  <label className="block text-gray-900 font-semibold mb-3 text-lg">
+                    เลือกห้องพัก
+                  </label>
+                  <select
+                    value={selectedRoom || ''}
+                    onChange={(e) => setSelectedRoom(Number(e.target.value))}
+                    className="w-full px-4 py-3 border-2 border-ocean-300 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-ocean-500 text-black font-medium bg-white"
+                  >
+                    {rooms.map(room => (
+                      <option key={room.id} value={room.id} className="text-black">
+                        {room.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Date and Status Grid */}
+                <div className="grid md:grid-cols-2 gap-6 mb-6">
+                  <div>
+                    <label className="block text-gray-900 font-semibold mb-3 text-lg">
+                      วันที่เดียว
+                    </label>
+                    <input
+                      type="date"
+                      value={selectedDate}
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                      className="w-full px-4 py-3 border-2 border-ocean-300 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-ocean-500 text-black font-medium"
+                    />
+                    <p className="text-sm text-gray-700 mt-2 font-medium">
+                      สำหรับอัปเดตวันเดียว
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-900 font-semibold mb-3 text-lg">
+                      สถานะ
+                    </label>
+                    <select
+                      value={selectedStatus}
+                      onChange={(e) => setSelectedStatus(e.target.value as any)}
+                      className="w-full px-4 py-3 border-2 border-ocean-300 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-ocean-500 text-black font-semibold bg-white"
+                    >
+                      <option value="available" className="text-black font-semibold">⚪ ว่าง (Available)</option>
+                      <option value="booked" className="text-black font-semibold">🔴 ติดจองแล้ว (Booked)</option>
+                      <option value="pending" className="text-black font-semibold">🟡 จองแล้ว-ยังไม่โอน (Pending)</option>
+                      <option value="holiday" className="text-black font-semibold">🟢 วันหยุดยาว-นักขัตฤกษ์ (Holiday)</option>
+                      <option value="maintenance" className="text-black font-semibold">🟠 ปรับปรุง-ซ่อมแซม (Maintenance)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Date Range for Bulk Update */}
+                <div className="bg-indigo-50 border-2 border-indigo-300 rounded-lg p-6 mb-6">
+                  <h4 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <FaCalendarAlt className="text-indigo-600" />
+                    ช่วงวันที่ (สำหรับอัปเดตหลายวัน)
+                  </h4>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-gray-900 font-semibold mb-2">
+                        วันที่เริ่มต้น
+                      </label>
+                      <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="w-full px-4 py-3 border-2 border-indigo-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-black font-medium bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-900 font-semibold mb-2">
+                        วันที่สิ้นสุด
+                      </label>
+                      <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="w-full px-4 py-3 border-2 border-indigo-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-black font-medium bg-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Note Field */}
+                <div className="mb-6">
+                  <label className="block text-gray-900 font-semibold mb-3 text-lg">
+                    หมายเหตุ
+                  </label>
+                  <input
+                    type="text"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="ระบุรายละเอียดเพิ่มเติม (ถ้ามี)"
+                    className="w-full px-4 py-3 border-2 border-ocean-300 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-ocean-500 text-black font-medium placeholder-gray-500"
+                  />
+                </div>
+
+                {/* Special Discount Checkbox */}
+                <div className="mb-6 bg-orange-50 border-2 border-orange-300 rounded-lg p-4">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={hasDiscount}
+                      onChange={(e) => setHasDiscount(e.target.checked)}
+                      className="w-6 h-6 text-orange-600 rounded focus:ring-orange-500 cursor-pointer"
+                    />
+                    <FaFire className="text-orange-600 text-2xl" />
+                    <span className="text-lg font-bold text-gray-900">
+                      ติดสติ๊กเกอร์ราคาพิเศษ (Special Discount)
+                    </span>
+                  </label>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                  <button
+                    onClick={handleUpdateDay}
+                    className="bg-gradient-to-r from-ocean-500 to-primary-500 text-white px-6 py-4 rounded-lg hover:from-ocean-600 hover:to-primary-600 transition font-bold text-lg shadow-lg flex items-center justify-center gap-2"
+                  >
+                    <FaCalendarCheck />
+                    อัปเดตวันเดียว
+                  </button>
+                  <button
+                    onClick={handleBulkUpdate}
+                    className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-6 py-4 rounded-lg hover:from-indigo-600 hover:to-purple-600 transition font-bold text-lg shadow-lg flex items-center justify-center gap-2"
+                  >
+                    <FaCalendarAlt />
+                    อัปเดตหลายวัน
+                  </button>
+                  <button
+                    onClick={handleRemoveDiscount}
+                    className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-6 py-4 rounded-lg hover:from-gray-600 hover:to-gray-700 transition font-bold text-lg shadow-lg flex items-center justify-center gap-2"
+                  >
+                    <FaTimes />
+                    ลบสติ๊กเกอร์
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedDate('')
+                      setStartDate('')
+                      setEndDate('')
+                      setNote('')
+                      setHasDiscount(false)
+                      setSelectedStatus('available')
+                    }}
+                    className="bg-gradient-to-r from-red-500 to-red-600 text-white px-6 py-4 rounded-lg hover:from-red-600 hover:to-red-700 transition font-bold text-lg shadow-lg flex items-center justify-center gap-2"
+                  >
+                    <FaTimes />
+                    ล้างข้อมูล
+                  </button>
+                </div>
+
+                {/* Message Display */}
+                {calendarMessage && (
+                  <div className={`p-4 rounded-lg font-semibold text-lg ${calendarMessage.includes('✅') ? 'bg-green-100 text-green-900 border-2 border-green-400' : 'bg-red-100 text-red-900 border-2 border-red-400'}`}>
+                    {calendarMessage}
+                  </div>
+                )}
+              </div>
+
+              {/* Calendar Display */}
+              {selectedRoom && (
+                <div className="bg-white rounded-xl shadow-lg p-6">
+                  <RoomCalendar
+                    key={calendarKey}
+                    roomId={selectedRoom}
+                    roomName={rooms.find(r => r.id === selectedRoom)?.name || ''}
+                  />
+                </div>
+              )}
+
+              {/* Quick Guide */}
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-lg p-8 mt-8 border border-blue-200">
+                <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                  <FaCalendarAlt className="text-blue-600" />
+                  คำแนะนำการใช้งาน
+                </h3>
+                <div className="grid md:grid-cols-2 gap-6 text-gray-900">
+                  <div className="flex items-start gap-3 bg-white p-4 rounded-lg shadow">
+                    <FaCalendarCheck className="text-blue-600 mt-1 text-xl flex-shrink-0" />
+                    <div>
+                      <strong className="text-lg block mb-1">อัปเดตวันเดียว:</strong>
+                      <span className="text-gray-700">ใส่วันที่ในรูปแบบ 2024-12-25</span>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 bg-white p-4 rounded-lg shadow">
+                    <FaCalendarAlt className="text-indigo-600 mt-1 text-xl flex-shrink-0" />
+                    <div>
+                      <strong className="text-lg block mb-1">อัปเดตหลายวัน:</strong>
+                      <span className="text-gray-700">ใส่ช่วงวันที่ 2024-12-25 to 2024-12-31</span>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 bg-white p-4 rounded-lg shadow">
+                    <FaFire className="text-orange-600 mt-1 text-xl flex-shrink-0" />
+                    <div>
+                      <strong className="text-lg block mb-1">สติ๊กเกอร์ลดราคา:</strong>
+                      <span className="text-gray-700">ติ๊กช่องเพื่อแสดงไอคอนไฟ 🔥 บนปฏิทิน</span>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3 bg-white p-4 rounded-lg shadow">
+                    <FaCalendarCheck className="text-green-600 mt-1 text-xl flex-shrink-0" />
+                    <div>
+                      <strong className="text-lg block mb-1">Auto Update:</strong>
+                      <span className="text-gray-700">ระบบอัปเดตอัตโนมัติเมื่อยืนยันการจอง</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -575,6 +1677,687 @@ export default function AdminPage() {
           )}
         </div>
       </div>
+
+      {/* Room Modal */}
+      {showRoomModal && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onPaste={handlePaste}
+        >
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+              <h3 className="text-2xl font-bold text-gray-900">
+                {editingRoom ? 'แก้ไขบ้านพัก' : 'เพิ่มบ้านพักใหม่'}
+              </h3>
+              <button
+                onClick={closeRoomModal}
+                className="text-gray-400 hover:text-gray-600 transition"
+              >
+                <FaTimes className="text-2xl" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitRoom} className="p-6 space-y-4">
+              {message && (
+                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+                  {message}
+                </div>
+              )}
+
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                  {error}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-gray-700 font-medium mb-2">
+                  ชื่อบ้านพัก <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={roomFormData.name}
+                  onChange={handleRoomFormChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                  placeholder="เช่น Deluxe Suite"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">
+                    ราคาต่อคืน (บาท) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    name="price"
+                    value={roomFormData.price}
+                    onChange={handleRoomFormChange}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                    placeholder="2500"
+                    min="0"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">
+                    รองรับผู้เข้าพัก (คน) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    name="guests"
+                    value={roomFormData.guests}
+                    onChange={handleRoomFormChange}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                    placeholder="4"
+                    min="1"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-medium mb-2">
+                  รายละเอียดบ้านพัก <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  name="description"
+                  value={roomFormData.description}
+                  onChange={handleRoomFormChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                  placeholder="อธิบายเกี่ยวกับบ้านพัก..."
+                  rows={3}
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">
+                    จำนวนเตียง
+                  </label>
+                  <input
+                    type="number"
+                    name="beds"
+                    value={roomFormData.beds}
+                    onChange={handleRoomFormChange}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                    placeholder="2"
+                    min="1"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">
+                    ขนาด (ตร.ม.)
+                  </label>
+                  <input
+                    type="number"
+                    name="size"
+                    value={roomFormData.size}
+                    onChange={handleRoomFormChange}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                    placeholder="45"
+                    min="1"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-medium mb-2">
+                  สถานที่
+                </label>
+                <input
+                  type="text"
+                  name="location"
+                  value={roomFormData.location}
+                  onChange={handleRoomFormChange}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                  placeholder="กรุงเทพ"
+                />
+              </div>
+
+              {/* Image Upload Section */}
+              <div>
+                <label className="block text-gray-700 font-medium mb-2">
+                  รูปภาพบ้านพัก <span className="text-red-500">*</span>
+                </label>
+                
+                {/* Drag & Drop Area */}
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onPaste={handlePaste}
+                  tabIndex={0}
+                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+                    isDragging 
+                      ? 'border-primary-500 bg-primary-50' 
+                      : 'border-gray-300 hover:border-primary-400'
+                  }`}
+                >
+                  <div className="space-y-4">
+                    <div className="text-gray-600">
+                      <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      <label className="cursor-pointer text-primary-600 hover:text-primary-700 font-medium">
+                        <span>เลือกรูปภาพ</span>
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          onChange={handleImageSelect}
+                          className="hidden"
+                        />
+                      </label>
+                      <span className="text-gray-500"> หรือลากไฟล์มาวาง</span>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      รองรับ: JPG, PNG, GIF | วางรูปได้ด้วย Ctrl+V
+                    </p>
+                  </div>
+                </div>
+
+                {/* Image Preview Grid */}
+                {uploadedImages.length > 0 && (
+                  <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {uploadedImages.map((img, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={img}
+                          alt={`Preview ${index + 1}`}
+                          className={`w-full h-32 object-cover rounded-lg ${
+                            roomFormData.image === img ? 'ring-4 ring-primary-500' : ''
+                          }`}
+                        />
+                        
+                        {/* Main Image Badge */}
+                        {roomFormData.image === img && (
+                          <div className="absolute top-2 left-2 bg-primary-600 text-white text-xs px-2 py-1 rounded">
+                            รูปหลัก
+                          </div>
+                        )}
+
+                        {/* Action Buttons */}
+                        <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-opacity rounded-lg flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                          {roomFormData.image !== img && (
+                            <button
+                              type="button"
+                              onClick={() => setMainImage(index)}
+                              className="px-3 py-1 bg-white text-gray-800 text-xs rounded hover:bg-gray-100"
+                            >
+                              ตั้งเป็นหลัก
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
+                          >
+                            ลบ
+                          </button>
+                        </div>
+
+                        {/* Image Number */}
+                        <div className="absolute bottom-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded">
+                          {index + 1}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {uploadedImages.length === 0 && (
+                  <p className="text-sm text-gray-500 mt-2">ยังไม่มีรูปภาพ กรุณาเพิ่มรูปภาพอย่างน้อย 1 รูป</p>
+                )}
+              </div>
+
+              {/* รายละเอียดเพิ่มเติม */}
+              <div className="border-t pt-6 mt-6">
+                <h4 className="text-lg font-bold text-gray-800 mb-4">รายละเอียดเพิ่มเติม</h4>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-gray-700 font-medium mb-2">
+                      ค่ามัดจำ (บาท)
+                    </label>
+                    <input
+                      type="number"
+                      name="deposit"
+                      value={roomFormData.deposit}
+                      onChange={handleRoomFormChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                      placeholder="300"
+                      min="0"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 font-medium mb-2">
+                      จำนวนคืนขั้นต่ำ
+                    </label>
+                    <input
+                      type="number"
+                      name="minNights"
+                      value={roomFormData.minNights}
+                      onChange={handleRoomFormChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                      placeholder="1"
+                      min="1"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-gray-700 font-medium mb-2">
+                      เวลาเช็คอิน
+                    </label>
+                    <input
+                      type="time"
+                      name="checkInTime"
+                      value={roomFormData.checkInTime}
+                      onChange={handleRoomFormChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 font-medium mb-2">
+                      เวลาเช็คเอาต์
+                    </label>
+                    <input
+                      type="time"
+                      name="checkOutTime"
+                      value={roomFormData.checkOutTime}
+                      onChange={handleRoomFormChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-gray-700 font-medium mb-2">
+                      จำนวนห้องนอน
+                    </label>
+                    <input
+                      type="number"
+                      name="bedrooms"
+                      value={roomFormData.bedrooms}
+                      onChange={handleRoomFormChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                      placeholder="1"
+                      min="0"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 font-medium mb-2">
+                      จำนวนห้องน้ำ
+                    </label>
+                    <input
+                      type="number"
+                      name="bathrooms"
+                      value={roomFormData.bathrooms}
+                      onChange={handleRoomFormChange}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                      placeholder="1"
+                      min="0"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">
+                    ราคาห้องเดียว (บาท)
+                  </label>
+                  <input
+                    type="number"
+                    name="singleRoomPrice"
+                    value={roomFormData.singleRoomPrice}
+                    onChange={handleRoomFormChange}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                    placeholder="700"
+                    min="0"
+                  />
+                  <p className="text-sm text-gray-500 mt-1">ราคาสำหรับผู้เข้าพัก 1 ท่าน</p>
+                </div>
+              </div>
+
+              {/* สิ่งอำนวยความสะดวก */}
+              <div className="border-t pt-6 mt-6">
+                <h4 className="text-lg font-bold text-gray-800 mb-4">สิ่งอำนวยความสะดวก</h4>
+                
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      name="wifi"
+                      checked={roomFormData.wifi === 'true'}
+                      onChange={(e) => setRoomFormData(prev => ({ ...prev, wifi: e.target.checked ? 'true' : 'false' }))}
+                      className="w-5 h-5 text-primary-600 rounded"
+                    />
+                    <span className="text-gray-700">Free WiFi</span>
+                  </label>
+
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      name="pool"
+                      checked={roomFormData.pool === 'true'}
+                      onChange={(e) => setRoomFormData(prev => ({ ...prev, pool: e.target.checked ? 'true' : 'false' }))}
+                      className="w-5 h-5 text-primary-600 rounded"
+                    />
+                    <span className="text-gray-700">สระว่ายน้ำ</span>
+                  </label>
+
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      name="parking"
+                      checked={roomFormData.parking === 'true'}
+                      onChange={(e) => setRoomFormData(prev => ({ ...prev, parking: e.target.checked ? 'true' : 'false' }))}
+                      className="w-5 h-5 text-primary-600 rounded"
+                    />
+                    <span className="text-gray-700">ที่จอดรถ</span>
+                  </label>
+
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      name="kitchen"
+                      checked={roomFormData.kitchen === 'true'}
+                      onChange={(e) => setRoomFormData(prev => ({ ...prev, kitchen: e.target.checked ? 'true' : 'false' }))}
+                      className="w-5 h-5 text-primary-600 rounded"
+                    />
+                    <span className="text-gray-700">ครัว</span>
+                  </label>
+                </div>
+
+                <div className="mt-4">
+                  <label className="block text-gray-700 font-medium mb-2">
+                    อุปกรณ์เสริม
+                  </label>
+                  <textarea
+                    name="extraEquipment"
+                    value={roomFormData.extraEquipment}
+                    onChange={handleRoomFormChange}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                    placeholder="เช่น เครื่องเสียง, โทรทัศน์, ไมโครเวฟ"
+                    rows={2}
+                  />
+                </div>
+              </div>
+
+              {/* กฎและข้อกำหนด */}
+              <div className="border-t pt-6 mt-6">
+                <h4 className="text-lg font-bold text-gray-800 mb-4">กฎและข้อกำหนด</h4>
+                
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">
+                    คำแนะนำที่พัก
+                  </label>
+                  <textarea
+                    name="houseRules"
+                    value={roomFormData.houseRules}
+                    onChange={handleRoomFormChange}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                    placeholder="กฎการเข้าพัก เช่น ห้ามสูบบุหรี่, ห้ามนำสัตว์เลี้ยง"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="mt-4">
+                  <label className="block text-gray-700 font-medium mb-2">
+                    โปรโมชั่น
+                  </label>
+                  <textarea
+                    name="promotion"
+                    value={roomFormData.promotion}
+                    onChange={handleRoomFormChange}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                    placeholder="โปรโมชั่นพิเศษ เช่น จอง 3 คืน ลด 10%"
+                    rows={2}
+                  />
+                </div>
+
+                <div className="mt-4">
+                  <label className="block text-gray-700 font-medium mb-2">
+                    คำแนะนำการยกเลิก
+                  </label>
+                  <textarea
+                    name="cancellationPolicy"
+                    value={roomFormData.cancellationPolicy}
+                    onChange={handleRoomFormChange}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                    placeholder="นโยบายการยกเลิกการจอง"
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={closeRoomModal}
+                  className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                  disabled={roomLoading}
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition disabled:opacity-50"
+                  disabled={roomLoading}
+                >
+                  {roomLoading ? 'กำลังบันทึก...' : editingRoom ? 'บันทึกการแก้ไข' : 'เพิ่มบ้านพัก'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Booking Edit Modal */}
+      {showBookingModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+              <h3 className="text-2xl font-bold text-gray-900">แก้ไขการจอง</h3>
+              <button
+                onClick={closeBookingModal}
+                className="text-gray-400 hover:text-gray-600 transition"
+              >
+                <FaTimes className="text-2xl" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitBooking} className="p-6 space-y-4">
+              {message && (
+                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+                  {message}
+                </div>
+              )}
+
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                  {error}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">
+                    ชื่อผู้จอง <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="guestName"
+                    value={bookingFormData.guestName}
+                    onChange={handleBookingFormChange}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">
+                    บ้านพัก <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    name="roomName"
+                    value={bookingFormData.roomName}
+                    onChange={handleBookingFormChange}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">
+                    อีเมล
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={bookingFormData.email}
+                    onChange={handleBookingFormChange}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">
+                    เบอร์โทร
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={bookingFormData.phone}
+                    onChange={handleBookingFormChange}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">
+                    วันเช็คอิน <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    name="checkIn"
+                    value={bookingFormData.checkIn}
+                    onChange={handleBookingFormChange}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">
+                    วันเช็คเอาท์ <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    name="checkOut"
+                    value={bookingFormData.checkOut}
+                    onChange={handleBookingFormChange}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">
+                    จำนวนผู้เข้าพัก <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    name="guests"
+                    value={bookingFormData.guests}
+                    onChange={handleBookingFormChange}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                    min="1"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 font-medium mb-2">
+                    ยอดรวม (บาท) <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    name="total"
+                    value={bookingFormData.total}
+                    onChange={handleBookingFormChange}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                    min="0"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={closeBookingModal}
+                  className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                  disabled={bookingLoading}
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition disabled:opacity-50"
+                  disabled={bookingLoading}
+                >
+                  {bookingLoading ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Slip Image Modal */}
+      {showSlipModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4" onClick={() => setShowSlipModal(false)}>
+          <div className="relative max-w-4xl w-full" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setShowSlipModal(false)}
+              className="absolute -top-10 right-0 text-white hover:text-gray-300 transition"
+            >
+              <FaTimes className="text-3xl" />
+            </button>
+            <div className="bg-white rounded-lg p-4">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">สลิปการโอนเงิน</h3>
+              <div className="relative w-full h-[600px]">
+                <Image
+                  src={selectedSlip}
+                  alt="Payment Slip"
+                  fill
+                  className="object-contain"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }

@@ -57,6 +57,196 @@ body {
   .animate-shine {
     animation: shine 1.5s ease-in-out;
   }
+
+  /* Ocean Wave Button Animations */
+  @keyframes wave {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  @keyframes ripple {
+    0% {
+      transform: scale(0);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(4);
+      opacity: 0;
+    }
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% center;
+    }
+    100% {
+      background-position: 200% center;
+    }
+  }
+
+  @keyframes splash {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    50% {
+      transform: scale(1.05);
+      box-shadow: 0 20px 25px -5px rgba(59, 130, 246, 0.3), 
+                  0 10px 10px -5px rgba(59, 130, 246, 0.2);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  @keyframes bubble {
+    0% {
+      transform: translateY(0) scale(1);
+      opacity: 0;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-20px) scale(1.2);
+      opacity: 0;
+    }
+  }
+}
+
+/* Ocean-Themed Button Styles */
+button:not(.no-ocean-animation), 
+a[class*="bg-primary"]:not(.no-ocean-animation), 
+a[class*="bg-ocean"]:not(.no-ocean-animation),
+button[class*="bg-primary"]:not(.no-ocean-animation),
+button[class*="bg-ocean"]:not(.no-ocean-animation),
+.btn-ocean {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Disable animations for tab buttons */
+button.no-ocean-animation {
+  position: static !important;
+  overflow: visible !important;
+}
+
+button:not(:disabled):not(.no-ocean-animation):hover,
+a[class*="bg-primary"]:not(.no-ocean-animation):hover,
+a[class*="bg-ocean"]:not(.no-ocean-animation):hover,
+button[class*="bg-primary"]:not(:disabled):not(.no-ocean-animation):hover,
+button[class*="bg-ocean"]:not(:disabled):not(.no-ocean-animation):hover,
+.btn-ocean:hover {
+  transform: translateY(-2px);
+  animation: float 2s ease-in-out infinite;
+}
+
+button:not(.no-ocean-animation)::before,
+a[class*="bg-primary"]:not(.no-ocean-animation)::before,
+a[class*="bg-ocean"]:not(.no-ocean-animation)::before,
+button[class*="bg-primary"]:not(.no-ocean-animation)::before,
+button[class*="bg-ocean"]:not(.no-ocean-animation)::before,
+.btn-ocean::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  transition: left 0.5s;
+}
+
+button:not(.no-ocean-animation):hover::before,
+a[class*="bg-primary"]:not(.no-ocean-animation):hover::before,
+a[class*="bg-ocean"]:not(.no-ocean-animation):hover::before,
+button[class*="bg-primary"]:not(.no-ocean-animation):hover::before,
+button[class*="bg-ocean"]:not(.no-ocean-animation):hover::before,
+.btn-ocean:hover::before {
+  left: 100%;
+}
+
+/* Ripple Effect on Click */
+button:not(.no-ocean-animation)::after,
+a[class*="bg-primary"]:not(.no-ocean-animation)::after,
+a[class*="bg-ocean"]:not(.no-ocean-animation)::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+button:not(.no-ocean-animation):active::after,
+a[class*="bg-primary"]:not(.no-ocean-animation):active::after,
+a[class*="bg-ocean"]:not(.no-ocean-animation):active::after {
+  width: 300px;
+  height: 300px;
+  opacity: 0;
+  transition: width 0s, height 0s, opacity 0.6s;
+}
+
+/* Bubble Animation for Primary Buttons */
+button[class*="bg-primary"]:hover,
+a[class*="bg-primary"]:hover {
+  box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.4),
+              0 10px 10px -5px rgba(59, 130, 246, 0.3);
+}
+
+/* Gradient Shimmer Effect */
+.btn-shimmer {
+  background-size: 200% 100%;
+  background-image: linear-gradient(
+    90deg,
+    #0284c7 0%,
+    #0ea5e9 25%,
+    #38bdf8 50%,
+    #0ea5e9 75%,
+    #0284c7 100%
+  );
+  animation: shimmer 3s linear infinite;
+}
+
+/* Delete/Danger Button Pulse */
+button[class*="bg-red"]:hover {
+  animation: splash 0.6s ease-in-out;
+}
+
+/* Border Button Wave Effect */
+button[class*="border-primary"]:hover,
+button[class*="border-ocean"]:hover {
+  background: linear-gradient(90deg, 
+    rgba(59, 130, 246, 0.05) 0%, 
+    rgba(59, 130, 246, 0.1) 50%, 
+    rgba(59, 130, 246, 0.05) 100%
+  );
+  background-size: 200% 100%;
+  animation: wave 2s linear infinite;
 }
 
 /* Custom Scrollbar */

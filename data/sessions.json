@@ -124,5 +124,23 @@
     "userId": "501cf967-7be2-43b9-a765-73166f06177a",
     "createdAt": "2025-12-03T07:26:12.581Z",
     "expiresAt": "2025-12-10T07:26:12.581Z"
+  },
+  {
+    "token": "19945fb5fc782e0319c8b85a69bb3b913e9e2f5d2255ea047dd5e26e4c42d9f3",
+    "userId": "501cf967-7be2-43b9-a765-73166f06177a",
+    "createdAt": "2025-12-03T13:12:03.253Z",
+    "expiresAt": "2025-12-10T13:12:03.253Z"
+  },
+  {
+    "token": "ea0ebf7f6b79ae8c5ad42fb0bde0faba1bed35806a5bc27c651cbd8e650b744e",
+    "userId": "501cf967-7be2-43b9-a765-73166f06177a",
+    "createdAt": "2025-12-03T17:15:53.370Z",
+    "expiresAt": "2025-12-10T17:15:53.370Z"
+  },
+  {
+    "token": "9e459bb4962fd481ffa0d699443f66006a69ecc64a8035595cba74d1b85f2ce8",
+    "userId": "501cf967-7be2-43b9-a765-73166f06177a",
+    "createdAt": "2025-12-04T08:08:03.169Z",
+    "expiresAt": "2025-12-11T08:08:03.169Z"
   }
 ]

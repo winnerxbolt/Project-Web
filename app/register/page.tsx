@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { FaHome } from 'react-icons/fa'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -33,6 +34,17 @@ export default function RegisterPage() {
   return (
     <main className="min-h-screen bg-gray-50 py-16">
       <section className="max-w-md mx-auto p-6 bg-white rounded shadow">
+        {/* Home Button */}
+        <div className="mb-6">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-primary-600 hover:text-primary-700 transition font-medium"
+          >
+            <FaHome className="text-xl" />
+            <span>กลับหน้าหลัก</span>
+          </Link>
+        </div>
+
         <h1 className="text-2xl font-semibold text-black mb-4">สมัครสมาชิก</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <input value={name} onChange={(e) => setName(e.target.value)} placeholder="ชื่อ" className="w-full p-2 text-black border rounded" required />

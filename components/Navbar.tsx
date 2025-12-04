@@ -36,24 +36,24 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop Menu */}
-          <div className="hidden md:flex items-center space-x-8">
-            <Link href="/" className="text-white hover:text-ocean-50 transition font-medium">
-              Home
+          <div className="hidden md:flex items-center space-x-4">
+            <Link href="/" className="relative text-white hover:text-white transition font-medium px-4 py-2 border-2 border-white/30 rounded-lg hover:border-white/80 hover:bg-white/10 backdrop-blur-sm overflow-hidden group">
+              <span className="relative z-10">Home</span>
             </Link>
-            <Link href="/rooms" className="text-white hover:text-ocean-50 transition font-medium">
-              Poolvilla
+            <Link href="/rooms" className="relative text-white hover:text-white transition font-medium px-4 py-2 border-2 border-white/30 rounded-lg hover:border-white/80 hover:bg-white/10 backdrop-blur-sm overflow-hidden group">
+              <span className="relative z-10">Poolvilla</span>
             </Link>
-            <Link href="/reviews" className="text-white hover:text-ocean-50 transition font-medium">
-              Reviews
+            <Link href="/reviews" className="relative text-white hover:text-white transition font-medium px-4 py-2 border-2 border-white/30 rounded-lg hover:border-white/80 hover:bg-white/10 backdrop-blur-sm overflow-hidden group">
+              <span className="relative z-10">Reviews</span>
             </Link>
-            <Link href="/reviews/videos" className="text-white hover:text-ocean-50 transition font-medium whitespace-nowrap">
-              Video Poolvilla
+            <Link href="/reviews/videos" className="relative text-white hover:text-white transition font-medium px-4 py-2 border-2 border-white/30 rounded-lg hover:border-white/80 hover:bg-white/10 backdrop-blur-sm overflow-hidden group whitespace-nowrap">
+              <span className="relative z-10">Video Poolvilla</span>
             </Link>
-            <Link href="/about" className="text-white hover:text-ocean-50 transition font-medium whitespace-nowrap">
-              About Us
+            <Link href="/about" className="relative text-white hover:text-white transition font-medium px-4 py-2 border-2 border-white/30 rounded-lg hover:border-white/80 hover:bg-white/10 backdrop-blur-sm overflow-hidden group whitespace-nowrap">
+              <span className="relative z-10">About Us</span>
             </Link>
-            <Link href="/contact" className="text-white hover:text-ocean-50 transition font-medium">
-              Contact
+            <Link href="/contact" className="relative text-white hover:text-white transition font-medium px-4 py-2 border-2 border-white/30 rounded-lg hover:border-white/80 hover:bg-white/10 backdrop-blur-sm overflow-hidden group">
+              <span className="relative z-10">Contact</span>
             </Link>
             
             {/* User Menu */}
@@ -69,6 +69,19 @@ export default function Navbar() {
                 
                 {userMenuOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-2 z-50">
+                    {isAdmin() && (
+                      <>
+                        <Link
+                          href="/admin"
+                          className="block px-4 py-2 text-gray-800 hover:bg-ocean-50 flex items-center gap-2"
+                          onClick={() => setUserMenuOpen(false)}
+                        >
+                          <FaUserShield />
+                          <span>Admin Mode</span>
+                        </Link>
+                        <div className="border-t my-2"></div>
+                      </>
+                    )}
                     <Link
                       href="/account"
                       className="block px-4 py-2 text-gray-800 hover:bg-ocean-50 flex items-center gap-2"
@@ -131,48 +144,48 @@ export default function Navbar() {
       {/* Mobile Menu */}
       {isOpen && (
         <div className="md:hidden bg-white border-t border-ocean-200">
-          <div className="px-2 pt-2 pb-3 space-y-1">
+          <div className="px-2 pt-2 pb-3 space-y-2">
             <Link
               href="/"
-              className="block px-3 py-2 text-ocean-700 hover:bg-ocean-50 hover:text-ocean-800 rounded-md"
+              className="block px-4 py-2.5 text-ocean-700 font-medium border-2 border-ocean-200 rounded-lg hover:border-ocean-400 hover:bg-ocean-50 transition overflow-hidden relative group"
               onClick={() => setIsOpen(false)}
             >
-              Home
+              <span className="relative z-10">Home</span>
             </Link>
             <Link
               href="/rooms"
-              className="block px-3 py-2 text-ocean-700 hover:bg-ocean-50 hover:text-ocean-800 rounded-md"
+              className="block px-4 py-2.5 text-ocean-700 font-medium border-2 border-ocean-200 rounded-lg hover:border-ocean-400 hover:bg-ocean-50 transition overflow-hidden relative group"
               onClick={() => setIsOpen(false)}
             >
-              Poolvilla
+              <span className="relative z-10">Poolvilla</span>
             </Link>
             <Link
               href="/reviews"
-              className="block px-3 py-2 text-ocean-700 hover:bg-ocean-50 hover:text-ocean-800 rounded-md"
+              className="block px-4 py-2.5 text-ocean-700 font-medium border-2 border-ocean-200 rounded-lg hover:border-ocean-400 hover:bg-ocean-50 transition overflow-hidden relative group"
               onClick={() => setIsOpen(false)}
             >
-              Reviews
+              <span className="relative z-10">Reviews</span>
             </Link>
             <Link
               href="/reviews/videos"
-              className="block px-3 py-2 text-ocean-700 hover:bg-ocean-50 hover:text-ocean-800 rounded-md"
+              className="block px-4 py-2.5 text-ocean-700 font-medium border-2 border-ocean-200 rounded-lg hover:border-ocean-400 hover:bg-ocean-50 transition overflow-hidden relative group"
               onClick={() => setIsOpen(false)}
             >
-              Video Poolvilla
+              <span className="relative z-10">Video Poolvilla</span>
             </Link>
             <Link
               href="/about"
-              className="block px-3 py-2 text-ocean-700 hover:bg-ocean-50 hover:text-ocean-800 rounded-md"
+              className="block px-4 py-2.5 text-ocean-700 font-medium border-2 border-ocean-200 rounded-lg hover:border-ocean-400 hover:bg-ocean-50 transition overflow-hidden relative group"
               onClick={() => setIsOpen(false)}
             >
-              About Us
+              <span className="relative z-10">About Us</span>
             </Link>
             <Link
               href="/contact"
-              className="block px-3 py-2 text-ocean-700 hover:bg-ocean-50 hover:text-ocean-800 rounded-md"
+              className="block px-4 py-2.5 text-ocean-700 font-medium border-2 border-ocean-200 rounded-lg hover:border-ocean-400 hover:bg-ocean-50 transition overflow-hidden relative group"
               onClick={() => setIsOpen(false)}
             >
-              Contact
+              <span className="relative z-10">Contact</span>
             </Link>
             
             {/* Mobile User Menu */}

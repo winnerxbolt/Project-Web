@@ -7,27 +7,46 @@ interface Room {
   name: string
   price: number
   image: string
+  images?: string[]
   beds: number
   guests: number
   size: number
   rating: number
   reviews: number
   amenities: string[]
+  available: boolean
 }
 
 export default function RoomCard({ room }: { room: Room }) {
+  const displayImage = (room.images && room.images.length > 0) ? room.images[0] : room.image
+  const imageCount = room.images?.length || 1
+
   return (
     <div className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition duration-300 transform hover:-translate-y-1">
       {/* Room Image */}
-      <div className="relative h-48 overflow-hidden">
+      <div className="relative h-48 overflow-hidden group">
         <Image
-          src={room.image}
+          src={displayImage}
           alt={room.name}
           fill
-          className="object-cover hover:scale-110 transition duration-300"
+          className="object-cover group-hover:scale-110 transition duration-300"
         />
+        {/* Image Count Badge */}
+        {imageCount > 1 && (
+          <div className="absolute bottom-4 right-4 bg-black bg-opacity-70 text-white px-2 py-1 rounded text-xs font-semibold">
+            📷 {imageCount} รูป
+          </div>
+        )}
         <div className="absolute top-4 right-4 bg-primary-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
           ฿{room.price.toLocaleString()}/คืน
+        </div>
+        {/* Availability Badge */}
+        <div className={`absolute top-4 left-4 px-3 py-1 rounded-full text-sm font-semibold ${
+          room.available 
+            ? 'bg-green-500 text-white' 
+            : 'bg-red-500 text-white'
+        }`}>
+          {room.available ? '✓ ว่าง' : '✕ ไม่ว่าง'}
         </div>
       </div>
 
