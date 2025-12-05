@@ -3,6 +3,7 @@
 import { useState, useEffect, type FormEvent } from 'react'
 import { FaPhone, FaEnvelope, FaMapMarkerAlt, FaFacebook, FaLine, FaSun, FaMoon } from 'react-icons/fa'
 import React from 'react'
+import { containsProfanity } from '@/lib/profanityFilter'
 
 type Props = {
   endpoint?: string
@@ -53,6 +54,16 @@ export default function Contact({
     }
     if (!validateEmail(email)) {
       setErrorText('รูปแบบอีเมลไม่ถูกต้อง')
+      setStatus('error')
+      return
+    }
+    if (containsProfanity(name)) {
+      setErrorText('ชื่อมีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม')
+      setStatus('error')
+      return
+    }
+    if (containsProfanity(message)) {
+      setErrorText('ข้อความมีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม')
       setStatus('error')
       return
     }

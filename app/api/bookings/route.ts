@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { readFile, writeFile } from 'fs/promises'
 import path from 'path'
+import { containsProfanity } from '@/lib/profanityFilter'
 
 const bookingsFilePath = path.join(process.cwd(), 'data', 'bookings.json')
 
@@ -49,6 +50,20 @@ export async function POST(request: Request) {
     if (!roomName || !guestName || !checkIn || !checkOut || !guests || !total) {
       return NextResponse.json(
         { success: false, error: 'Missing required fields' },
+        { status: 400 }
+      )
+    }
+
+    // Check for profanity
+    if (containsProfanity(guestName)) {
+      return NextResponse.json(
+        { success: false, error: 'ชื่อผู้เข้าพักมีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม' },
+        { status: 400 }
+      )
+    }
+    if (email && containsProfanity(email)) {
+      return NextResponse.json(
+        { success: false, error: 'อีเมลมีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม' },
         { status: 400 }
       )
     }

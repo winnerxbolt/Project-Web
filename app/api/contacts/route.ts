@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs'
 import path from 'path'
 import { NextResponse } from 'next/server'
+import { containsProfanity } from '@/lib/profanityFilter'
 
 type ContactBody = {
   name: string
@@ -88,6 +89,14 @@ export async function POST(req: Request) {
 
     if (!body || !body.name || !body.email || !body.message) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
+
+    // Check for profanity
+    if (containsProfanity(body.name)) {
+      return NextResponse.json({ error: 'ชื่อมีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม' }, { status: 400 })
+    }
+    if (containsProfanity(body.message)) {
+      return NextResponse.json({ error: 'ข้อความมีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม' }, { status: 400 })
     }
     if (!validateEmail(body.email)) {
       return NextResponse.json({ error: 'Invalid email' }, { status: 400 })

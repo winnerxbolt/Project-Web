@@ -22,18 +22,16 @@ export default function About({
         ระบบจองบ้านพัก Poolvilla ออนไลน์ที่ทันสมัย ให้บริการจองบ้านพัก Poolvilla คุณภาพ ทั่วประเทศไทย
       </p>
       {showCta && (
-        <Link href={href} aria-label="ดูเพิ่มเติมเกี่ยวกับเรา">
-          <span className="inline-block bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg">
-            ดูเพิ่มเติม
-          </span>
-        </Link>
+        <span className="inline-block bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg">
+          ดูเพิ่มเติม
+        </span>
       )}
     </>
   )
 
   return (
     <div className={`max-w-md ${className}`}>
-      {href ? (
+      {href && !showCta ? (
         <Link href={href} className="group block" aria-label="เกี่ยวกับเรา">
           <div className="group-hover:opacity-95 transition">{content}</div>
         </Link>

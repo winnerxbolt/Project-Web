@@ -17,7 +17,7 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="bg-gradient-to-r from-ocean-500 to-primary-500 shadow-lg fixed w-full top-0 z-50">
+    <nav className="fixed w-full top-0 z-50 bg-white/80 backdrop-blur-xl shadow-lg border-b border-pool-blue/20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           {/* Logo */}
@@ -36,23 +36,23 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop Menu */}
-          <div className="hidden md:flex items-center space-x-4">
-            <Link href="/" className="relative text-white hover:text-white transition font-medium px-4 py-2 border-2 border-white/30 rounded-lg hover:border-white/80 hover:bg-white/10 backdrop-blur-sm overflow-hidden group">
+          <div className="hidden md:flex items-center space-x-2">
+            <Link href="/" className="relative text-pool-dark hover:text-pool-blue transition font-medium px-4 py-2 rounded-lg hover:bg-pool-blue/10 group">
               <span className="relative z-10">Home</span>
             </Link>
-            <Link href="/rooms" className="relative text-white hover:text-white transition font-medium px-4 py-2 border-2 border-white/30 rounded-lg hover:border-white/80 hover:bg-white/10 backdrop-blur-sm overflow-hidden group">
+            <Link href="/rooms" className="relative text-pool-dark hover:text-pool-blue transition font-medium px-4 py-2 rounded-lg hover:bg-pool-blue/10 group">
               <span className="relative z-10">Poolvilla</span>
             </Link>
-            <Link href="/reviews" className="relative text-white hover:text-white transition font-medium px-4 py-2 border-2 border-white/30 rounded-lg hover:border-white/80 hover:bg-white/10 backdrop-blur-sm overflow-hidden group">
+            <Link href="/reviews" className="relative text-pool-dark hover:text-pool-blue transition font-medium px-4 py-2 rounded-lg hover:bg-pool-blue/10 group">
               <span className="relative z-10">Reviews</span>
             </Link>
-            <Link href="/reviews/videos" className="relative text-white hover:text-white transition font-medium px-4 py-2 border-2 border-white/30 rounded-lg hover:border-white/80 hover:bg-white/10 backdrop-blur-sm overflow-hidden group whitespace-nowrap">
+            <Link href="/reviews/videos" className="relative text-pool-dark hover:text-pool-blue transition font-medium px-4 py-2 rounded-lg hover:bg-pool-blue/10 group whitespace-nowrap">
               <span className="relative z-10">Video Poolvilla</span>
             </Link>
-            <Link href="/about" className="relative text-white hover:text-white transition font-medium px-4 py-2 border-2 border-white/30 rounded-lg hover:border-white/80 hover:bg-white/10 backdrop-blur-sm overflow-hidden group whitespace-nowrap">
+            <Link href="/about" className="relative text-pool-dark hover:text-pool-blue transition font-medium px-4 py-2 rounded-lg hover:bg-pool-blue/10 group whitespace-nowrap">
               <span className="relative z-10">About Us</span>
             </Link>
-            <Link href="/contact" className="relative text-white hover:text-white transition font-medium px-4 py-2 border-2 border-white/30 rounded-lg hover:border-white/80 hover:bg-white/10 backdrop-blur-sm overflow-hidden group">
+            <Link href="/contact" className="relative text-pool-dark hover:text-pool-blue transition font-medium px-4 py-2 rounded-lg hover:bg-pool-blue/10 group">
               <span className="relative z-10">Contact</span>
             </Link>
             
@@ -61,7 +61,7 @@ export default function Navbar() {
               <div className="relative">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center space-x-2 bg-white text-ocean-600 px-3 py-1.5 rounded-lg hover:bg-ocean-50 transition shadow-md text-sm whitespace-nowrap"
+                  className="flex items-center space-x-2 bg-gradient-to-r from-pool-blue to-pool-dark text-white px-4 py-2 rounded-lg hover:shadow-pool transition shadow-md text-sm whitespace-nowrap"
                 >
                   <FaUser className="text-sm" />
                   <span>{user.name}</span>
@@ -101,17 +101,17 @@ export default function Navbar() {
                 )}
               </div>
             ) : (
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-3">
                 <Link
                   href="/login"
-                  className="flex items-center space-x-2 text-white hover:text-ocean-50 transition font-medium text-sm whitespace-nowrap"
+                  className="flex items-center space-x-2 text-pool-dark hover:text-pool-blue transition font-medium text-sm whitespace-nowrap"
                 >
                   <FaSignInAlt className="text-sm" />
                   <span>เข้าสู่ระบบ</span>
                 </Link>
                 <Link
                   href="/register"
-                  className="flex items-center space-x-2 bg-white text-ocean-600 px-3 py-1.5 rounded-lg hover:bg-ocean-50 transition shadow-md text-sm whitespace-nowrap"
+                  className="flex items-center space-x-2 bg-gradient-to-r from-pool-blue to-pool-dark text-white px-4 py-2 rounded-lg hover:shadow-pool transition shadow-md text-sm whitespace-nowrap"
                 >
                   <FaUser className="text-sm" />
                   <span>สมัครสมาชิก</span>
@@ -123,7 +123,7 @@ export default function Navbar() {
             {user && isAdmin() && (
               <Link
                 href="/admin"
-                className="flex items-center space-x-2 bg-primary-900 text-white px-3 py-1.5 rounded-lg hover:bg-primary-800 transition shadow-md text-sm whitespace-nowrap"
+                className="flex items-center space-x-2 bg-gradient-to-r from-luxury-gold to-luxury-bronze text-white px-4 py-2 rounded-lg hover:shadow-luxury transition shadow-md text-sm whitespace-nowrap"
               >
                 <FaUserShield className="text-sm" />
                 <span>Admin Mode</span>
@@ -133,7 +133,7 @@ export default function Navbar() {
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden text-white text-2xl"
+            className="md:hidden text-pool-dark text-2xl hover:text-pool-blue transition"
             onClick={() => setIsOpen(!isOpen)}
           >
             {isOpen ? <FaTimes /> : <FaBars />}

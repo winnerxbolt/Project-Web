@@ -6,6 +6,16 @@
   --foreground-rgb: 0, 0, 0;
   --background-start-rgb: 214, 219, 220;
   --background-end-rgb: 255, 255, 255;
+  
+  /* Poolvilla Theme Colors */
+  --pool-blue: #00B4D8;
+  --pool-dark: #0077B6;
+  --pool-light: #90E0EF;
+  --pool-accent: #48CAE4;
+  --sand-warm: #FFE5B4;
+  --tropical-green: #06D6A0;
+  --sunset-orange: #FF6B6B;
+  --luxury-gold: #FFD700;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -18,12 +28,8 @@
 
 body {
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  background: linear-gradient(135deg, #e0f7fa 0%, #ffffff 50%, #fff3e0 100%);
+  min-height: 100vh;
 }
 
 @layer utilities {
@@ -31,20 +37,88 @@ body {
     text-wrap: balance;
   }
   
-  /* Logo Animation */
-  @keyframes pulse-slow {
-    0%, 100% {
+  /* Water Ripple Effect */
+  @keyframes ripple {
+    0% {
+      transform: scale(1);
       opacity: 1;
     }
-    50% {
-      opacity: 0.95;
+    100% {
+      transform: scale(1.5);
+      opacity: 0;
     }
   }
   
-  .animate-pulse-slow {
-    animation: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  .animate-ripple {
+    animation: ripple 1.5s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+    will-change: transform, opacity;
   }
   
+  /* Wave Animation */
+  @keyframes wave {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+  
+  .animate-wave {
+    animation: wave 3s ease-in-out infinite;
+    will-change: transform;
+  }
+  
+  /* Float Animation */
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px) rotate(0deg);
+    }
+    33% {
+      transform: translateY(-20px) rotate(2deg);
+    }
+    66% {
+      transform: translateY(-10px) rotate(-2deg);
+    }
+  }
+  
+  .animate-float {
+    animation: float 8s ease-in-out infinite;
+    will-change: transform;
+  }
+  
+  /* Shimmer Effect */
+  @keyframes shimmer {
+    0% {
+      background-position: -1000px 0;
+    }
+    100% {
+      background-position: 1000px 0;
+    }
+  }
+  
+  .animate-shimmer {
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+    background-size: 1000px 100%;
+    animation: shimmer 3s infinite;
+  }
+  
+  /* Gradient Border Animation */
+  @keyframes gradient-border {
+    0%, 100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+  
+  .animate-gradient-border {
+    background-size: 200% 200%;
+    animation: gradient-border 3s ease infinite;
+  }
+  
+  /* Shine Effect */
   @keyframes shine {
     0% {
       transform: translateX(-100%) skewX(-15deg);
@@ -58,45 +132,7 @@ body {
     animation: shine 1.5s ease-in-out;
   }
 
-  /* Ocean Wave Button Animations */
-  @keyframes wave {
-    0% {
-      transform: translateX(-100%);
-    }
-    100% {
-      transform: translateX(100%);
-    }
-  }
-
-  @keyframes ripple {
-    0% {
-      transform: scale(0);
-      opacity: 1;
-    }
-    100% {
-      transform: scale(4);
-      opacity: 0;
-    }
-  }
-
-  @keyframes float {
-    0%, 100% {
-      transform: translateY(0px);
-    }
-    50% {
-      transform: translateY(-5px);
-    }
-  }
-
-  @keyframes shimmer {
-    0% {
-      background-position: -200% center;
-    }
-    100% {
-      background-position: 200% center;
-    }
-  }
-
+  /* Additional Animations */
   @keyframes splash {
     0% {
       transform: scale(1);

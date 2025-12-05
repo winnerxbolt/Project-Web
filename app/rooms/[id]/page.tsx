@@ -7,7 +7,8 @@ import Footer from '@/components/Footer'
 import Image from 'next/image'
 import { useAuth } from '@/contexts/AuthContext'
 import RoomCalendar from '@/components/RoomCalendar'
-import { FaBed, FaUsers, FaExpand, FaStar, FaWifi, FaTv, FaSnowflake, FaCheck, FaTimes, FaUpload } from 'react-icons/fa'
+import { FaBed, FaUsers, FaExpand, FaStar, FaWifi, FaTv, FaSnowflake, FaCheck, FaTimes, FaUpload, FaFire } from 'react-icons/fa'
+import { containsProfanity } from '@/lib/profanityFilter'
 
 const getAmenityIcon = (amenityName: string) => {
   const lowerName = amenityName.toLowerCase()
@@ -50,6 +51,12 @@ export default function RoomDetailPage({ params }: { params: Promise<{ id: strin
     guests: 2,
     slipImage: ''
   })
+  
+  // Discount info
+  const [discountInfo, setDiscountInfo] = useState<{
+    totalDiscount: number
+    discounts: Array<{ date: string; amount: number; reason: string }>
+  } | null>(null)
 
   useEffect(() => {
     const fetchRoom = async () => {
@@ -99,17 +106,62 @@ export default function RoomDetailPage({ params }: { params: Promise<{ id: strin
     fetchReviews()
   }, [resolvedParams.id])
 
-  const calculateTotal = () => {
+  const calculateTotal = async () => {
     if (!roomData || !bookingData.checkIn || !bookingData.checkOut) return 0
     const checkInDate = new Date(bookingData.checkIn)
     const checkOutDate = new Date(bookingData.checkOut)
     const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24))
-    return nights > 0 ? nights * roomData.price : 0
+    
+    if (nights <= 0) return 0
+
+    // ตรวจสอบความพร้อมและส่วนลด
+    try {
+      const response = await fetch(
+        `/api/check-availability?roomId=${resolvedParams.id}&startDate=${bookingData.checkIn}&endDate=${bookingData.checkOut}`
+      )
+      const data = await response.json()
+
+      if (data.success) {
+        const baseTotal = nights * roomData.price
+        const totalDiscount = data.totalDiscount || 0
+        return baseTotal - totalDiscount
+      }
+    } catch (error) {
+      console.error('Error checking availability:', error)
+    }
+
+    return nights * roomData.price
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setBookingData(prev => ({ ...prev, [name]: value }))
+
+    // ถ้าเปลี่ยนวันที่ ให้ตรวจสอบส่วนลด
+    if ((name === 'checkIn' || name === 'checkOut') && bookingData.checkIn && bookingData.checkOut) {
+      const checkIn = name === 'checkIn' ? value : bookingData.checkIn
+      const checkOut = name === 'checkOut' ? value : bookingData.checkOut
+
+      if (checkIn && checkOut && new Date(checkIn) < new Date(checkOut)) {
+        try {
+          const response = await fetch(
+            `/api/check-availability?roomId=${resolvedParams.id}&startDate=${checkIn}&endDate=${checkOut}`
+          )
+          const data = await response.json()
+          
+          if (data.success && data.discounts.length > 0) {
+            setDiscountInfo({
+              totalDiscount: data.totalDiscount,
+              discounts: data.discounts
+            })
+          } else {
+            setDiscountInfo(null)
+          }
+        } catch (error) {
+          console.error('Error fetching discount info:', error)
+        }
+      }
+    }
   }
 
   const handleBooking = async (e: React.FormEvent) => {
@@ -118,8 +170,38 @@ export default function RoomDetailPage({ params }: { params: Promise<{ id: strin
     setError('')
     setMessage('')
 
+    // Check for profanity
+    if (containsProfanity(bookingData.guestName)) {
+      setError('ชื่อผู้เข้าพักมีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม')
+      setBookingLoading(false)
+      return
+    }
+    if (containsProfanity(bookingData.email)) {
+      setError('อีเมลมีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม')
+      setBookingLoading(false)
+      return
+    }
+
     try {
-      const total = calculateTotal()
+      // ตรวจสอบความพร้อมก่อน
+      const availabilityResponse = await fetch(
+        `/api/check-availability?roomId=${resolvedParams.id}&startDate=${bookingData.checkIn}&endDate=${bookingData.checkOut}`
+      )
+      const availabilityData = await availabilityResponse.json()
+
+      if (!availabilityData.success) {
+        setError('ไม่สามารถตรวจสอบความพร้อมได้')
+        setBookingLoading(false)
+        return
+      }
+
+      if (!availabilityData.available) {
+        setError(`ไม่สามารถจองได้ วันที่ ${availabilityData.unavailableDates.join(', ')} ไม่ว่าง (จองแล้ว/ซ่อมแซม/วันหยุด)`)
+        setBookingLoading(false)
+        return
+      }
+
+      const total = await calculateTotal()
       
       if (total <= 0) {
         setError('กรุณาเลือกวันที่ถูกต้อง')
@@ -170,6 +252,18 @@ export default function RoomDetailPage({ params }: { params: Promise<{ id: strin
     setReviewLoading(true)
     setError('')
     setMessage('')
+
+    // Check for profanity
+    if (containsProfanity(reviewData.guestName)) {
+      setError('ชื่อมีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม')
+      setReviewLoading(false)
+      return
+    }
+    if (containsProfanity(reviewData.comment)) {
+      setError('ความคิดเห็นมีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม')
+      setReviewLoading(false)
+      return
+    }
 
     try {
       const reviewPayload = {
@@ -657,18 +751,77 @@ export default function RoomDetailPage({ params }: { params: Promise<{ id: strin
                 </p>
               </div>
 
+              {/* Discount Information */}
+              {discountInfo && discountInfo.totalDiscount > 0 && (
+                <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-300 rounded-xl p-4 shadow-md">
+                  <div className="flex items-center gap-2 mb-3">
+                    <FaFire className="text-orange-600 text-xl animate-pulse" />
+                    <h4 className="text-lg font-bold text-gray-900">🎉 ส่วนลดพิเศษ!</h4>
+                  </div>
+                  <div className="space-y-2">
+                    {discountInfo.discounts.map((discount, idx) => (
+                      <div key={idx} className="bg-white rounded-lg p-3 shadow-sm">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-900">
+                              📅 {new Date(discount.date).toLocaleDateString('th-TH', { 
+                                day: 'numeric', 
+                                month: 'short', 
+                                year: 'numeric' 
+                              })}
+                            </p>
+                            <p className="text-xs text-gray-600 mt-1">
+                              💬 {discount.reason}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg font-bold text-orange-600">
+                              -฿{discount.amount.toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 pt-3 border-t-2 border-orange-200">
+                    <div className="flex justify-between items-center">
+                      <span className="text-base font-semibold text-gray-900">รวมส่วนลด:</span>
+                      <span className="text-xl font-bold text-orange-600">
+                        -฿{discountInfo.totalDiscount.toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Total Calculation */}
               {bookingData.checkIn && bookingData.checkOut && (
-                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-700">ยอดรวมทั้งหมด:</span>
-                    <span className="text-2xl font-bold text-primary-600">
-                      ฿{calculateTotal().toLocaleString()}
-                    </span>
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-300 rounded-xl p-5 shadow-md">
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-gray-700">
+                      <span>ราคาห้องพัก:</span>
+                      <span className="font-semibold">
+                        ฿{(Math.ceil((new Date(bookingData.checkOut).getTime() - new Date(bookingData.checkIn).getTime()) / (1000 * 60 * 60 * 24)) * roomData.price).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      ({Math.ceil((new Date(bookingData.checkOut).getTime() - new Date(bookingData.checkIn).getTime()) / (1000 * 60 * 60 * 24))} คืน × ฿{roomData.price.toLocaleString()})
+                    </p>
+                    {discountInfo && discountInfo.totalDiscount > 0 && (
+                      <div className="flex justify-between items-center text-orange-600">
+                        <span>ส่วนลดพิเศษ:</span>
+                        <span className="font-semibold">
+                          -฿{discountInfo.totalDiscount.toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+                    <div className="pt-3 border-t-2 border-blue-300 flex justify-between items-center">
+                      <span className="text-lg font-bold text-gray-900">ยอดรวมทั้งหมด:</span>
+                      <span className="text-3xl font-bold text-primary-600">
+                        ฿{calculateTotal().toLocaleString()}
+                      </span>
+                    </div>
                   </div>
-                  <p className="text-sm text-gray-500 mt-1">
-                    ({Math.ceil((new Date(bookingData.checkOut).getTime() - new Date(bookingData.checkIn).getTime()) / (1000 * 60 * 60 * 24))} คืน × ฿{roomData.price.toLocaleString()})
-                  </p>
                 </div>
               )}
 

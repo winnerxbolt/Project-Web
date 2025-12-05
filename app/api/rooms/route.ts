@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { readFile, writeFile } from 'fs/promises'
 import path from 'path'
+import { containsProfanity } from '@/lib/profanityFilter'
 
 const roomsFilePath = path.join(process.cwd(), 'data', 'rooms.json')
 
@@ -49,6 +50,26 @@ export async function POST(request: Request) {
     if (!name || !price || !description || !guests) {
       return NextResponse.json(
         { success: false, error: 'Missing required fields' },
+        { status: 400 }
+      )
+    }
+
+    // Check for profanity
+    if (containsProfanity(name)) {
+      return NextResponse.json(
+        { success: false, error: 'ชื่อห้องมีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม' },
+        { status: 400 }
+      )
+    }
+    if (containsProfanity(description)) {
+      return NextResponse.json(
+        { success: false, error: 'คำอธิบายมีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม' },
+        { status: 400 }
+      )
+    }
+    if (location && containsProfanity(location)) {
+      return NextResponse.json(
+        { success: false, error: 'ที่ตั้งมีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม' },
         { status: 400 }
       )
     }
@@ -103,6 +124,26 @@ export async function PUT(request: Request) {
     if (!id) {
       return NextResponse.json(
         { success: false, error: 'Room ID is required' },
+        { status: 400 }
+      )
+    }
+
+    // Check for profanity in updated fields
+    if (name && containsProfanity(name)) {
+      return NextResponse.json(
+        { success: false, error: 'ชื่อห้องมีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม' },
+        { status: 400 }
+      )
+    }
+    if (description && containsProfanity(description)) {
+      return NextResponse.json(
+        { success: false, error: 'คำอธิบายมีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม' },
+        { status: 400 }
+      )
+    }
+    if (location && containsProfanity(location)) {
+      return NextResponse.json(
+        { success: false, error: 'ที่ตั้งมีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม' },
         { status: 400 }
       )
     }

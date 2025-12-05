@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import { FaUser, FaLock, FaEnvelope, FaCheckCircle } from 'react-icons/fa'
+import { containsProfanity } from '@/lib/profanityFilter'
 
 export default function AccountPage() {
   const { user, updateProfile, changePassword } = useAuth()
@@ -34,6 +35,13 @@ export default function AccountPage() {
     setLoading(true)
     setError('')
     setMessage('')
+
+    // Check for profanity
+    if (containsProfanity(name)) {
+      setError('ชื่อมีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม')
+      setLoading(false)
+      return
+    }
 
     const success = await updateProfile(name, email)
     

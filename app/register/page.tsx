@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { FaHome } from 'react-icons/fa'
+import { containsProfanity } from '@/lib/profanityFilter'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -16,6 +17,17 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    
+    // Check for profanity
+    if (containsProfanity(name)) {
+      setError('ชื่อมีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม')
+      return
+    }
+    if (containsProfanity(email)) {
+      setError('อีเมลมีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม')
+      return
+    }
+    
     setLoading(true)
     const res = await fetch('/api/auth/register', {
       method: 'POST',

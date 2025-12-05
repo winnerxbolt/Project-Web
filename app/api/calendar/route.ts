@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { readJson, writeJson } from '@/lib/server/db'
+import { containsProfanity } from '@/lib/profanityFilter'
 
 interface CalendarDay {
   roomId: number
   date: string // YYYY-MM-DD
   status: 'available' | 'booked' | 'pending' | 'holiday' | 'maintenance'
   hasSpecialDiscount?: boolean
+  discountAmount?: number // จำนวนเงินที่ลด
+  discountReason?: string // เหตุผลการลด
   note?: string
 }
 
@@ -43,12 +46,26 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { roomId, date, status, hasSpecialDiscount, note } = body
+    const { roomId, date, status, hasSpecialDiscount, discountAmount, discountReason, note } = body
     
     if (!roomId || !date || !status) {
       return NextResponse.json({ 
         success: false, 
         error: 'กรุณาระบุ roomId, date และ status' 
+      }, { status: 400 })
+    }
+
+    // Check for profanity in discount reason and note
+    if (discountReason && containsProfanity(discountReason)) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'เหตุผลการลดราคามีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม' 
+      }, { status: 400 })
+    }
+    if (note && containsProfanity(note)) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'หมายเหตุมีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม' 
       }, { status: 400 })
     }
     
@@ -64,6 +81,8 @@ export async function POST(request: NextRequest) {
       date,
       status,
       hasSpecialDiscount: hasSpecialDiscount || false,
+      discountAmount: discountAmount || undefined,
+      discountReason: discountReason || undefined,
       note: note || ''
     }
     

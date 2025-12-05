@@ -17,6 +17,8 @@ export default function RoomsPage() {
     maxPrice: 10000,
     guests: parseInt(searchParams.get('guests') || '0'),
     sortBy: 'price-asc',
+    availability: 'all', // all, available, unavailable
+    hasDiscount: false, // ราคาพิเศษ
   })
   const [showFilters, setShowFilters] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -48,7 +50,17 @@ export default function RoomsPage() {
       const matchLocation = !filters.location || room.location.includes(filters.location)
       const matchPrice = room.price >= filters.minPrice && room.price <= filters.maxPrice
       const matchGuests = filters.guests === 0 || room.guests >= filters.guests
-      return matchLocation && matchPrice && matchGuests
+      
+      // Filter by availability
+      const matchAvailability = 
+        filters.availability === 'all' || 
+        (filters.availability === 'available' && room.available) ||
+        (filters.availability === 'unavailable' && !room.available)
+      
+      // Filter by discount (check if room has promotion)
+      const matchDiscount = !filters.hasDiscount || (room.promotion && room.promotion.trim() !== '')
+      
+      return matchLocation && matchPrice && matchGuests && matchAvailability && matchDiscount
     })
 
     // Sorting
@@ -98,13 +110,13 @@ export default function RoomsPage() {
 
                 {/* Location Filter */}
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-base font-semibold text-gray-800 mb-3">
                     สถานที่
                   </label>
                   <input
                     type="text"
                     placeholder="ค้นหาสถานที่..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                    className="w-full px-4 py-3 text-base text-gray-900 placeholder-gray-400 bg-white border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition"
                     value={filters.location}
                     onChange={(e) => setFilters({ ...filters, location: e.target.value })}
                   />
@@ -112,21 +124,21 @@ export default function RoomsPage() {
 
                 {/* Price Range */}
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-base font-semibold text-gray-800 mb-3">
                     ช่วงราคา (บาท/คืน)
                   </label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-3">
                     <input
                       type="number"
                       placeholder="ต่ำสุด"
-                      className="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                      className="w-1/2 px-4 py-3 text-base text-gray-900 placeholder-gray-400 bg-white border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition"
                       value={filters.minPrice}
                       onChange={(e) => setFilters({ ...filters, minPrice: parseInt(e.target.value) || 0 })}
                     />
                     <input
                       type="number"
                       placeholder="สูงสุด"
-                      className="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                      className="w-1/2 px-4 py-3 text-base text-gray-900 placeholder-gray-400 bg-white border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition"
                       value={filters.maxPrice}
                       onChange={(e) => setFilters({ ...filters, maxPrice: parseInt(e.target.value) || 10000 })}
                     />
@@ -135,11 +147,11 @@ export default function RoomsPage() {
 
                 {/* Guests */}
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-base font-semibold text-gray-800 mb-3">
                     จำนวนผู้เข้าพัก
                   </label>
                   <select
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                    className="w-full px-4 py-3 text-base text-gray-900 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition bg-white cursor-pointer"
                     value={filters.guests}
                     onChange={(e) => setFilters({ ...filters, guests: parseInt(e.target.value) })}
                   >
@@ -152,13 +164,45 @@ export default function RoomsPage() {
                   </select>
                 </div>
 
+                {/* Availability Filter */}
+                <div className="mb-6">
+                  <label className="block text-base font-semibold text-gray-800 mb-3">
+                    สถานะห้องพัก
+                  </label>
+                  <select
+                    className="w-full px-4 py-3 text-base text-gray-900 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition bg-white cursor-pointer"
+                    value={filters.availability}
+                    onChange={(e) => setFilters({ ...filters, availability: e.target.value })}
+                  >
+                    <option value="all">ทั้งหมด</option>
+                    <option value="available">ว่าง</option>
+                    <option value="unavailable">ไม่ว่าง</option>
+                  </select>
+                </div>
+
+                {/* Special Discount Filter */}
+                <div className="mb-6 p-4 bg-orange-50 rounded-lg border-2 border-orange-200">
+                  <label className="flex items-center space-x-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="w-5 h-5 text-orange-600 border-gray-300 rounded focus:ring-orange-500 cursor-pointer"
+                      checked={filters.hasDiscount}
+                      onChange={(e) => setFilters({ ...filters, hasDiscount: e.target.checked })}
+                    />
+                    <span className="text-base font-semibold text-gray-800 flex items-center gap-2">
+                      <span className="text-xl">🔥</span>
+                      ราคาพิเศษเท่านั้น
+                    </span>
+                  </label>
+                </div>
+
                 {/* Sort By */}
                 <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-base font-semibold text-gray-800 mb-3">
                     เรียงตาม
                   </label>
                   <select
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none"
+                    className="w-full px-4 py-3 text-base text-gray-900 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition bg-white cursor-pointer"
                     value={filters.sortBy}
                     onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
                   >
@@ -170,8 +214,8 @@ export default function RoomsPage() {
 
                 {/* Reset Button */}
                 <button
-                  onClick={() => setFilters({ location: '', minPrice: 0, maxPrice: 10000, guests: 0, sortBy: 'price-asc' })}
-                  className="w-full py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
+                  onClick={() => setFilters({ location: '', minPrice: 0, maxPrice: 10000, guests: 0, sortBy: 'price-asc', availability: 'all', hasDiscount: false })}
+                  className="w-full py-3 text-base font-semibold border-2 border-gray-300 text-gray-800 bg-white rounded-lg hover:bg-gray-100 transition-colors"
                 >
                   รีเซ็ตตัวกรอง
                 </button>

@@ -5,7 +5,11 @@ import Image from 'next/image'
 import Navbar from '@/components/Navbar'
 import RoomCalendar from '@/components/RoomCalendar'
 import { useAuth } from '@/contexts/AuthContext'
-import { FaHotel, FaCalendarCheck, FaDollarSign, FaUsers, FaPlus, FaEdit, FaTrash, FaUserShield, FaSearch, FaTimes, FaCalendarAlt, FaFire } from 'react-icons/fa'
+import { FaHotel, FaCalendarCheck, FaDollarSign, FaUsers, FaPlus, FaEdit, FaTrash, FaUserShield, FaSearch, FaTimes, FaCalendarAlt, FaFire, FaCrown, FaChartLine } from 'react-icons/fa'
+import { containsProfanity } from '@/lib/profanityFilter'
+import AdminStats from '@/components/AdminStats'
+import AdminButton from '@/components/AdminButton'
+import AdminCard from '@/components/AdminCard'
 
 interface Booking {
   id: number
@@ -161,6 +165,8 @@ export default function AdminPage() {
   const [endDate, setEndDate] = useState('')
   const [selectedStatus, setSelectedStatus] = useState<'available' | 'booked' | 'pending' | 'holiday' | 'maintenance'>('available')
   const [hasDiscount, setHasDiscount] = useState(false)
+  const [discountAmount, setDiscountAmount] = useState('')
+  const [discountReason, setDiscountReason] = useState('')
   const [note, setNote] = useState('')
   const [calendarMessage, setCalendarMessage] = useState('')
   const [calendarKey, setCalendarKey] = useState(0) // สำหรับ force refresh calendar
@@ -487,6 +493,23 @@ export default function AdminPage() {
     setError('')
     setMessage('')
 
+    // Check for profanity
+    if (containsProfanity(roomFormData.name)) {
+      setError('ชื่อห้องมีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม')
+      setRoomLoading(false)
+      return
+    }
+    if (containsProfanity(roomFormData.description)) {
+      setError('คำอธิบายมีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม')
+      setRoomLoading(false)
+      return
+    }
+    if (roomFormData.location && containsProfanity(roomFormData.location)) {
+      setError('ที่ตั้งมีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม')
+      setRoomLoading(false)
+      return
+    }
+
     try {
       const amenitiesArray = roomFormData.amenities?.split(',').map(a => a.trim()).filter(a => a) || []
       
@@ -623,6 +646,13 @@ export default function AdminPage() {
     setBookingLoading(true)
     setError('')
     setMessage('')
+
+    // Check for profanity
+    if (containsProfanity(bookingFormData.guestName)) {
+      setError('ชื่อผู้เข้าพักมีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม')
+      setBookingLoading(false)
+      return
+    }
 
     try {
       const bookingData = {
@@ -792,6 +822,17 @@ export default function AdminPage() {
       return
     }
 
+    if (hasDiscount && (!discountAmount || !discountReason)) {
+      setCalendarMessage('กรุณาระบุจำนวนเงินลดและเหตุผล')
+      return
+    }
+
+    // Check for profanity in discount reason
+    if (discountReason && containsProfanity(discountReason)) {
+      setCalendarMessage('เหตุผลการลดราคามีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม')
+      return
+    }
+
     try {
       const response = await fetch('/api/calendar', {
         method: 'POST',
@@ -801,6 +842,8 @@ export default function AdminPage() {
           date: selectedDate,
           status: selectedStatus,
           hasSpecialDiscount: hasDiscount,
+          discountAmount: hasDiscount ? Number(discountAmount) : undefined,
+          discountReason: hasDiscount ? discountReason : undefined,
           note: note
         })
       })
@@ -811,6 +854,8 @@ export default function AdminPage() {
         setSelectedDate('')
         setNote('')
         setHasDiscount(false)
+        setDiscountAmount('')
+        setDiscountReason('')
         setCalendarKey(prev => prev + 1) // Force refresh calendar
         setTimeout(() => setCalendarMessage(''), 3000)
       } else {
@@ -916,162 +961,154 @@ export default function AdminPage() {
   }, [rooms])
 
   return (
-    <main className="min-h-screen bg-gray-50">
+    <main className="min-h-screen bg-gradient-to-br from-pool-light via-white to-tropical-mint/20">
       <Navbar />
 
       <div className="pt-24 pb-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">แอดมิน Dashboard</h1>
-            <p className="text-gray-600">จัดการระบบจองบ้านพัก Poolvilla</p>
+          {/* Header with gradient */}
+          <div className="mb-12 text-center relative">
+            {/* Decorative elements */}
+            <div className="absolute top-0 left-1/4 w-32 h-32 bg-luxury-gold/20 rounded-full blur-3xl animate-float" />
+            <div className="absolute top-10 right-1/4 w-24 h-24 bg-pool-blue/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
+            
+            <div className="relative z-10">
+              <div className="inline-flex items-center gap-3 mb-4 bg-gradient-to-r from-luxury-gold to-luxury-bronze text-white px-6 py-3 rounded-full shadow-luxury">
+                <FaCrown className="text-3xl" />
+                <span className="text-xl font-bold">Admin Dashboard</span>
+              </div>
+              <h1 className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pool-dark via-pool-blue to-tropical-green mb-2">
+                ระบบจัดการ Poolvilla
+              </h1>
+              <p className="text-xl text-gray-600">จัดการบ้านพัก การจอง และผู้ใช้งาน</p>
+            </div>
           </div>
 
-          {/* Tabs */}
-          <div className="flex flex-wrap gap-2 mb-8 border-b">
+          {/* Modern Tabs */}
+          <div className="flex flex-wrap justify-center gap-3 mb-12">
             <button
               onClick={() => setActiveTab('dashboard')}
-              className={`px-6 py-3 font-semibold border-b-2 transition text-black ${
+              className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 flex items-center gap-2 ${
                 activeTab === 'dashboard'
-                  ? 'border-ocean-600 text-ocean-600 bg-ocean-50'
-                  : 'border-transparent hover:text-ocean-600 hover:bg-ocean-50'
+                  ? 'bg-gradient-to-r from-pool-blue to-pool-dark text-white shadow-pool scale-105'
+                  : 'bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200 hover:border-pool-blue hover:text-pool-blue'
               }`}
             >
-              <FaHotel className="inline mr-2" />
-              ภาพรวม
+              <FaChartLine className="text-xl" />
+              <span>ภาพรวม</span>
             </button>
             <button
               onClick={() => setActiveTab('bookings')}
-              className={`px-6 py-3 font-semibold border-b-2 transition text-black ${
+              className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 flex items-center gap-2 ${
                 activeTab === 'bookings'
-                  ? 'border-ocean-600 text-ocean-600 bg-ocean-50'
-                  : 'border-transparent hover:text-ocean-600 hover:bg-ocean-50'
+                  ? 'bg-gradient-to-r from-tropical-green to-tropical-lime text-white shadow-tropical scale-105'
+                  : 'bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200 hover:border-tropical-green hover:text-tropical-green'
               }`}
             >
-              <FaCalendarCheck className="inline mr-2" />
-              การจอง
+              <FaCalendarCheck className="text-xl" />
+              <span>การจอง</span>
             </button>
             <button
               onClick={() => setActiveTab('rooms')}
-              className={`px-6 py-3 font-semibold border-b-2 transition text-black ${
+              className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 flex items-center gap-2 ${
                 activeTab === 'rooms'
-                  ? 'border-ocean-600 text-ocean-600 bg-ocean-50'
-                  : 'border-transparent hover:text-ocean-600 hover:bg-ocean-50'
+                  ? 'bg-gradient-to-r from-tropical-orange to-luxury-gold text-white shadow-sunset scale-105'
+                  : 'bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200 hover:border-tropical-orange hover:text-tropical-orange'
               }`}
             >
-              <FaHotel className="inline mr-2" />
-              จัดการบ้านพัก
+              <FaHotel className="text-xl" />
+              <span>จัดการบ้านพัก</span>
             </button>
             <button
               onClick={() => setActiveTab('calendar')}
-              className={`px-6 py-3 font-semibold border-b-2 transition text-black ${
+              className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 flex items-center gap-2 ${
                 activeTab === 'calendar'
-                  ? 'border-ocean-600 text-ocean-600 bg-ocean-50'
-                  : 'border-transparent hover:text-ocean-600 hover:bg-ocean-50'
+                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg scale-105'
+                  : 'bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200 hover:border-blue-500 hover:text-blue-500'
               }`}
             >
-              <FaCalendarAlt className="inline mr-2" />
-              จัดการปฏิทิน
+              <FaCalendarAlt className="text-xl" />
+              <span>ปฏิทิน</span>
             </button>
             <button
               onClick={() => setActiveTab('users')}
-              className={`px-6 py-3 font-semibold border-b-2 transition text-black ${
+              className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 flex items-center gap-2 ${
                 activeTab === 'users'
-                  ? 'border-ocean-600 text-ocean-600 bg-ocean-50'
-                  : 'border-transparent hover:text-ocean-600 hover:bg-ocean-50'
+                  ? 'bg-gradient-to-r from-luxury-gold to-luxury-bronze text-white shadow-luxury scale-105'
+                  : 'bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200 hover:border-luxury-gold hover:text-luxury-gold'
               }`}
             >
-              <FaUserShield className="inline mr-2" />
-              จัดการสิทธิ์
+              <FaUserShield className="text-xl" />
+              <span>สิทธิ์ผู้ใช้</span>
             </button>
           </div>
 
           {/* Dashboard Tab */}
           {activeTab === 'dashboard' && (
             <div>
-              {/* Stats Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div className="bg-white rounded-xl shadow-lg p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-gray-500 text-sm mb-1">บ้านพักทั้งหมด</p>
-                      <p className="text-3xl font-bold text-gray-900">{stats.totalRooms}</p>
-                    </div>
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                      <FaHotel className="text-2xl text-blue-600" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-xl shadow-lg p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-gray-500 text-sm mb-1">บ้านพักว่าง</p>
-                      <p className="text-3xl font-bold text-gray-900">{stats.availableRooms}</p>
-                    </div>
-                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                      <FaCalendarCheck className="text-2xl text-green-600" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-xl shadow-lg p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-gray-500 text-sm mb-1">การจองทั้งหมด</p>
-                      <p className="text-3xl font-bold text-gray-900">{stats.totalBookings}</p>
-                    </div>
-                    <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                      <FaUsers className="text-2xl text-purple-600" />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-xl shadow-lg p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-gray-500 text-sm mb-1">รายได้</p>
-                      <p className="text-3xl font-bold text-gray-900">
-                        ฿{stats.revenue.toLocaleString()}
-                      </p>
-                    </div>
-                    <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                      <FaDollarSign className="text-2xl text-yellow-600" />
-                    </div>
-                  </div>
-                </div>
+              {/* Stats Grid with new components */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                <AdminStats
+                  icon={<FaHotel />}
+                  label="บ้านพักทั้งหมด"
+                  value={stats.totalRooms}
+                  gradient="from-pool-blue to-pool-dark"
+                />
+                <AdminStats
+                  icon={<FaCalendarCheck />}
+                  label="บ้านพักว่าง"
+                  value={stats.availableRooms}
+                  gradient="from-tropical-green to-tropical-lime"
+                />
+                <AdminStats
+                  icon={<FaUsers />}
+                  label="การจองทั้งหมด"
+                  value={stats.totalBookings}
+                  gradient="from-tropical-orange to-luxury-gold"
+                />
+                <AdminStats
+                  icon={<FaDollarSign />}
+                  label="รายได้"
+                  value={`฿${stats.revenue.toLocaleString()}`}
+                  gradient="from-luxury-gold to-luxury-bronze"
+                />
               </div>
 
               {/* Recent Bookings */}
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-4">การจองล่าสุด</h2>
+              <AdminCard variant="glass" hover={false}>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-3 bg-gradient-to-br from-tropical-green to-tropical-lime rounded-xl">
+                    <FaCalendarCheck className="text-3xl text-white" />
+                  </div>
+                  <h2 className="text-3xl font-bold text-gray-800">การจองล่าสุด</h2>
+                </div>
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-gradient-to-r from-pool-blue/10 to-tropical-green/10">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase">
                           ชื่อผู้จอง
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase">
                           บ้านพัก
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase">
                           วันที่
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase">
                           สถานะ
                         </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase">
                           ยอดรวม
                         </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {bookings.slice(0, 5).map((booking) => (
-                        <tr key={booking.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-black">{booking.guestName}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-black">{booking.roomName}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-black">
+                        <tr key={booking.id} className="hover:bg-pool-light/10 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap text-gray-800 font-medium">{booking.guestName}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-gray-800">{booking.roomName}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-gray-700 text-sm">
                             {booking.checkIn} ถึง {booking.checkOut}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
@@ -1083,7 +1120,7 @@ export default function AdminPage() {
                               {getStatusText(booking.status)}
                             </span>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap font-semibold text-black">
+                          <td className="px-6 py-4 whitespace-nowrap font-bold text-gray-900">
                             ฿{booking.total.toLocaleString()}
                           </td>
                         </tr>
@@ -1091,17 +1128,22 @@ export default function AdminPage() {
                     </tbody>
                   </table>
                 </div>
-              </div>
+              </AdminCard>
             </div>
           )}
 
           {/* Bookings Tab */}
           {activeTab === 'bookings' && (
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">จัดการการจอง</h2>
+            <AdminCard variant="glass" hover={false}>
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-gradient-to-br from-tropical-green to-tropical-lime rounded-xl">
+                    <FaCalendarCheck className="text-3xl text-white" />
+                  </div>
+                  <h2 className="text-3xl font-bold text-gray-800">จัดการการจอง</h2>
+                </div>
                 <div className="flex gap-2">
-                  <select className="px-4 py-2 border border-gray-300 rounded-lg outline-none">
+                  <select className="px-4 py-2 border-2 border-tropical-green/30 rounded-xl outline-none focus:ring-4 focus:ring-tropical-green/20 focus:border-tropical-green text-gray-700 font-medium">
                     <option value="">ทั้งหมด</option>
                     <option value="confirmed">ยืนยันแล้ว</option>
                     <option value="pending">รอดำเนินการ</option>
@@ -1111,14 +1153,14 @@ export default function AdminPage() {
               </div>
 
               {message && (
-                <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
-                  {message}
+                <div className="mb-4 bg-green-50 border-2 border-green-200 text-green-700 px-4 py-3 rounded-xl font-medium">
+                  ✓ {message}
                 </div>
               )}
 
               {error && (
-                <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-                  {error}
+                <div className="mb-4 bg-red-50 border-2 border-red-200 text-red-700 px-4 py-3 rounded-xl font-medium">
+                  ⚠ {error}
                 </div>
               )}
 
@@ -1241,7 +1283,7 @@ export default function AdminPage() {
                   </tbody>
                 </table>
               </div>
-            </div>
+            </AdminCard>
           )}
 
           {/* Rooms Tab */}
@@ -1332,26 +1374,30 @@ export default function AdminPage() {
 
           {/* Calendar Management Tab */}
           {activeTab === 'calendar' && (
-            <div>
+            <AdminCard variant="glass" hover={false}>
               <div className="mb-6">
-                <h2 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-                  <FaCalendarAlt className="text-ocean-600" />
-                  จัดการปฏิทินจองห้องพัก
-                </h2>
-                <p className="text-gray-700 text-lg">อัปเดตสถานะและจัดการปฏิทินการจองทุกห้องพัก</p>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl">
+                    <FaCalendarAlt className="text-3xl text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-bold text-gray-800">จัดการปฏิทินจองห้องพัก</h2>
+                    <p className="text-gray-700 text-lg font-medium">อัปเดตสถานะและจัดการปฏิทินการจองทุกห้องพัก</p>
+                  </div>
+                </div>
               </div>
 
               {/* Calendar Control Panel */}
-              <div className="bg-gradient-to-br from-white to-ocean-50 rounded-xl shadow-lg p-8 mb-8 border border-ocean-200">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-                  <FaEdit className="text-ocean-600" />
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-md p-8 mb-8 border-2 border-blue-200">
+                <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                  <FaEdit className="text-blue-600" />
                   ตั้งค่าสถานะปฏิทิน
                 </h3>
 
                 {/* Room Selection */}
                 <div className="mb-6">
-                  <label className="block text-gray-900 font-semibold mb-3 text-lg">
-                    เลือกห้องพัก
+                  <label className="block text-gray-800 font-bold mb-3 text-lg">
+                    🏠 เลือกห้องพัก
                   </label>
                   <select
                     value={selectedRoom || ''}
@@ -1369,65 +1415,66 @@ export default function AdminPage() {
                 {/* Date and Status Grid */}
                 <div className="grid md:grid-cols-2 gap-6 mb-6">
                   <div>
-                    <label className="block text-gray-900 font-semibold mb-3 text-lg">
-                      วันที่เดียว
+                    <label className="block text-gray-800 font-bold mb-3 text-lg">
+                      📅 วันที่เดียว
                     </label>
                     <input
                       type="date"
                       value={selectedDate}
                       onChange={(e) => setSelectedDate(e.target.value)}
-                      className="w-full px-4 py-3 border-2 border-ocean-300 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-ocean-500 text-black font-medium"
+                      className="w-full px-4 py-3 border-2 border-blue-400 rounded-xl focus:ring-4 focus:ring-blue-300 focus:border-blue-600 text-gray-900 font-semibold bg-white shadow-md"
+                      style={{ colorScheme: 'light' }}
                     />
-                    <p className="text-sm text-gray-700 mt-2 font-medium">
-                      สำหรับอัปเดตวันเดียว
+                    <p className="text-sm text-gray-800 mt-2 font-bold bg-blue-50 px-3 py-2 rounded-lg">
+                      💡 สำหรับอัปเดตวันเดียว
                     </p>
                   </div>
 
                   <div>
-                    <label className="block text-gray-900 font-semibold mb-3 text-lg">
-                      สถานะ
+                    <label className="block text-gray-800 font-bold mb-3 text-lg">
+                      🎯 สถานะ
                     </label>
                     <select
                       value={selectedStatus}
                       onChange={(e) => setSelectedStatus(e.target.value as any)}
-                      className="w-full px-4 py-3 border-2 border-ocean-300 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-ocean-500 text-black font-semibold bg-white"
+                      className="w-full px-4 py-3 border-2 border-blue-400 rounded-xl focus:ring-4 focus:ring-blue-300 focus:border-blue-600 text-gray-900 font-bold bg-white shadow-md"
                     >
-                      <option value="available" className="text-black font-semibold">⚪ ว่าง (Available)</option>
-                      <option value="booked" className="text-black font-semibold">🔴 ติดจองแล้ว (Booked)</option>
-                      <option value="pending" className="text-black font-semibold">🟡 จองแล้ว-ยังไม่โอน (Pending)</option>
-                      <option value="holiday" className="text-black font-semibold">🟢 วันหยุดยาว-นักขัตฤกษ์ (Holiday)</option>
-                      <option value="maintenance" className="text-black font-semibold">🟠 ปรับปรุง-ซ่อมแซม (Maintenance)</option>
+                      <option value="available" className="text-gray-900 font-semibold">⚪ ว่าง (Available)</option>
+                      <option value="booked" className="text-gray-900 font-semibold">🔴 ติดจองแล้ว (Booked)</option>
+                      <option value="pending" className="text-gray-900 font-semibold">🟡 จองแล้ว-ยังไม่โอน (Pending)</option>
+                      <option value="holiday" className="text-gray-900 font-semibold">🟢 วันหยุดยาว-นักขัตฤกษ์ (Holiday)</option>
+                      <option value="maintenance" className="text-gray-900 font-semibold">🟠 ปรับปรุง-ซ่อมแซม (Maintenance)</option>
                     </select>
                   </div>
                 </div>
 
                 {/* Date Range for Bulk Update */}
-                <div className="bg-indigo-50 border-2 border-indigo-300 rounded-lg p-6 mb-6">
-                  <h4 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-300 rounded-xl p-6 mb-6">
+                  <h4 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                     <FaCalendarAlt className="text-indigo-600" />
-                    ช่วงวันที่ (สำหรับอัปเดตหลายวัน)
+                    📆 ช่วงวันที่ (สำหรับอัปเดตหลายวัน)
                   </h4>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-gray-900 font-semibold mb-2">
-                        วันที่เริ่มต้น
+                      <label className="block text-gray-800 font-bold mb-2">
+                        🟢 วันที่เริ่มต้น
                       </label>
                       <input
                         type="date"
                         value={startDate}
                         onChange={(e) => setStartDate(e.target.value)}
-                        className="w-full px-4 py-3 border-2 border-indigo-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-black font-medium bg-white"
+                        className="w-full px-4 py-3 border-2 border-indigo-300 rounded-xl focus:ring-4 focus:ring-indigo-200 focus:border-indigo-500 text-gray-900 font-medium bg-white"
                       />
                     </div>
                     <div>
-                      <label className="block text-gray-900 font-semibold mb-2">
-                        วันที่สิ้นสุด
+                      <label className="block text-gray-800 font-bold mb-2">
+                        🔴 วันที่สิ้นสุด
                       </label>
                       <input
                         type="date"
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
-                        className="w-full px-4 py-3 border-2 border-indigo-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-black font-medium bg-white"
+                        className="w-full px-4 py-3 border-2 border-indigo-300 rounded-xl focus:ring-4 focus:ring-indigo-200 focus:border-indigo-500 text-gray-900 font-medium bg-white"
                       />
                     </div>
                   </div>
@@ -1435,56 +1482,105 @@ export default function AdminPage() {
 
                 {/* Note Field */}
                 <div className="mb-6">
-                  <label className="block text-gray-900 font-semibold mb-3 text-lg">
-                    หมายเหตุ
+                  <label className="block text-gray-800 font-bold mb-3 text-lg">
+                    📝 หมายเหตุ
                   </label>
                   <input
                     type="text"
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
                     placeholder="ระบุรายละเอียดเพิ่มเติม (ถ้ามี)"
-                    className="w-full px-4 py-3 border-2 border-ocean-300 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-ocean-500 text-black font-medium placeholder-gray-500"
+                    className="w-full px-4 py-3 border-2 border-blue-300 rounded-xl focus:ring-4 focus:ring-blue-200 focus:border-blue-500 text-gray-900 font-medium placeholder-gray-500 bg-white"
                   />
                 </div>
 
-                {/* Special Discount Checkbox */}
-                <div className="mb-6 bg-orange-50 border-2 border-orange-300 rounded-lg p-4">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={hasDiscount}
-                      onChange={(e) => setHasDiscount(e.target.checked)}
-                      className="w-6 h-6 text-orange-600 rounded focus:ring-orange-500 cursor-pointer"
-                    />
-                    <FaFire className="text-orange-600 text-2xl" />
-                    <span className="text-lg font-bold text-gray-900">
-                      ติดสติ๊กเกอร์ราคาพิเศษ (Special Discount)
-                    </span>
-                  </label>
+                {/* Special Discount Section */}
+                <div className="mb-6">
+                  <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-300 rounded-xl p-5 shadow-md">
+                    <label className="flex items-center gap-3 cursor-pointer mb-4">
+                      <input
+                        type="checkbox"
+                        checked={hasDiscount}
+                        onChange={(e) => {
+                          setHasDiscount(e.target.checked)
+                          if (!e.target.checked) {
+                            setDiscountAmount('')
+                            setDiscountReason('')
+                          }
+                        }}
+                        className="w-6 h-6 text-orange-600 rounded focus:ring-orange-500 cursor-pointer"
+                      />
+                      <FaFire className="text-orange-600 text-2xl animate-pulse" />
+                      <span className="text-xl font-bold text-gray-900">
+                        ติดสติ๊กเกอร์ราคาพิเศษ 🔥
+                      </span>
+                    </label>
+
+                    {hasDiscount && (
+                      <div className="mt-4 space-y-4 bg-white p-4 rounded-lg border-2 border-orange-200">
+                        <div>
+                          <label className="block text-gray-900 font-semibold mb-2">
+                            💰 จำนวนเงินที่ลด (บาท) <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="number"
+                            value={discountAmount}
+                            onChange={(e) => setDiscountAmount(e.target.value)}
+                            placeholder="เช่น 500"
+                            min="0"
+                            className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-black font-medium placeholder-gray-400"
+                            required={hasDiscount}
+                          />
+                          <p className="text-sm text-gray-600 mt-1">ระบุจำนวนเงินที่ลดต่อคืน</p>
+                        </div>
+
+                        <div>
+                          <label className="block text-gray-900 font-semibold mb-2">
+                            📝 เหตุผลการลดราคา <span className="text-red-500">*</span>
+                          </label>
+                          <textarea
+                            value={discountReason}
+                            onChange={(e) => setDiscountReason(e.target.value)}
+                            placeholder="เช่น โปรโมชั่นวันหยุดยาว, ช่วงโลว์ซีซัน, ลูกค้าประจำ"
+                            rows={3}
+                            className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-black font-medium placeholder-gray-400"
+                            required={hasDiscount}
+                          />
+                          <p className="text-sm text-gray-600 mt-1">อธิบายเหตุผลที่ลดราคาเพื่อความชัดเจน</p>
+                        </div>
+
+                        <div className="bg-orange-50 border-l-4 border-orange-500 p-3 rounded">
+                          <p className="text-sm text-gray-800 font-medium">
+                            💡 <strong>หมายเหตุ:</strong> ส่วนลดจะถูกนำไปคำนวณอัตโนมัติเมื่อลูกค้าจองวันที่มีสติ๊กเกอร์นี้
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 {/* Action Buttons */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                   <button
                     onClick={handleUpdateDay}
-                    className="bg-gradient-to-r from-ocean-500 to-primary-500 text-white px-6 py-4 rounded-lg hover:from-ocean-600 hover:to-primary-600 transition font-bold text-lg shadow-lg flex items-center justify-center gap-2"
+                    className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-4 rounded-xl hover:from-blue-600 hover:to-blue-700 hover:scale-105 transition-all duration-300 font-bold text-lg shadow-xl hover:shadow-2xl flex items-center justify-center gap-2 border-2 border-blue-400"
                   >
-                    <FaCalendarCheck />
-                    อัปเดตวันเดียว
+                    <FaCalendarCheck className="text-xl" />
+                    <span>อัปเดตวันเดียว</span>
                   </button>
                   <button
                     onClick={handleBulkUpdate}
-                    className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-6 py-4 rounded-lg hover:from-indigo-600 hover:to-purple-600 transition font-bold text-lg shadow-lg flex items-center justify-center gap-2"
+                    className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-4 rounded-xl hover:from-indigo-600 hover:to-purple-700 hover:scale-105 transition-all duration-300 font-bold text-lg shadow-xl hover:shadow-2xl flex items-center justify-center gap-2 border-2 border-indigo-400"
                   >
-                    <FaCalendarAlt />
-                    อัปเดตหลายวัน
+                    <FaCalendarAlt className="text-xl" />
+                    <span>อัปเดตหลายวัน</span>
                   </button>
                   <button
                     onClick={handleRemoveDiscount}
-                    className="bg-gradient-to-r from-gray-500 to-gray-600 text-white px-6 py-4 rounded-lg hover:from-gray-600 hover:to-gray-700 transition font-bold text-lg shadow-lg flex items-center justify-center gap-2"
+                    className="bg-gradient-to-r from-gray-600 to-gray-700 text-white px-6 py-4 rounded-xl hover:from-gray-700 hover:to-gray-800 hover:scale-105 transition-all duration-300 font-bold text-lg shadow-xl hover:shadow-2xl flex items-center justify-center gap-2 border-2 border-gray-500"
                   >
-                    <FaTimes />
-                    ลบสติ๊กเกอร์
+                    <FaTimes className="text-xl" />
+                    <span>ลบสติ๊กเกอร์</span>
                   </button>
                   <button
                     onClick={() => {
@@ -1493,12 +1589,14 @@ export default function AdminPage() {
                       setEndDate('')
                       setNote('')
                       setHasDiscount(false)
+                      setDiscountAmount('')
+                      setDiscountReason('')
                       setSelectedStatus('available')
                     }}
-                    className="bg-gradient-to-r from-red-500 to-red-600 text-white px-6 py-4 rounded-lg hover:from-red-600 hover:to-red-700 transition font-bold text-lg shadow-lg flex items-center justify-center gap-2"
+                    className="bg-gradient-to-r from-red-500 to-red-600 text-white px-6 py-4 rounded-xl hover:from-red-600 hover:to-red-700 hover:scale-105 transition-all duration-300 font-bold text-lg shadow-xl hover:shadow-2xl flex items-center justify-center gap-2 border-2 border-red-400"
                   >
-                    <FaTimes />
-                    ล้างข้อมูล
+                    <FaTimes className="text-xl" />
+                    <span>ล้างข้อมูล</span>
                   </button>
                 </div>
 
@@ -1523,156 +1621,188 @@ export default function AdminPage() {
 
               {/* Quick Guide */}
               <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-lg p-8 mt-8 border border-blue-200">
-                <h3 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
                   <FaCalendarAlt className="text-blue-600" />
-                  คำแนะนำการใช้งาน
+                  📚 คำแนะนำการใช้งาน
                 </h3>
-                <div className="grid md:grid-cols-2 gap-6 text-gray-900">
+                <div className="grid md:grid-cols-2 gap-6">
                   <div className="flex items-start gap-3 bg-white p-4 rounded-lg shadow">
                     <FaCalendarCheck className="text-blue-600 mt-1 text-xl flex-shrink-0" />
                     <div>
-                      <strong className="text-lg block mb-1">อัปเดตวันเดียว:</strong>
-                      <span className="text-gray-700">ใส่วันที่ในรูปแบบ 2024-12-25</span>
+                      <strong className="text-lg block mb-1 text-gray-800">อัปเดตวันเดียว:</strong>
+                      <span className="text-gray-700 font-medium">ใส่วันที่ในรูปแบบ 2024-12-25</span>
                     </div>
                   </div>
                   <div className="flex items-start gap-3 bg-white p-4 rounded-lg shadow">
                     <FaCalendarAlt className="text-indigo-600 mt-1 text-xl flex-shrink-0" />
                     <div>
-                      <strong className="text-lg block mb-1">อัปเดตหลายวัน:</strong>
-                      <span className="text-gray-700">ใส่ช่วงวันที่ 2024-12-25 to 2024-12-31</span>
+                      <strong className="text-lg block mb-1 text-gray-800">อัปเดตหลายวัน:</strong>
+                      <span className="text-gray-700 font-medium">ใส่ช่วงวันที่ 2024-12-25 to 2024-12-31</span>
                     </div>
                   </div>
                   <div className="flex items-start gap-3 bg-white p-4 rounded-lg shadow">
                     <FaFire className="text-orange-600 mt-1 text-xl flex-shrink-0" />
                     <div>
-                      <strong className="text-lg block mb-1">สติ๊กเกอร์ลดราคา:</strong>
-                      <span className="text-gray-700">ติ๊กช่องเพื่อแสดงไอคอนไฟ 🔥 บนปฏิทิน</span>
+                      <strong className="text-lg block mb-1 text-gray-800">สติ๊กเกอร์ลดราคา:</strong>
+                      <span className="text-gray-700 font-medium">ติ๊กช่องเพื่อแสดงไอคอนไฟ 🔥 บนปฏิทิน</span>
                     </div>
                   </div>
                   <div className="flex items-start gap-3 bg-white p-4 rounded-lg shadow">
                     <FaCalendarCheck className="text-green-600 mt-1 text-xl flex-shrink-0" />
                     <div>
-                      <strong className="text-lg block mb-1">Auto Update:</strong>
-                      <span className="text-gray-700">ระบบอัปเดตอัตโนมัติเมื่อยืนยันการจอง</span>
+                      <strong className="text-lg block mb-1 text-gray-800">Auto Update:</strong>
+                      <span className="text-gray-700 font-medium">ระบบอัปเดตอัตโนมัติเมื่อยืนยันการจอง</span>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
+            </AdminCard>
           )}
 
           {/* Users Management Tab */}
           {activeTab === 'users' && (
             <div>
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">จัดการสิทธิ์ Admin</h2>
-                <p className="text-gray-600">เพิ่มสิทธิ์ Admin ให้กับผู้ใช้</p>
-              </div>
+              <AdminCard variant="glass" hover={false} className="mb-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-3 bg-gradient-to-br from-luxury-gold to-luxury-bronze rounded-xl">
+                    <FaUserShield className="text-3xl text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-bold text-gray-800">จัดการสิทธิ์ Admin</h2>
+                    <p className="text-gray-700 text-lg font-medium">เพิ่มหรือถอดสิทธิ์ผู้ดูแลระบบ</p>
+                  </div>
+                </div>
+              </AdminCard>
 
               {/* Messages */}
               {message && (
-                <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+                <div className="mb-6 bg-green-50 border-2 border-green-300 text-green-800 px-5 py-4 rounded-xl font-semibold flex items-center gap-2">
+                  <span className="text-2xl">✓</span>
                   {message}
                 </div>
               )}
 
               {error && (
-                <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+                <div className="mb-6 bg-red-50 border-2 border-red-300 text-red-800 px-5 py-4 rounded-xl font-semibold flex items-center gap-2">
+                  <span className="text-2xl">⚠</span>
                   {error}
                 </div>
               )}
 
               {/* Form */}
-              <div className="bg-white border border-gray-200 rounded-xl p-8 shadow-sm">
-                <h3 className="text-xl font-bold text-gray-800 mb-6">เพิ่มสิทธิ์ Admin</h3>
+              <AdminCard variant="glass" hover={false} className="mb-6">
+                <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                  <span className="text-3xl">➕</span>
+                  เพิ่มสิทธิ์ Admin
+                </h3>
                 
                 <form onSubmit={handlePromoteUser} className="space-y-6">
                   <div>
-                    <label className="block text-gray-700 font-medium mb-2">
-                      อีเมลผู้ใช้
+                    <label className="block text-gray-800 font-bold mb-3 text-lg">
+                      📧 อีเมลผู้ใช้
                     </label>
                     <div className="relative">
                       <input
                         type="email"
                         value={searchEmail}
                         onChange={(e) => setSearchEmail(e.target.value)}
-                        className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-transparent text-black"
+                        className="w-full p-4 pl-12 border-2 border-luxury-gold/30 rounded-xl focus:ring-4 focus:ring-luxury-gold/20 focus:border-luxury-gold text-gray-900 font-medium bg-white"
                         placeholder="example@email.com"
                         required
                       />
-                      <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-luxury-gold text-xl" />
                     </div>
-                    <p className="text-sm text-gray-500 mt-2">
-                      กรอกอีเมลของผู้ใช้ที่ต้องการเพิ่มสิทธิ์ Admin
+                    <p className="text-sm text-gray-700 mt-3 font-semibold">
+                      💡 กรอกอีเมลของผู้ใช้ที่ต้องการเพิ่มสิทธิ์ Admin
                     </p>
                   </div>
 
-                  <button
+                  <AdminButton
                     type="submit"
-                    disabled={userLoading}
-                    className="w-full px-8 py-3 bg-gradient-to-r from-ocean-500 to-primary-500 text-white rounded-lg font-semibold hover:from-ocean-600 hover:to-primary-600 transition disabled:opacity-50 shadow-md flex items-center justify-center gap-2"
+                    variant="luxury"
+                    size="lg"
+                    fullWidth
+                    loading={userLoading}
+                    icon={<FaUserShield />}
                   >
-                    <FaUserShield />
-                    {userLoading ? 'กำลังดำเนินการ...' : 'เพิ่มสิทธิ์ Admin'}
-                  </button>
+                    เพิ่มสิทธิ์ Admin
+                  </AdminButton>
                 </form>
-              </div>
+              </AdminCard>
 
               {/* Demote Admin Section */}
-              <div className="bg-white border border-gray-200 rounded-xl p-8 shadow-sm mt-6">
-                <h3 className="text-xl font-bold text-gray-800 mb-6">ถอดสิทธิ์ Admin</h3>
+              <AdminCard variant="glass" hover={false}>
+                <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                  <span className="text-3xl">➖</span>
+                  ถอดสิทธิ์ Admin
+                </h3>
                 
                 <form onSubmit={handleDemoteUser} className="space-y-6">
                   <div>
-                    <label className="block text-gray-700 font-medium mb-2">
-                      อีเมลผู้ใช้
+                    <label className="block text-gray-800 font-bold mb-3 text-lg">
+                      📧 อีเมลผู้ใช้
                     </label>
                     <div className="relative">
                       <input
                         type="email"
                         value={demoteEmail}
                         onChange={(e) => setDemoteEmail(e.target.value)}
-                        className="w-full p-3 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent text-black"
+                        className="w-full p-4 pl-12 border-2 border-red-300 rounded-xl focus:ring-4 focus:ring-red-200 focus:border-red-500 text-gray-900 font-medium bg-white"
                         placeholder="example@email.com"
                         required
                       />
-                      <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-red-500 text-xl" />
                     </div>
-                    <p className="text-sm text-gray-500 mt-2">
-                      กรอกอีเมลของผู้ใช้ที่ต้องการถอดสิทธิ์ Admin
+                    <p className="text-sm text-gray-700 mt-3 font-semibold">
+                      ⚠️ กรอกอีเมลของผู้ใช้ที่ต้องการถอดสิทธิ์ Admin
                     </p>
                   </div>
 
-                  <button
+                  <AdminButton
                     type="submit"
-                    disabled={demoteLoading}
-                    className="w-full px-8 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg font-semibold hover:from-red-600 hover:to-red-700 transition disabled:opacity-50 shadow-md flex items-center justify-center gap-2"
+                    variant="danger"
+                    size="lg"
+                    fullWidth
+                    loading={demoteLoading}
+                    icon={<FaUserShield />}
                   >
-                    <FaUserShield />
-                    {demoteLoading ? 'กำลังดำเนินการ...' : 'ถอดสิทธิ์ Admin'}
-                  </button>
+                    ถอดสิทธิ์ Admin
+                  </AdminButton>
                 </form>
 
                 {/* Warning Box */}
-                <div className="mt-8 bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="mt-8 bg-red-50 border-2 border-red-300 rounded-xl p-5">
                   <h3 className="font-semibold text-red-900 mb-2">⚠️ คำเตือน:</h3>
-                  <ul className="text-sm text-red-800 space-y-1 list-disc list-inside">
+                  <h3 className="font-semibold text-red-900 mb-2">คำเตือน:</h3>
+                  <ul className="text-sm text-red-800 space-y-1 list-disc list-inside font-medium">
                     <li>การถอดสิทธิ์จะทำให้ผู้ใช้ไม่สามารถเข้าถึง Admin Mode ได้</li>
                     <li>ไม่สามารถถอดสิทธิ์ตัวเองได้</li>
                     <li>ใช้ความระมัดระวังในการถอดสิทธิ์ Admin</li>
                   </ul>
                 </div>
-              </div>
+              </AdminCard>
 
               {/* Info Box */}
-              <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 className="font-semibold text-blue-900 mb-2">หมายเหตุ:</h3>
-                <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-                  <li>เฉพาะ Admin เท่านั้นที่สามารถจัดการสิทธิ์ได้</li>
-                  <li>ผู้ใช้ที่ได้รับสิทธิ์ Admin จะสามารถเข้าถึง Admin Mode ได้</li>
-                  <li>ใช้ความระมัดระวังในการให้และถอดสิทธิ์ Admin</li>
+              <AdminCard variant="glass" hover={false} className="mt-6">
+                <h3 className="font-bold text-gray-800 mb-3 text-xl flex items-center gap-2">
+                  <span className="text-2xl">ℹ️</span>
+                  หมายเหตุสำคัญ
+                </h3>
+                <ul className="space-y-2 text-gray-700">
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-600 text-lg font-bold">✓</span>
+                    <span className="font-medium">เฉพาะ Admin เท่านั้นที่สามารถจัดการสิทธิ์ได้</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-green-600 text-lg font-bold">✓</span>
+                    <span className="font-medium">ผู้ใช้ที่ได้รับสิทธิ์ Admin จะสามารถเข้าถึง Admin Mode ได้</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-orange-600 text-lg font-bold">⚠</span>
+                    <span className="font-medium">ใช้ความระมัดระวังในการให้และถอดสิทธิ์ Admin</span>
+                  </li>
                 </ul>
-              </div>
+              </AdminCard>
             </div>
           )}
         </div>

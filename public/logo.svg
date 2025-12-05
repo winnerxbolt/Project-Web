@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="800" height="800">
+  <!-- Background circle -->
+  <circle cx="400" cy="400" r="400" fill="#ffffff"/>
+  
+  <!-- Sun -->
+  <circle cx="270" cy="170" r="40" fill="#FFA500"/>
+  
+  <!-- Palm trees -->
+  <!-- First palm tree -->
+  <ellipse cx="480" cy="360" rx="60" ry="15" fill="#8B4513" transform="rotate(-20 480 360)"/>
+  <ellipse cx="520" cy="340" rx="55" ry="12" fill="#8B4513" transform="rotate(-10 520 340)"/>
+  <ellipse cx="540" cy="315" rx="50" ry="12" fill="#8B4513" transform="rotate(10 540 315)"/>
+  <ellipse cx="530" cy="285" rx="45" ry="10" fill="#8B4513" transform="rotate(25 530 285)"/>
+  <rect x="495" y="360" width="20" height="120" fill="#8B4513" rx="10"/>
+  
+  <!-- Second palm tree (smaller) -->
+  <ellipse cx="580" cy="430" rx="50" ry="12" fill="#8B4513" transform="rotate(-25 580 430)"/>
+  <ellipse cx="610" cy="410" rx="45" ry="10" fill="#8B4513" transform="rotate(-5 610 410)"/>
+  <ellipse cx="625" cy="385" rx="40" ry="10" fill="#8B4513" transform="rotate(15 625 385)"/>
+  <ellipse cx="615" cy="360" rx="35" ry="8" fill="#8B4513" transform="rotate(30 615 360)"/>
+  <rect x="590" y="430" width="16" height="100" fill="#8B4513" rx="8"/>
+  
+  <!-- House -->
+  <!-- Base -->
+  <rect x="240" y="320" width="200" height="140" fill="#0066CC" rx="10"/>
+  <!-- Door arch -->
+  <ellipse cx="340" cy="420" rx="35" ry="40" fill="#0052A3"/>
+  <rect x="305" y="420" width="70" height="40" fill="#0052A3"/>
+  <!-- Roof -->
+  <path d="M 230 320 L 340 240 L 450 320 Z" fill="#0066CC" stroke="#004C99" stroke-width="4"/>
+  <path d="M 235 320 L 340 245 L 445 320" fill="none" stroke="#ffffff" stroke-width="3" opacity="0.3"/>
+  
+  <!-- Wave/Beach -->
+  <path d="M 150 500 Q 200 480 250 490 Q 300 500 350 485 Q 400 470 450 485 Q 500 500 550 490 Q 600 480 650 500 L 650 550 L 150 550 Z" fill="#FFD700"/>
+  <path d="M 180 520 Q 230 505 280 515 Q 330 525 380 510 Q 430 495 480 510 Q 530 525 580 515 Q 620 505 650 520 L 650 550 L 180 550 Z" fill="#FFA500" opacity="0.6"/>
+  <path d="M 200 535 Q 250 525 300 535 Q 350 545 400 530 Q 450 520 500 535 Q 550 545 600 535 L 600 550 L 200 550 Z" fill="#DC143C" opacity="0.4"/>
+  
+  <!-- Text -->
+  <text x="400" y="620" font-family="Arial, sans-serif" font-size="80" font-weight="bold" fill="#8B4513" text-anchor="middle">POOL VILLA</text>
+  <text x="400" y="700" font-family="Arial, sans-serif" font-size="90" font-weight="bold" fill="#0066CC" text-anchor="middle">PATTAYA</text>
+  <text x="400" y="750" font-family="Arial, sans-serif" font-size="32" fill="#DC143C" text-anchor="middle" font-style="italic">by Deville</text>
+</svg>

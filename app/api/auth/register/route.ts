@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createUser, findUserByEmail, createSession } from '../../../../lib/server/auth'
+import { containsProfanity } from '@/lib/profanityFilter'
 
 type Body = { name?: string; email?: string; password?: string }
 
@@ -10,6 +11,14 @@ export async function POST(req: Request) {
 
     if (!name || !email || !password) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
+
+    // Check for profanity
+    if (containsProfanity(name)) {
+      return NextResponse.json({ error: 'ชื่อมีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม' }, { status: 400 })
+    }
+    if (containsProfanity(email)) {
+      return NextResponse.json({ error: 'อีเมลมีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม' }, { status: 400 })
     }
 
     const exists = await findUserByEmail(email)

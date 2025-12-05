@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { readJson, writeJson } from '@/lib/server/db'
+import { containsProfanity } from '@/lib/profanityFilter'
 
 interface Review {
   id: number
@@ -49,6 +50,14 @@ export async function POST(request: NextRequest) {
 
     if (rating < 1 || rating > 5) {
       return NextResponse.json({ success: false, error: 'คะแนนต้องอยู่ระหว่าง 1-5' }, { status: 400 })
+    }
+
+    // Check for profanity
+    if (containsProfanity(guestName)) {
+      return NextResponse.json({ success: false, error: 'ชื่อมีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม' }, { status: 400 })
+    }
+    if (containsProfanity(comment)) {
+      return NextResponse.json({ success: false, error: 'ความคิดเห็นมีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม' }, { status: 400 })
     }
 
     // Read existing reviews
