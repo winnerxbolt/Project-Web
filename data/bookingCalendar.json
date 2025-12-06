@@ -12,5 +12,17 @@
     "status": "available",
     "hasSpecialDiscount": false,
     "note": ""
+  },
+  {
+    "roomId": 1,
+    "date": "2025-12-07",
+    "status": "booked",
+    "note": "จองโดย Teerapat Thongjam"
+  },
+  {
+    "roomId": 1,
+    "date": "2025-12-08",
+    "status": "booked",
+    "note": "จองโดย Teerapat Thongjam"
   }
 ]

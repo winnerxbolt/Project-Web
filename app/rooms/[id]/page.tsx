@@ -57,6 +57,9 @@ export default function RoomDetailPage({ params }: { params: Promise<{ id: strin
     totalDiscount: number
     discounts: Array<{ date: string; amount: number; reason: string }>
   } | null>(null)
+  
+  // Total amount
+  const [totalAmount, setTotalAmount] = useState<number>(0)
 
   useEffect(() => {
     const fetchRoom = async () => {
@@ -137,7 +140,7 @@ export default function RoomDetailPage({ params }: { params: Promise<{ id: strin
     const { name, value } = e.target
     setBookingData(prev => ({ ...prev, [name]: value }))
 
-    // ถ้าเปลี่ยนวันที่ ให้ตรวจสอบส่วนลด
+    // ถ้าเปลี่ยนวันที่ ให้ตรวจสอบส่วนลดและคำนวณยอดรวม
     if ((name === 'checkIn' || name === 'checkOut') && bookingData.checkIn && bookingData.checkOut) {
       const checkIn = name === 'checkIn' ? value : bookingData.checkIn
       const checkOut = name === 'checkOut' ? value : bookingData.checkOut
@@ -156,6 +159,14 @@ export default function RoomDetailPage({ params }: { params: Promise<{ id: strin
             })
           } else {
             setDiscountInfo(null)
+          }
+          
+          // คำนวณยอดรวม
+          if (roomData) {
+            const nights = Math.ceil((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24))
+            const baseTotal = nights * roomData.price
+            const totalDiscount = data.totalDiscount || 0
+            setTotalAmount(baseTotal - totalDiscount)
           }
         } catch (error) {
           console.error('Error fetching discount info:', error)
@@ -818,7 +829,7 @@ export default function RoomDetailPage({ params }: { params: Promise<{ id: strin
                     <div className="pt-3 border-t-2 border-blue-300 flex justify-between items-center">
                       <span className="text-lg font-bold text-gray-900">ยอดรวมทั้งหมด:</span>
                       <span className="text-3xl font-bold text-primary-600">
-                        ฿{calculateTotal().toLocaleString()}
+                        ฿{totalAmount.toLocaleString()}
                       </span>
                     </div>
                   </div>

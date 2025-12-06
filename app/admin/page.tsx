@@ -5,36 +5,11 @@ import Image from 'next/image'
 import Navbar from '@/components/Navbar'
 import RoomCalendar from '@/components/RoomCalendar'
 import { useAuth } from '@/contexts/AuthContext'
-import { FaHotel, FaCalendarCheck, FaDollarSign, FaUsers, FaPlus, FaEdit, FaTrash, FaUserShield, FaSearch, FaTimes, FaCalendarAlt, FaFire, FaCrown, FaChartLine } from 'react-icons/fa'
+import { FaHotel, FaCalendarCheck, FaDollarSign, FaUsers, FaPlus, FaEdit, FaTrash, FaUserShield, FaSearch, FaTimes, FaCalendarAlt, FaFire, FaCrown, FaChartLine, FaDatabase } from 'react-icons/fa'
 import { containsProfanity } from '@/lib/profanityFilter'
 import AdminStats from '@/components/AdminStats'
 import AdminButton from '@/components/AdminButton'
 import AdminCard from '@/components/AdminCard'
-
-interface Booking {
-  id: number
-  roomName: string
-  guestName: string
-  checkIn: string
-  checkOut: string
-  guests: number
-  status: 'confirmed' | 'pending' | 'cancelled'
-  total: number
-  slipImage?: string
-  email?: string
-  phone?: string
-}
-
-interface BookingFormData {
-  roomName: string
-  guestName: string
-  checkIn: string
-  checkOut: string
-  guests: string
-  total: string
-  email?: string
-  phone?: string
-}
 
 interface Room {
   id: number
@@ -98,7 +73,7 @@ interface RoomFormData {
 
 export default function AdminPage() {
   const { user, isAdmin, promoteToAdmin, demoteFromAdmin } = useAuth()
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings' | 'rooms' | 'calendar' | 'users'>('dashboard')
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'rooms' | 'calendar' | 'users'>('dashboard')
   const [searchEmail, setSearchEmail] = useState('')
   const [demoteEmail, setDemoteEmail] = useState('')
   const [message, setMessage] = useState('')
@@ -141,23 +116,6 @@ export default function AdminPage() {
   })
   const [roomLoading, setRoomLoading] = useState(false)
 
-  // Booking management states
-  const [showBookingModal, setShowBookingModal] = useState(false)
-  const [editingBooking, setEditingBooking] = useState<Booking | null>(null)
-  const [showSlipModal, setShowSlipModal] = useState(false)
-  const [selectedSlip, setSelectedSlip] = useState<string>('')
-  const [bookingFormData, setBookingFormData] = useState<BookingFormData>({
-    roomName: '',
-    guestName: '',
-    checkIn: '',
-    checkOut: '',
-    guests: '',
-    total: '',
-    email: '',
-    phone: ''
-  })
-  const [bookingLoading, setBookingLoading] = useState(false)
-
   // Calendar management states
   const [selectedRoom, setSelectedRoom] = useState<number | null>(null)
   const [selectedDate, setSelectedDate] = useState('')
@@ -170,9 +128,6 @@ export default function AdminPage() {
   const [note, setNote] = useState('')
   const [calendarMessage, setCalendarMessage] = useState('')
   const [calendarKey, setCalendarKey] = useState(0) // สำหรับ force refresh calendar
-
-  // Sample data
-  const [bookings, setBookings] = useState<Booking[]>([])
 
   // Image upload handlers
   const convertToBase64 = (file: File): Promise<string> => {
@@ -283,22 +238,9 @@ export default function AdminPage() {
       
       // แล้วค่อยโหลดข้อมูล
       fetchRooms()
-      fetchBookings()
     }
     initializeAdmin()
   }, [])
-
-  const fetchBookings = async () => {
-    try {
-      const response = await fetch('/api/bookings')
-      const data = await response.json()
-      if (data.success) {
-        setBookings(data.bookings)
-      }
-    } catch (error) {
-      console.error('Error fetching bookings:', error)
-    }
-  }
 
   const fetchRooms = async () => {
     try {
@@ -315,35 +257,6 @@ export default function AdminPage() {
   const stats = {
     totalRooms: rooms.length,
     availableRooms: rooms.filter((r) => r.available).length,
-    totalBookings: bookings.length,
-    confirmedBookings: bookings.filter((b) => b.status === 'confirmed').length,
-    revenue: bookings.reduce((sum, b) => sum + b.total, 0),
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return 'bg-green-100 text-green-800'
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-800'
-      case 'cancelled':
-        return 'bg-red-100 text-red-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'confirmed':
-        return 'ยืนยันแล้ว'
-      case 'pending':
-        return 'รอดำเนินการ'
-      case 'cancelled':
-        return 'ยกเลิก'
-      default:
-        return status
-    }
   }
 
   const handlePromoteUser = async (e: React.FormEvent) => {
@@ -613,208 +526,6 @@ export default function AdminPage() {
     }
   }
 
-  // Booking management functions
-  const openEditBookingModal = (booking: Booking) => {
-    setEditingBooking(booking)
-    setBookingFormData({
-      roomName: booking.roomName,
-      guestName: booking.guestName,
-      checkIn: booking.checkIn,
-      checkOut: booking.checkOut,
-      guests: booking.guests.toString(),
-      total: booking.total.toString(),
-      email: booking.email || '',
-      phone: booking.phone || ''
-    })
-    setShowBookingModal(true)
-  }
-
-  const closeBookingModal = () => {
-    setShowBookingModal(false)
-    setEditingBooking(null)
-    setError('')
-    setMessage('')
-  }
-
-  const handleBookingFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setBookingFormData(prev => ({ ...prev, [name]: value }))
-  }
-
-  const handleSubmitBooking = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setBookingLoading(true)
-    setError('')
-    setMessage('')
-
-    // Check for profanity
-    if (containsProfanity(bookingFormData.guestName)) {
-      setError('ชื่อผู้เข้าพักมีคำไม่สุภาพ กรุณาใช้ภาษาที่เหมาะสม')
-      setBookingLoading(false)
-      return
-    }
-
-    try {
-      const bookingData = {
-        roomName: bookingFormData.roomName,
-        guestName: bookingFormData.guestName,
-        checkIn: bookingFormData.checkIn,
-        checkOut: bookingFormData.checkOut,
-        guests: Number(bookingFormData.guests),
-        total: Number(bookingFormData.total),
-        email: bookingFormData.email,
-        phone: bookingFormData.phone
-      }
-
-      if (editingBooking) {
-        // Update existing booking
-        const response = await fetch('/api/bookings', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...bookingData, id: editingBooking.id })
-        })
-
-        const data = await response.json()
-
-        if (data.success) {
-          setMessage('อัพเดทการจองสำเร็จ!')
-          await fetchBookings()
-          setTimeout(() => {
-            closeBookingModal()
-            setMessage('')
-          }, 1500)
-        } else {
-          setError(data.error || 'เกิดข้อผิดพลาดในการอัพเดท')
-        }
-      }
-    } catch (error) {
-      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
-    } finally {
-      setBookingLoading(false)
-    }
-  }
-
-  const handleDeleteBooking = async (bookingId: number) => {
-    if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบการจองนี้?')) {
-      return
-    }
-
-    try {
-      // หาข้อมูลการจองก่อนลบ
-      const booking = bookings.find(b => b.id === bookingId)
-      
-      const response = await fetch(`/api/bookings?id=${bookingId}`, {
-        method: 'DELETE'
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
-        // เปลี่ยนสถานะห้องกลับเป็นว่าง
-        if (booking) {
-          const room = rooms.find(r => r.name === booking.roomName)
-          if (room) {
-            await fetch('/api/rooms', {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ ...room, id: room.id, available: true })
-            })
-            await fetchRooms()
-          }
-        }
-        
-        setMessage('ลบการจองสำเร็จ! สถานะห้องถูกเปลี่ยนเป็นว่างแล้ว')
-        await fetchBookings()
-        setTimeout(() => setMessage(''), 3000)
-      } else {
-        setError(data.error || 'เกิดข้อผิดพลาดในการลบการจอง')
-      }
-    } catch (error) {
-      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
-    }
-  }
-
-  const handleConfirmBooking = async (bookingId: number) => {
-    try {
-      const booking = bookings.find(b => b.id === bookingId)
-      if (!booking) return
-
-      const response = await fetch('/api/bookings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...booking, id: bookingId, status: 'confirmed' })
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
-        // อัพเดทสถานะห้องเป็นไม่ว่าง
-        const room = rooms.find(r => r.name === booking.roomName)
-        if (room) {
-          await fetch('/api/rooms', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...room, id: room.id, available: false })
-          })
-          await fetchRooms()
-        }
-        
-        setMessage('ยืนยันการจองสำเร็จ! สถานะห้องถูกเปลี่ยนเป็นไม่ว่างแล้ว')
-        await fetchBookings()
-        setTimeout(() => setMessage(''), 3000)
-      } else {
-        setError(data.error || 'เกิดข้อผิดพลาดในการยืนยันการจอง')
-      }
-    } catch (error) {
-      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
-    }
-  }
-
-  const handleCancelBooking = async (bookingId: number) => {
-    if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการปฏิเสธการจองนี้?')) {
-      return
-    }
-
-    try {
-      const booking = bookings.find(b => b.id === bookingId)
-      if (!booking) return
-
-      const response = await fetch('/api/bookings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...booking, id: bookingId, status: 'cancelled' })
-      })
-
-      const data = await response.json()
-
-      if (data.success) {
-        // เปลี่ยนสถานะห้องกลับเป็นว่าง (เพราะปฏิเสธการจอง)
-        const room = rooms.find(r => r.name === booking.roomName)
-        if (room) {
-          await fetch('/api/rooms', {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...room, id: room.id, available: true })
-          })
-          await fetchRooms()
-        }
-        
-        setMessage('ปฏิเสธการจองสำเร็จ! สถานะห้องถูกเปลี่ยนเป็นว่างแล้ว')
-        await fetchBookings()
-        setTimeout(() => setMessage(''), 3000)
-      } else {
-        setError(data.error || 'เกิดข้อผิดพลาดในการปฏิเสธการจอง')
-      }
-    } catch (error) {
-      setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
-    }
-  }
-
-  const openSlipModal = (slipImage: string) => {
-    setSelectedSlip(slipImage)
-    setShowSlipModal(true)
-  }
-
   // Calendar management functions
   const handleUpdateDay = async () => {
     if (!selectedRoom || !selectedDate) {
@@ -998,17 +709,6 @@ export default function AdminPage() {
               <span>ภาพรวม</span>
             </button>
             <button
-              onClick={() => setActiveTab('bookings')}
-              className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 flex items-center gap-2 ${
-                activeTab === 'bookings'
-                  ? 'bg-gradient-to-r from-tropical-green to-tropical-lime text-white shadow-tropical scale-105'
-                  : 'bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200 hover:border-tropical-green hover:text-tropical-green'
-              }`}
-            >
-              <FaCalendarCheck className="text-xl" />
-              <span>การจอง</span>
-            </button>
-            <button
               onClick={() => setActiveTab('rooms')}
               className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 flex items-center gap-2 ${
                 activeTab === 'rooms'
@@ -1041,6 +741,20 @@ export default function AdminPage() {
               <FaUserShield className="text-xl" />
               <span>สิทธิ์ผู้ใช้</span>
             </button>
+            <button
+              onClick={() => window.location.href = '/admin/backup'}
+              className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 flex items-center gap-2 bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200 hover:border-pool-blue hover:text-pool-blue`}
+            >
+              <FaDatabase className="text-xl" />
+              <span>Backup</span>
+            </button>
+            <button
+              onClick={() => window.location.href = '/admin/bookings'}
+              className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 flex items-center gap-2 bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200 hover:border-pool-blue hover:text-pool-blue`}
+            >
+              <FaCalendarCheck className="text-xl" />
+              <span>จัดการจอง</span>
+            </button>
           </div>
 
           {/* Dashboard Tab */}
@@ -1060,230 +774,8 @@ export default function AdminPage() {
                   value={stats.availableRooms}
                   gradient="from-tropical-green to-tropical-lime"
                 />
-                <AdminStats
-                  icon={<FaUsers />}
-                  label="การจองทั้งหมด"
-                  value={stats.totalBookings}
-                  gradient="from-tropical-orange to-luxury-gold"
-                />
-                <AdminStats
-                  icon={<FaDollarSign />}
-                  label="รายได้"
-                  value={`฿${stats.revenue.toLocaleString()}`}
-                  gradient="from-luxury-gold to-luxury-bronze"
-                />
               </div>
-
-              {/* Recent Bookings */}
-              <AdminCard variant="glass" hover={false}>
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-3 bg-gradient-to-br from-tropical-green to-tropical-lime rounded-xl">
-                    <FaCalendarCheck className="text-3xl text-white" />
-                  </div>
-                  <h2 className="text-3xl font-bold text-gray-800">การจองล่าสุด</h2>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gradient-to-r from-pool-blue/10 to-tropical-green/10">
-                      <tr>
-                        <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase">
-                          ชื่อผู้จอง
-                        </th>
-                        <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase">
-                          บ้านพัก
-                        </th>
-                        <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase">
-                          วันที่
-                        </th>
-                        <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase">
-                          สถานะ
-                        </th>
-                        <th className="px-6 py-4 text-left text-sm font-bold text-gray-700 uppercase">
-                          ยอดรวม
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {bookings.slice(0, 5).map((booking) => (
-                        <tr key={booking.id} className="hover:bg-pool-light/10 transition-colors">
-                          <td className="px-6 py-4 whitespace-nowrap text-gray-800 font-medium">{booking.guestName}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-gray-800">{booking.roomName}</td>
-                          <td className="px-6 py-4 whitespace-nowrap text-gray-700 text-sm">
-                            {booking.checkIn} ถึง {booking.checkOut}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(
-                                booking.status
-                              )}`}
-                            >
-                              {getStatusText(booking.status)}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap font-bold text-gray-900">
-                            ฿{booking.total.toLocaleString()}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </AdminCard>
             </div>
-          )}
-
-          {/* Bookings Tab */}
-          {activeTab === 'bookings' && (
-            <AdminCard variant="glass" hover={false}>
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-gradient-to-br from-tropical-green to-tropical-lime rounded-xl">
-                    <FaCalendarCheck className="text-3xl text-white" />
-                  </div>
-                  <h2 className="text-3xl font-bold text-gray-800">จัดการการจอง</h2>
-                </div>
-                <div className="flex gap-2">
-                  <select className="px-4 py-2 border-2 border-tropical-green/30 rounded-xl outline-none focus:ring-4 focus:ring-tropical-green/20 focus:border-tropical-green text-gray-700 font-medium">
-                    <option value="">ทั้งหมด</option>
-                    <option value="confirmed">ยืนยันแล้ว</option>
-                    <option value="pending">รอดำเนินการ</option>
-                    <option value="cancelled">ยกเลิก</option>
-                  </select>
-                </div>
-              </div>
-
-              {message && (
-                <div className="mb-4 bg-green-50 border-2 border-green-200 text-green-700 px-4 py-3 rounded-xl font-medium">
-                  ✓ {message}
-                </div>
-              )}
-
-              {error && (
-                <div className="mb-4 bg-red-50 border-2 border-red-200 text-red-700 px-4 py-3 rounded-xl font-medium">
-                  ⚠ {error}
-                </div>
-              )}
-
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        ID
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        ชื่อผู้จอง
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        ติดต่อ
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        บ้านพัก
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        วันที่เข้าพัก
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        ผู้เข้าพัก
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        สลิป
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        สถานะ
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        ยอดรวม
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                        จัดการ
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {bookings.map((booking) => (
-                      <tr key={booking.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-black">#{booking.id}</td>
-                        <td className="px-6 py-4 whitespace-nowrap font-medium text-black">
-                          {booking.guestName}
-                        </td>
-                        <td className="px-6 py-4 text-black">
-                          <div className="text-sm">
-                            <div>{booking.email}</div>
-                            <div className="text-gray-500">{booking.phone}</div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-black">{booking.roomName}</td>
-                        <td className="px-6 py-4 whitespace-nowrap text-black text-sm">
-                          {booking.checkIn} - {booking.checkOut}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-black">{booking.guests} คน</td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {booking.slipImage ? (
-                            <button
-                              onClick={() => openSlipModal(booking.slipImage!)}
-                              className="text-blue-600 hover:text-blue-800 underline"
-                            >
-                              ดูสลิป
-                            </button>
-                          ) : (
-                            <span className="text-gray-400">ไม่มี</span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span
-                            className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(
-                              booking.status
-                            )}`}
-                          >
-                            {getStatusText(booking.status)}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap font-semibold text-black">
-                          ฿{booking.total.toLocaleString()}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex flex-col space-y-2">
-                            <div className="flex space-x-2">
-                              <button 
-                                onClick={() => openEditBookingModal(booking)}
-                                className="text-blue-600 hover:text-blue-800 p-1"
-                                title="แก้ไข"
-                              >
-                                <FaEdit />
-                              </button>
-                              <button 
-                                onClick={() => handleDeleteBooking(booking.id)}
-                                className="text-red-600 hover:text-red-800 p-1"
-                                title="ลบ"
-                              >
-                                <FaTrash />
-                              </button>
-                            </div>
-                            {booking.status === 'pending' && (
-                              <div className="flex space-x-1">
-                                <button
-                                  onClick={() => handleConfirmBooking(booking.id)}
-                                  className="px-2 py-1 bg-green-500 text-white text-xs rounded hover:bg-green-600 transition"
-                                >
-                                  ยืนยัน
-                                </button>
-                                <button
-                                  onClick={() => handleCancelBooking(booking.id)}
-                                  className="px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600 transition"
-                                >
-                                  ปฏิเสธ
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </AdminCard>
           )}
 
           {/* Rooms Tab */}
@@ -2291,200 +1783,6 @@ export default function AdminPage() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* Booking Edit Modal */}
-      {showBookingModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-              <h3 className="text-2xl font-bold text-gray-900">แก้ไขการจอง</h3>
-              <button
-                onClick={closeBookingModal}
-                className="text-gray-400 hover:text-gray-600 transition"
-              >
-                <FaTimes className="text-2xl" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmitBooking} className="p-6 space-y-4">
-              {message && (
-                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
-                  {message}
-                </div>
-              )}
-
-              {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-                  {error}
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">
-                    ชื่อผู้จอง <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="guestName"
-                    value={bookingFormData.guestName}
-                    onChange={handleBookingFormChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">
-                    บ้านพัก <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="roomName"
-                    value={bookingFormData.roomName}
-                    onChange={handleBookingFormChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">
-                    อีเมล
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={bookingFormData.email}
-                    onChange={handleBookingFormChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">
-                    เบอร์โทร
-                  </label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={bookingFormData.phone}
-                    onChange={handleBookingFormChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">
-                    วันเช็คอิน <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    name="checkIn"
-                    value={bookingFormData.checkIn}
-                    onChange={handleBookingFormChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">
-                    วันเช็คเอาท์ <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    name="checkOut"
-                    value={bookingFormData.checkOut}
-                    onChange={handleBookingFormChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">
-                    จำนวนผู้เข้าพัก <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    name="guests"
-                    value={bookingFormData.guests}
-                    onChange={handleBookingFormChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
-                    min="1"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 font-medium mb-2">
-                    ยอดรวม (บาท) <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    name="total"
-                    value={bookingFormData.total}
-                    onChange={handleBookingFormChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
-                    min="0"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="flex space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={closeBookingModal}
-                  className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition"
-                  disabled={bookingLoading}
-                >
-                  ยกเลิก
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition disabled:opacity-50"
-                  disabled={bookingLoading}
-                >
-                  {bookingLoading ? 'กำลังบันทึก...' : 'บันทึกการแก้ไข'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Slip Image Modal */}
-      {showSlipModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4" onClick={() => setShowSlipModal(false)}>
-          <div className="relative max-w-4xl w-full" onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={() => setShowSlipModal(false)}
-              className="absolute -top-10 right-0 text-white hover:text-gray-300 transition"
-            >
-              <FaTimes className="text-3xl" />
-            </button>
-            <div className="bg-white rounded-lg p-4">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">สลิปการโอนเงิน</h3>
-              <div className="relative w-full h-[600px]">
-                <Image
-                  src={selectedSlip}
-                  alt="Payment Slip"
-                  fill
-                  className="object-contain"
-                />
-              </div>
-            </div>
           </div>
         </div>
       )}

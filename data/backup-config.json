@@ -1,0 +1,14 @@
+{
+  "enabled": true,
+  "schedule": "daily",
+  "customDays": 7,
+  "backupTime": "02:00",
+  "selectedFiles": [
+    "users.json",
+    "sessions.json",
+    "reviews.json"
+  ],
+  "autoDelete": false,
+  "backupHistory": [],
+  "lastBackup": "2025-12-06T07:58:23.778Z"
+}

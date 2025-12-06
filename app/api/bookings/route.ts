@@ -132,7 +132,7 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const body = await request.json()
-    const { id, roomName, guestName, checkIn, checkOut, guests, total, email, phone, slipImage, status } = body
+    const { id, roomName, guestName, checkIn, checkOut, guests, total, email, phone, slipImage, status, cancelReason, refundAmount } = body
 
     if (!id) {
       return NextResponse.json(
@@ -164,6 +164,8 @@ export async function PUT(request: Request) {
       phone: phone !== undefined ? phone : bookings[bookingIndex].phone,
       slipImage: slipImage !== undefined ? slipImage : bookings[bookingIndex].slipImage,
       status: status || bookings[bookingIndex].status,
+      cancelReason: cancelReason !== undefined ? cancelReason : bookings[bookingIndex].cancelReason,
+      refundAmount: refundAmount !== undefined ? Number(refundAmount) : bookings[bookingIndex].refundAmount,
       updatedAt: new Date().toISOString()
     }
 

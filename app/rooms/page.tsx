@@ -14,7 +14,7 @@ export default function RoomsPage() {
   const [filters, setFilters] = useState({
     location: searchParams.get('location') || '',
     minPrice: 0,
-    maxPrice: 10000,
+    maxPrice: 100000,
     guests: parseInt(searchParams.get('guests') || '0'),
     sortBy: 'price-asc',
     availability: 'all', // all, available, unavailable
@@ -140,7 +140,7 @@ export default function RoomsPage() {
                       placeholder="สูงสุด"
                       className="w-1/2 px-4 py-3 text-base text-gray-900 placeholder-gray-400 bg-white border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition"
                       value={filters.maxPrice}
-                      onChange={(e) => setFilters({ ...filters, maxPrice: parseInt(e.target.value) || 10000 })}
+                      onChange={(e) => setFilters({ ...filters, maxPrice: parseInt(e.target.value) || 100000 })}
                     />
                   </div>
                 </div>
