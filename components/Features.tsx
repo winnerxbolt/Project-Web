@@ -1,32 +1,37 @@
+'use client'
+
 import { FaBolt, FaShieldAlt, FaHeadset, FaPercent } from 'react-icons/fa'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 export default function Features() {
+  const { t } = useLanguage()
+  
   const features = [
     {
       icon: FaBolt,
-      title: 'จองง่าย รวดเร็ว',
-      description: 'ระบบจองออนไลน์ที่ใช้งานง่าย ได้รับการยืนยันทันที',
+      title: 'feature.wifi.title',
+      description: 'feature.wifi.desc',
       color: 'text-yellow-500',
       bgColor: 'bg-yellow-50',
     },
     {
       icon: FaShieldAlt,
-      title: 'ปลอดภัย มั่นใจ',
-      description: 'ระบบชำระเงินที่ปลอดภัย มีการเข้ารหัสข้อมูล',
+      title: 'feature.pool.title',
+      description: 'feature.pool.desc',
       color: 'text-green-500',
       bgColor: 'bg-green-50',
     },
     {
       icon: FaHeadset,
-      title: 'บริการ 24/7',
-      description: 'ทีมงานพร้อมให้บริการตลอด 24 ชั่วโมง',
+      title: 'feature.service.title',
+      description: 'feature.service.desc',
       color: 'text-blue-500',
       bgColor: 'bg-blue-50',
     },
     {
       icon: FaPercent,
-      title: 'ราคาดีที่สุด',
-      description: 'รับประกันราคาที่ดีที่สุด พร้อมโปรโมชั่นพิเศษ',
+      title: 'feature.restaurant.title',
+      description: 'feature.restaurant.desc',
       color: 'text-purple-500',
       bgColor: 'bg-purple-50',
     },
@@ -37,8 +42,8 @@ export default function Features() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">ทำไมต้องเลือกเรา</h2>
-          <p className="text-xl text-gray-600">บริการที่เหนือกว่าด้วยระบบที่ทันสมัย</p>
+          <h2 className="text-4xl font-bold text-gray-900 mb-4">{t('features.title')}</h2>
+          <p className="text-xl text-gray-600">{t('features.subtitle')}</p>
         </div>
 
         {/* Features Grid */}
@@ -53,8 +58,8 @@ export default function Features() {
                 <div className={`inline-flex items-center justify-center w-16 h-16 ${feature.bgColor} rounded-full mb-6`}>
                   <Icon className={`text-3xl ${feature.color}`} />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
-                <p className="text-gray-600">{feature.description}</p>
+                <h3 className="text-xl font-bold text-gray-900 mb-3">{t(feature.title)}</h3>
+                <p className="text-gray-600">{t(feature.description)}</p>
               </div>
             )
           })}

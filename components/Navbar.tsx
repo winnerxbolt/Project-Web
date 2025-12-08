@@ -5,11 +5,15 @@ import Image from 'next/image'
 import { useState } from 'react'
 import { FaBars, FaTimes, FaUserShield, FaUser, FaSignInAlt, FaSignOutAlt, FaCog } from 'react-icons/fa'
 import { useAuth } from '@/contexts/AuthContext'
+import { useLanguage } from '@/contexts/LanguageContext'
+import NotificationBell from './NotificationBell'
+import LanguageSwitcher from './LanguageSwitcher'
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const { user, logout, isAdmin } = useAuth()
+  const { t } = useLanguage()
 
   const handleLogout = () => {
     logout()
@@ -38,23 +42,29 @@ export default function Navbar() {
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-2">
             <Link href="/" className="relative text-pool-dark hover:text-pool-blue transition font-medium px-4 py-2 rounded-lg hover:bg-pool-blue/10 group">
-              <span className="relative z-10">Home</span>
+              <span className="relative z-10">{t('nav.home')}</span>
             </Link>
             <Link href="/rooms" className="relative text-pool-dark hover:text-pool-blue transition font-medium px-4 py-2 rounded-lg hover:bg-pool-blue/10 group">
-              <span className="relative z-10">Poolvilla</span>
+              <span className="relative z-10">{t('nav.rooms')}</span>
             </Link>
             <Link href="/reviews" className="relative text-pool-dark hover:text-pool-blue transition font-medium px-4 py-2 rounded-lg hover:bg-pool-blue/10 group">
-              <span className="relative z-10">Reviews</span>
+              <span className="relative z-10">{t('nav.reviews')}</span>
             </Link>
             <Link href="/reviews/videos" className="relative text-pool-dark hover:text-pool-blue transition font-medium px-4 py-2 rounded-lg hover:bg-pool-blue/10 group whitespace-nowrap">
               <span className="relative z-10">Video Poolvilla</span>
             </Link>
             <Link href="/about" className="relative text-pool-dark hover:text-pool-blue transition font-medium px-4 py-2 rounded-lg hover:bg-pool-blue/10 group whitespace-nowrap">
-              <span className="relative z-10">About Us</span>
+              <span className="relative z-10">{t('nav.about')}</span>
             </Link>
             <Link href="/contact" className="relative text-pool-dark hover:text-pool-blue transition font-medium px-4 py-2 rounded-lg hover:bg-pool-blue/10 group">
-              <span className="relative z-10">Contact</span>
+              <span className="relative z-10">{t('nav.contact')}</span>
             </Link>
+            
+            {/* Language Switcher */}
+            <LanguageSwitcher />
+            
+            {/* Notification Bell */}
+            {user && <NotificationBell />}
             
             {/* User Menu */}
             {user ? (
@@ -77,7 +87,7 @@ export default function Navbar() {
                           onClick={() => setUserMenuOpen(false)}
                         >
                           <FaUserShield />
-                          <span>Admin Mode</span>
+                          <span>{t('nav.admin')}</span>
                         </Link>
                         <div className="border-t my-2"></div>
                       </>
@@ -88,14 +98,14 @@ export default function Navbar() {
                       onClick={() => setUserMenuOpen(false)}
                     >
                       <FaCog />
-                      <span>ตั้งค่าบัญชี</span>
+                      <span>{t('nav.account')}</span>
                     </Link>
                     <button
                       onClick={handleLogout}
                       className="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 flex items-center gap-2"
                     >
                       <FaSignOutAlt />
-                      <span>ออกจากระบบ</span>
+                      <span>{t('nav.logout')}</span>
                     </button>
                   </div>
                 )}
@@ -107,14 +117,14 @@ export default function Navbar() {
                   className="flex items-center space-x-2 text-pool-dark hover:text-pool-blue transition font-medium text-sm whitespace-nowrap"
                 >
                   <FaSignInAlt className="text-sm" />
-                  <span>เข้าสู่ระบบ</span>
+                  <span>{t('nav.login')}</span>
                 </Link>
                 <Link
                   href="/register"
                   className="flex items-center space-x-2 bg-gradient-to-r from-pool-blue to-pool-dark text-white px-4 py-2 rounded-lg hover:shadow-pool transition shadow-md text-sm whitespace-nowrap"
                 >
                   <FaUser className="text-sm" />
-                  <span>สมัครสมาชิก</span>
+                  <span>{t('nav.register')}</span>
                 </Link>
               </div>
             )}
@@ -150,21 +160,21 @@ export default function Navbar() {
               className="block px-4 py-2.5 text-ocean-700 font-medium border-2 border-ocean-200 rounded-lg hover:border-ocean-400 hover:bg-ocean-50 transition overflow-hidden relative group"
               onClick={() => setIsOpen(false)}
             >
-              <span className="relative z-10">Home</span>
+              <span className="relative z-10">{t('nav.home')}</span>
             </Link>
             <Link
               href="/rooms"
               className="block px-4 py-2.5 text-ocean-700 font-medium border-2 border-ocean-200 rounded-lg hover:border-ocean-400 hover:bg-ocean-50 transition overflow-hidden relative group"
               onClick={() => setIsOpen(false)}
             >
-              <span className="relative z-10">Poolvilla</span>
+              <span className="relative z-10">{t('nav.rooms')}</span>
             </Link>
             <Link
               href="/reviews"
               className="block px-4 py-2.5 text-ocean-700 font-medium border-2 border-ocean-200 rounded-lg hover:border-ocean-400 hover:bg-ocean-50 transition overflow-hidden relative group"
               onClick={() => setIsOpen(false)}
             >
-              <span className="relative z-10">Reviews</span>
+              <span className="relative z-10">{t('nav.reviews')}</span>
             </Link>
             <Link
               href="/reviews/videos"
@@ -178,21 +188,26 @@ export default function Navbar() {
               className="block px-4 py-2.5 text-ocean-700 font-medium border-2 border-ocean-200 rounded-lg hover:border-ocean-400 hover:bg-ocean-50 transition overflow-hidden relative group"
               onClick={() => setIsOpen(false)}
             >
-              <span className="relative z-10">About Us</span>
+              <span className="relative z-10">{t('nav.about')}</span>
             </Link>
             <Link
               href="/contact"
               className="block px-4 py-2.5 text-ocean-700 font-medium border-2 border-ocean-200 rounded-lg hover:border-ocean-400 hover:bg-ocean-50 transition overflow-hidden relative group"
               onClick={() => setIsOpen(false)}
             >
-              <span className="relative z-10">Contact</span>
+              <span className="relative z-10">{t('nav.contact')}</span>
             </Link>
+            
+            {/* Language Switcher - Mobile */}
+            <div className="px-4 py-2">
+              <LanguageSwitcher />
+            </div>
             
             {/* Mobile User Menu */}
             {user ? (
               <>
                 <div className="px-3 py-2 text-ocean-800 font-semibold border-t border-ocean-200 mt-2">
-                  สวัสดี, {user.name}
+                  {t('account.welcome')}, {user.name}
                 </div>
                 <Link
                   href="/account"
@@ -200,7 +215,7 @@ export default function Navbar() {
                   onClick={() => setIsOpen(false)}
                 >
                   <FaCog className="inline mr-2" />
-                  ตั้งค่าบัญชี
+                  {t('nav.account')}
                 </Link>
                 <button
                   onClick={() => {
@@ -210,7 +225,7 @@ export default function Navbar() {
                   className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 rounded-md"
                 >
                   <FaSignOutAlt className="inline mr-2" />
-                  ออกจากระบบ
+                  {t('nav.logout')}
                 </button>
               </>
             ) : (
@@ -221,7 +236,7 @@ export default function Navbar() {
                   onClick={() => setIsOpen(false)}
                 >
                   <FaSignInAlt className="inline mr-2" />
-                  เข้าสู่ระบบ
+                  {t('nav.login')}
                 </Link>
                 <Link
                   href="/register"
@@ -229,7 +244,7 @@ export default function Navbar() {
                   onClick={() => setIsOpen(false)}
                 >
                   <FaUser className="inline mr-2" />
-                  สมัครสมาชิก
+                  {t('nav.register')}
                 </Link>
               </>
             )}
@@ -242,7 +257,7 @@ export default function Navbar() {
                 onClick={() => setIsOpen(false)}
               >
                 <FaUserShield className="inline mr-2" />
-                Admin Mode
+                {t('nav.admin')}
               </Link>
             )}
           </div>

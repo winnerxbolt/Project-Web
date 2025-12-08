@@ -4,15 +4,22 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 
-export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
+interface ProtectedRouteProps {
+  children: React.ReactNode
+  requireAdmin?: boolean
+}
+
+export default function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
   const { user, isLoading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
     if (!isLoading && !user) {
       router.push('/login')
+    } else if (!isLoading && user && requireAdmin && user.role !== 'admin') {
+      router.push('/')
     }
-  }, [user, isLoading, router])
+  }, [user, isLoading, requireAdmin, router])
 
   if (isLoading) {
     return (
@@ -27,6 +34,22 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
 
   if (!user) {
     return null
+  }
+
+  if (requireAdmin && user.role !== 'admin') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center">
+          <p className="text-red-600 text-xl font-bold">คุณไม่มีสิทธิ์เข้าถึงหน้านี้</p>
+          <button 
+            onClick={() => router.push('/')}
+            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            กลับหน้าหลัก
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return <>{children}</>

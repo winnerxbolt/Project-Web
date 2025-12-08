@@ -1,6 +1,9 @@
+'use client'
+
 import Image from 'next/image'
 import Link from 'next/link'
 import { FaBed, FaUsers, FaExpand, FaStar } from 'react-icons/fa'
+import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Room {
   id: number
@@ -18,6 +21,7 @@ interface Room {
 }
 
 export default function RoomCard({ room }: { room: Room }) {
+  const { formatPrice, t } = useLanguage()
   const displayImage = (room.images && room.images.length > 0) ? room.images[0] : room.image
   const imageCount = room.images?.length || 1
 
@@ -34,11 +38,11 @@ export default function RoomCard({ room }: { room: Room }) {
         {/* Image Count Badge */}
         {imageCount > 1 && (
           <div className="absolute bottom-4 right-4 bg-black bg-opacity-70 text-white px-2 py-1 rounded text-xs font-semibold">
-            📷 {imageCount} รูป
+            📷 {imageCount}
           </div>
         )}
         <div className="absolute top-4 right-4 bg-primary-600 text-white px-3 py-1 rounded-full text-sm font-semibold">
-          ฿{room.price.toLocaleString()}/คืน
+          {formatPrice(room.price)}{t('rooms.pernight')}
         </div>
         {/* Availability Badge */}
         <div className={`absolute top-4 left-4 px-3 py-1 rounded-full text-sm font-semibold ${
@@ -46,7 +50,7 @@ export default function RoomCard({ room }: { room: Room }) {
             ? 'bg-green-500 text-white' 
             : 'bg-red-500 text-white'
         }`}>
-          {room.available ? '✓ ว่าง' : '✕ ไม่ว่าง'}
+          {room.available ? '✓' : '✕'}
         </div>
       </div>
 

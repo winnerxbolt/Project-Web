@@ -4,6 +4,8 @@ import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
+import GoogleMap from '@/components/GoogleMap'
+import GalleryViewer from '@/components/GalleryViewer'
 import Image from 'next/image'
 import { useAuth } from '@/contexts/AuthContext'
 import RoomCalendar from '@/components/RoomCalendar'
@@ -29,6 +31,9 @@ export default function RoomDetailPage({ params }: { params: Promise<{ id: strin
   const [bookingLoading, setBookingLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
+  
+  // Location data
+  const [locationData, setLocationData] = useState<any>(null)
   
   // Review states
   const [reviews, setReviews] = useState<any[]>([])
@@ -98,6 +103,28 @@ export default function RoomDetailPage({ params }: { params: Promise<{ id: strin
         const response = await fetch(`/api/reviews?roomId=${resolvedParams.id}`)
         const data = await response.json()
         if (data.success) {
+          setReviews(data.reviews)
+        }
+      } catch (error) {
+        console.error('Error fetching reviews:', error)
+      }
+    }
+    
+    const fetchLocation = async () => {
+      try {
+        const response = await fetch(`/api/locations?roomId=${resolvedParams.id}`)
+        const data = await response.json()
+        if (data) {
+          setLocationData(data)
+        }
+      } catch (error) {
+        console.error('Error fetching location:', error)
+      }
+    }
+
+    fetchRoom()
+    fetchReviews()
+    fetchLocation()
           setReviews(data.reviews)
         }
       } catch (error) {
@@ -243,11 +270,12 @@ export default function RoomDetailPage({ params }: { params: Promise<{ id: strin
       const data = await response.json()
 
       if (data.success) {
-        setMessage('จองสำเร็จ! รอการยืนยันจากแอดมิน')
+        setMessage('✅ สร้างการจองสำเร็จ! กำลังพาไปหน้าชำระเงิน...')
+        const newBookingId = data.booking.id
         setTimeout(() => {
           setShowBookingModal(false)
-          router.push('/rooms')
-        }, 2000)
+          router.push(`/checkout/${newBookingId}`)
+        }, 1500)
       } else {
         setError(data.error || 'เกิดข้อผิดพลาดในการจอง')
       }
@@ -491,6 +519,15 @@ export default function RoomDetailPage({ params }: { params: Promise<{ id: strin
                   )}
                 </div>
 
+                {/* Gallery Section */}
+                <div className="mb-8">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                    <span className="text-3xl">🖼️</span>
+                    แกลเลอรี่ & VR Tour
+                  </h2>
+                  <GalleryViewer roomId={parseInt(resolvedParams.id)} />
+                </div>
+
                 {/* Location */}
                 {roomData.location && (
                   <div className="mb-8">
@@ -557,6 +594,28 @@ export default function RoomDetailPage({ params }: { params: Promise<{ id: strin
                   )}
                 </div>
               </div>
+              
+              {/* Location & Maps Section */}
+              {locationData && (
+                <div className="mt-8">
+                  <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                    <span className="text-3xl">🗺️</span>
+                    ที่ตั้งและแผนที่
+                  </h2>
+                  <GoogleMap
+                    location={{
+                      lat: locationData.latitude,
+                      lng: locationData.longitude,
+                      name: roomData.name,
+                      description: locationData.address,
+                    }}
+                    nearbyPlaces={locationData.nearbyPlaces || []}
+                    directions={locationData.directions}
+                    zoom={locationData.mapSettings?.zoom || 15}
+                    showStreetView={locationData.mapSettings?.showStreetView !== false}
+                  />
+                </div>
+              )}
               
               {/* Calendar Section */}
               <div className="mt-8">

@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import { use } from 'react'
 import { FaCheckCircle, FaPrint, FaTimes } from 'react-icons/fa'
+import Toast from '@/components/Toast'
+import { useToast } from '@/hooks/useToast'
 
 interface Booking {
   id: number
@@ -23,6 +25,7 @@ interface Booking {
 
 export default function PrintBookingPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
+  const { toasts, removeToast, success, error: showError } = useToast()
   const [booking, setBooking] = useState<Booking | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
@@ -65,13 +68,13 @@ export default function PrintBookingPage({ params }: { params: Promise<{ id: str
       if (data.success) {
         setBooking(editedBooking)
         setIsEditing(false)
-        alert('บันทึกข้อมูลสำเร็จ')
+        success('บันทึกข้อมูลสำเร็จ')
       } else {
-        alert('เกิดข้อผิดพลาด: ' + data.error)
+        showError('เกิดข้อผิดพลาด: ' + data.error)
       }
     } catch (error) {
       console.error('Error:', error)
-      alert('เกิดข้อผิดพลาดในการบันทึก')
+      showError('เกิดข้อผิดพลาดในการบันทึก')
     } finally {
       setIsSaving(false)
     }
@@ -422,6 +425,16 @@ export default function PrintBookingPage({ params }: { params: Promise<{ id: str
           </div>
         </div>
       </div>
+
+      {/* Toast Notifications */}
+      {toasts.map((toast) => (
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          type={toast.type}
+          onClose={() => removeToast(toast.id)}
+        />
+      ))}
 
       <style jsx global>{`
         @media print {

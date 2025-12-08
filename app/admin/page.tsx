@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Navbar from '@/components/Navbar'
 import RoomCalendar from '@/components/RoomCalendar'
 import { useAuth } from '@/contexts/AuthContext'
-import { FaHotel, FaCalendarCheck, FaDollarSign, FaUsers, FaPlus, FaEdit, FaTrash, FaUserShield, FaSearch, FaTimes, FaCalendarAlt, FaFire, FaCrown, FaChartLine, FaDatabase } from 'react-icons/fa'
+import { FaHotel, FaCalendarCheck, FaDollarSign, FaUsers, FaPlus, FaEdit, FaTrash, FaUserShield, FaSearch, FaTimes, FaCalendarAlt, FaFire, FaCrown, FaChartLine, FaDatabase, FaComments, FaQuestionCircle, FaRobot, FaComment, FaMapMarkedAlt, FaImages } from 'react-icons/fa'
 import { containsProfanity } from '@/lib/profanityFilter'
 import AdminStats from '@/components/AdminStats'
 import AdminButton from '@/components/AdminButton'
@@ -754,6 +754,83 @@ export default function AdminPage() {
             >
               <FaCalendarCheck className="text-xl" />
               <span>จัดการจอง</span>
+            </button>
+            <button
+              onClick={() => window.location.href = '/admin/payments'}
+              className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 flex items-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-xl`}
+            >
+              <FaDollarSign className="text-xl" />
+              <span>จัดการการชำระเงิน</span>
+            </button>
+            <button
+              onClick={() => window.location.href = '/admin/coupons'}
+              className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 flex items-center gap-2 bg-gradient-to-r from-orange-500 to-pink-600 text-white hover:shadow-xl`}
+            >
+              <FaFire className="text-xl" />
+              <span>จัดการคูปอง</span>
+            </button>
+            <button
+              onClick={() => window.location.href = '/admin/reviews'}
+              className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 flex items-center gap-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:shadow-xl`}
+            >
+              <FaCrown className="text-xl" />
+              <span>จัดการรีวิว</span>
+            </button>
+            <button
+              onClick={() => window.location.href = '/admin/notifications'}
+              className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 flex items-center gap-2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:shadow-xl`}
+            >
+              <FaDatabase className="text-xl" />
+              <span>ระบบแจ้งเตือน</span>
+            </button>
+            <button
+              onClick={() => window.location.href = '/admin/videos'}
+              className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 flex items-center gap-2 bg-gradient-to-r from-red-500 to-pink-600 text-white hover:shadow-xl`}
+            >
+              <FaChartLine className="text-xl" />
+              <span>จัดการวิดีโอ</span>
+            </button>
+            <button
+              onClick={() => window.location.href = '/admin/chat'}
+              className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 flex items-center gap-2 bg-gradient-to-r from-blue-500 to-cyan-600 text-white hover:shadow-xl`}
+            >
+              <FaComments className="text-xl" />
+              <span>แชท Live Chat</span>
+            </button>
+            <button
+              onClick={() => window.location.href = '/admin/faq'}
+              className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 flex items-center gap-2 bg-gradient-to-r from-green-500 to-teal-600 text-white hover:shadow-xl`}
+            >
+              <FaQuestionCircle className="text-xl" />
+              <span>จัดการ FAQ</span>
+            </button>
+            <button
+              onClick={() => window.location.href = '/admin/auto-replies'}
+              className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white hover:shadow-xl`}
+            >
+              <FaRobot className="text-xl" />
+              <span>ตอบกลับอัตโนมัติ</span>
+            </button>
+            <button
+              onClick={() => window.location.href = '/admin/locations'}
+              className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 flex items-center gap-2 bg-gradient-to-r from-red-500 to-orange-600 text-white hover:shadow-xl`}
+            >
+              <FaMapMarkedAlt className="text-xl" />
+              <span>จัดการแผนที่</span>
+            </button>
+            <button
+              onClick={() => window.location.href = '/admin/gallery'}
+              className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 flex items-center gap-2 bg-gradient-to-r from-purple-500 to-pink-600 text-white hover:shadow-xl hover:scale-105`}
+            >
+              <FaImages className="text-xl" />
+              <span>จัดการแกลเลอรี่</span>
+            </button>
+            <button
+              onClick={() => window.location.href = '/admin/stats'}
+              className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 flex items-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:shadow-xl hover:scale-105`}
+            >
+              <FaChartLine className="text-xl" />
+              <span>รายงานและสถิติ</span>
             </button>
           </div>
 

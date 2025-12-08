@@ -142,5 +142,29 @@
     "userId": "501cf967-7be2-43b9-a765-73166f06177a",
     "createdAt": "2025-12-04T08:08:03.169Z",
     "expiresAt": "2025-12-11T08:08:03.169Z"
+  },
+  {
+    "token": "a9f6dc8c0bf95da702769c612dbd8d8efcce0fbd41f3e7dd3d3e6249333c82b0",
+    "userId": "501cf967-7be2-43b9-a765-73166f06177a",
+    "createdAt": "2025-12-06T13:35:28.462Z",
+    "expiresAt": "2025-12-13T13:35:28.462Z"
+  },
+  {
+    "token": "8478eec854187ebe4f8bb5ea1d47554b5bfcf396c755ee21d5068e2a5e146a6b",
+    "userId": "501cf967-7be2-43b9-a765-73166f06177a",
+    "createdAt": "2025-12-07T14:34:41.420Z",
+    "expiresAt": "2025-12-14T14:34:41.420Z"
+  },
+  {
+    "token": "6c14f99eaa4925963b0ae99c0647a8a753cad15cf5eb00b25603723a6fe9d334",
+    "userId": "501cf967-7be2-43b9-a765-73166f06177a",
+    "createdAt": "2025-12-07T15:07:32.290Z",
+    "expiresAt": "2025-12-14T15:07:32.290Z"
+  },
+  {
+    "token": "f7a56e38cc08f786dfa8c7ab9cba865c7d85d84c366ba73163f870000f967005",
+    "userId": "501cf967-7be2-43b9-a765-73166f06177a",
+    "createdAt": "2025-12-07T15:07:47.719Z",
+    "expiresAt": "2025-12-14T15:07:47.719Z"
   }
 ]

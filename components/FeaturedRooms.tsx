@@ -1,9 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useLanguage } from '@/contexts/LanguageContext'
 import RoomCard from './RoomCard'
 
 export default function FeaturedRooms() {
+  const { t } = useLanguage()
   const [featuredRooms, setFeaturedRooms] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -31,7 +33,7 @@ export default function FeaturedRooms() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-            <p className="mt-4 text-gray-600">กำลังโหลด...</p>
+            <p className="mt-4 text-gray-600">{t('common.loading')}</p>
           </div>
         </div>
       </section>
@@ -47,8 +49,8 @@ export default function FeaturedRooms() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">ห้องพักแนะนำ</h2>
-          <p className="text-xl text-gray-600">ห้องพักคุณภาพที่ได้รับความนิยมสูงสุด</p>
+          <h2 className="text-4xl font-bold text-gray-900 mb-4">{t('rooms.featured')}</h2>
+          <p className="text-xl text-gray-600">{t('rooms.title')}</p>
         </div>
 
         {/* Rooms Grid */}
@@ -64,7 +66,7 @@ export default function FeaturedRooms() {
             href="/rooms"
             className="inline-block px-8 py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition shadow-lg hover:shadow-xl"
           >
-            ดูห้องพักทั้งหมด
+            {t('rooms.view')}
           </a>
         </div>
       </div>

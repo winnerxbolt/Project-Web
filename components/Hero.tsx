@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { FaMapMarkerAlt, FaCalendarAlt, FaUsers, FaSearch } from 'react-icons/fa'
 import { useRouter } from 'next/navigation'
+import { useLanguage } from '@/contexts/LanguageContext'
 import PoolButton from './PoolButton'
 
 interface Stats {
@@ -15,6 +16,7 @@ interface Stats {
 
 export default function Hero() {
   const router = useRouter()
+  const { t } = useLanguage()
   const [searchData, setSearchData] = useState({
     location: '',
     checkIn: '',
@@ -96,9 +98,7 @@ export default function Hero() {
         </div>
 
         <p className="text-xl md:text-2xl text-white/95 mb-12 max-w-3xl mx-auto leading-relaxed drop-shadow-lg font-medium">
-          ✨ พักผ่อนในบรรยากาศสุดหรู พร้อมสระว่ายน้ำส่วนตัว
-          <br />
-          🌴 จองง่าย สะดวก รวดเร็ว
+          {t('hero.subtitle')}
         </p>
 
         {/* Search Box with New Design */}
@@ -115,13 +115,13 @@ export default function Hero() {
             <div className="relative group">
               <label className="flex items-center text-base font-bold text-gray-800 mb-3 gap-2">
                 <span className="text-2xl">📍</span>
-                สถานที่
+                {t('rooms.checkin')}
               </label>
               <div className="relative">
                 <FaMapMarkerAlt className="absolute left-4 top-1/2 -translate-y-1/2 text-pool-blue text-xl" />
                 <input
                   type="text"
-                  placeholder="ค้นหาสถานที่..."
+                  placeholder={t('common.search')}
                   className="w-full pl-12 pr-4 py-4 text-base text-gray-900 placeholder-gray-400 bg-white border-2 border-pool-light/50 rounded-2xl focus:ring-4 focus:ring-pool-blue/30 focus:border-pool-blue outline-none transition-all duration-300 hover:border-pool-accent"
                   value={searchData.location}
                   onChange={(e) => setSearchData({ ...searchData, location: e.target.value })}
@@ -133,7 +133,7 @@ export default function Hero() {
             <div className="relative">
               <label className="flex items-center text-base font-bold text-gray-800 mb-3 gap-2">
                 <span className="text-2xl">📅</span>
-                เช็คอิน
+                {t('rooms.checkin')}
               </label>
               <div className="relative">
                 <FaCalendarAlt className="absolute left-4 top-1/2 -translate-y-1/2 text-tropical-green text-xl" />
@@ -150,7 +150,7 @@ export default function Hero() {
             <div className="relative">
               <label className="flex items-center text-base font-bold text-gray-800 mb-3 gap-2">
                 <span className="text-2xl">📆</span>
-                เช็คเอาท์
+                {t('rooms.checkout')}
               </label>
               <div className="relative">
                 <FaCalendarAlt className="absolute left-4 top-1/2 -translate-y-1/2 text-tropical-orange text-xl" />
@@ -167,7 +167,7 @@ export default function Hero() {
             <div className="relative">
               <label className="flex items-center text-base font-bold text-gray-800 mb-3 gap-2">
                 <span className="text-2xl">👥</span>
-                ผู้เข้าพัก
+                {t('rooms.guests')}
               </label>
               <div className="relative">
                 <FaUsers className="absolute left-4 top-1/2 -translate-y-1/2 text-luxury-gold text-xl" />
@@ -176,12 +176,12 @@ export default function Hero() {
                   value={searchData.guests}
                   onChange={(e) => setSearchData({ ...searchData, guests: e.target.value })}
                 >
-                  <option value="1">1 คน</option>
-                  <option value="2">2 คน</option>
-                  <option value="3">3 คน</option>
-                  <option value="4">4 คน</option>
-                  <option value="5">5 คน</option>
-                  <option value="6">6+ คน</option>
+                  <option value="1">1 {t('rooms.guests')}</option>
+                  <option value="2">2 {t('rooms.guests')}</option>
+                  <option value="3">3 {t('rooms.guests')}</option>
+                  <option value="4">4 {t('rooms.guests')}</option>
+                  <option value="5">5 {t('rooms.guests')}</option>
+                  <option value="6">6+ {t('rooms.guests')}</option>
                 </select>
                 <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
                   <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
