@@ -5,7 +5,7 @@ import Image from 'next/image'
 import Navbar from '@/components/Navbar'
 import RoomCalendar from '@/components/RoomCalendar'
 import { useAuth } from '@/contexts/AuthContext'
-import { FaHotel, FaCalendarCheck, FaDollarSign, FaUsers, FaPlus, FaEdit, FaTrash, FaUserShield, FaSearch, FaTimes, FaCalendarAlt, FaFire, FaCrown, FaChartLine, FaDatabase, FaComments, FaQuestionCircle, FaRobot, FaComment, FaMapMarkedAlt, FaImages } from 'react-icons/fa'
+import { FaHotel, FaCalendarCheck, FaDollarSign, FaUsers, FaPlus, FaEdit, FaTrash, FaUserShield, FaSearch, FaTimes, FaCalendarAlt, FaFire, FaCrown, FaChartLine, FaDatabase, FaComments, FaQuestionCircle, FaRobot, FaComment, FaMapMarkedAlt, FaImages, FaEnvelope, FaShieldAlt } from 'react-icons/fa'
 import { containsProfanity } from '@/lib/profanityFilter'
 import AdminStats from '@/components/AdminStats'
 import AdminButton from '@/components/AdminButton'
@@ -831,6 +831,27 @@ export default function AdminPage() {
             >
               <FaChartLine className="text-xl" />
               <span>รายงานและสถิติ</span>
+            </button>
+            <button
+              onClick={() => window.location.href = '/admin/social'}
+              className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 flex items-center gap-2 bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 text-white hover:shadow-xl hover:scale-105`}
+            >
+              <FaUsers className="text-xl" />
+              <span>Social Media</span>
+            </button>
+            <button
+              onClick={() => window.location.href = '/admin/email-marketing'}
+              className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 flex items-center gap-2 bg-gradient-to-r from-purple-600 via-pink-600 to-blue-600 text-white hover:shadow-xl hover:scale-105`}
+            >
+              <FaEnvelope className="text-xl" />
+              <span>Email Marketing</span>
+            </button>
+            <button
+              onClick={() => window.location.href = '/admin/insurance'}
+              className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 flex items-center gap-2 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white hover:shadow-xl hover:scale-105 shadow-lg ring-2 ring-blue-300`}
+            >
+              <FaShieldAlt className="text-xl" />
+              <span>🛡️ ระบบประกันการจอง</span>
             </button>
           </div>
 

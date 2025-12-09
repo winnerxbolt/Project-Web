@@ -1,0 +1,18 @@
+{
+  "facebook": {
+    "appId": "",
+    "appSecret": "",
+    "pageId": ""
+  },
+  "instagram": {
+    "accessToken": "",
+    "userId": ""
+  },
+  "google": {
+    "clientId": "",
+    "clientSecret": ""
+  },
+  "line": {
+    "channelId": ""
+  }
+}

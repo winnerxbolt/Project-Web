@@ -1,0 +1,249 @@
+[
+  {
+    "id": "plan-basic",
+    "name": "Basic Protection",
+    "type": "basic",
+    "price": 299,
+    "currency": "THB",
+    "description": "ความคุ้มครองพื้นฐานสำหรับการจองของคุณ",
+    "features": [
+      "ยกเลิกการจองล่วงหน้า 7 วัน คืนเงิน 50%",
+      "เปลี่ยนวันจอง 1 ครั้งฟรี",
+      "สนับสนุนทางโทรศัพท์ (จันทร์-ศุกร์)"
+    ],
+    "coverage": {
+      "cancellation": {
+        "enabled": true,
+        "refundPercentage": 50,
+        "daysBeforeCheckIn": 7,
+        "description": "คืนเงิน 50% หากยกเลิกล่วงหน้า 7 วันก่อนเช็คอิน"
+      },
+      "modification": {
+        "enabled": true,
+        "freeChanges": 1,
+        "feeAfterFree": 500,
+        "description": "เปลี่ยนวันจองฟรี 1 ครั้ง หลังจากนั้นเสียค่าธรรมเนียม 500 บาท/ครั้ง"
+      },
+      "travel": {
+        "enabled": false,
+        "medicalCoverage": 0,
+        "accidentCoverage": 0,
+        "luggageCoverage": 0,
+        "description": "ไม่รวมประกันภัยการเดินทาง"
+      },
+      "weatherDisruption": {
+        "enabled": false,
+        "coverage": 0,
+        "description": "ไม่คุ้มครองกรณีสภาพอากาศ"
+      },
+      "emergencySupport": {
+        "enabled": true,
+        "hotline247": false,
+        "description": "สนับสนุนทางโทรศัพท์เวลาทำการ"
+      }
+    },
+    "conditions": [
+      "ต้องซื้อภายใน 24 ชั่วโมงหลังจากทำการจอง",
+      "ใช้ได้เฉพาะการจองที่มูลค่าไม่เกิน 50,000 บาท",
+      "ต้องแจ้งยกเลิกล่วงหน้าตามระยะเวลาที่กำหนด"
+    ],
+    "excludes": [
+      "การยกเลิกโดยไม่มีเหตุผลสมควร",
+      "ความเสียหายจากภัยธรรมชาติ",
+      "โรคประจำตัวที่มีอยู่ก่อน"
+    ],
+    "maxClaimAmount": 25000,
+    "validityDays": 365,
+    "isActive": true,
+    "displayOrder": 1,
+    "createdAt": "2025-12-01T00:00:00Z",
+    "updatedAt": "2025-12-01T00:00:00Z"
+  },
+  {
+    "id": "plan-standard",
+    "name": "Standard Shield",
+    "type": "standard",
+    "price": 599,
+    "currency": "THB",
+    "description": "ความคุ้มครองที่ครอบคลุมมากขึ้น เหมาะสำหรับการพักผ่อนที่มั่นใจ",
+    "features": [
+      "ยกเลิกการจองล่วงหน้า 3 วัน คืนเงิน 80%",
+      "เปลี่ยนวันจอง 3 ครั้งฟรี",
+      "ประกันการเดินทาง (วงเงิน 100,000 บาท)",
+      "คุ้มครองสภาพอากาศเลวร้าย",
+      "สนับสนุน 24/7 ทางโทรศัพท์"
+    ],
+    "coverage": {
+      "cancellation": {
+        "enabled": true,
+        "refundPercentage": 80,
+        "daysBeforeCheckIn": 3,
+        "description": "คืนเงิน 80% หากยกเลิกล่วงหน้า 3 วันก่อนเช็คอิน"
+      },
+      "modification": {
+        "enabled": true,
+        "freeChanges": 3,
+        "feeAfterFree": 300,
+        "description": "เปลี่ยนวันจองฟรี 3 ครั้ง หลังจากนั้นเสียค่าธรรมเนียม 300 บาท/ครั้ง"
+      },
+      "travel": {
+        "enabled": true,
+        "medicalCoverage": 100000,
+        "accidentCoverage": 200000,
+        "luggageCoverage": 20000,
+        "description": "ประกันการเดินทาง: รักษาพยาบาล 100,000 | อุบัติเหตุ 200,000 | สัมภาระ 20,000 บาท"
+      },
+      "weatherDisruption": {
+        "enabled": true,
+        "coverage": 5000,
+        "description": "คุ้มครองกรณีสภาพอากาศเลวร้าย วงเงินสูงสุด 5,000 บาท"
+      },
+      "emergencySupport": {
+        "enabled": true,
+        "hotline247": true,
+        "description": "สนับสนุน 24/7 ทางโทรศัพท์และแชท"
+      }
+    },
+    "conditions": [
+      "ต้องซื้อภายใน 48 ชั่วโมงหลังจากทำการจอง",
+      "ใช้ได้เฉพาะการจองที่มูลค่าไม่เกิน 100,000 บาท",
+      "ต้องแจ้งยกเลิกล่วงหน้าตามระยะเวลาที่กำหนด"
+    ],
+    "excludes": [
+      "การยกเลิกภายใน 24 ชั่วโมงก่อนเช็คอิน",
+      "โรคประจำตัวที่มีอยู่ก่อน (บางกรณี)",
+      "กีฬาผาดโผน"
+    ],
+    "maxClaimAmount": 80000,
+    "validityDays": 365,
+    "isActive": true,
+    "displayOrder": 2,
+    "createdAt": "2025-12-01T00:00:00Z",
+    "updatedAt": "2025-12-01T00:00:00Z"
+  },
+  {
+    "id": "plan-premium",
+    "name": "Premium Care",
+    "type": "premium",
+    "price": 999,
+    "currency": "THB",
+    "description": "ความคุ้มครองระดับพรีเมียม สำหรับการเดินทางที่สมบูรณ์แบบ",
+    "features": [
+      "ยกเลิกได้ทุกเหตุผล คืนเงิน 100% (ล่วงหน้า 24 ชั่วโมง)",
+      "เปลี่ยนวันจองไม่จำกัดครั้ง ฟรี!",
+      "ประกันการเดินทาง (วงเงิน 500,000 บาท)",
+      "คุ้มครองทุกเหตุการณ์รวมถึงโควิด-19",
+      "บริการ Concierge 24/7",
+      "Fast-track เคลมภายใน 24 ชม."
+    ],
+    "coverage": {
+      "cancellation": {
+        "enabled": true,
+        "refundPercentage": 100,
+        "daysBeforeCheckIn": 1,
+        "description": "คืนเงิน 100% หากยกเลิกล่วงหน้า 24 ชั่วโมงก่อนเช็คอิน"
+      },
+      "modification": {
+        "enabled": true,
+        "freeChanges": 999,
+        "feeAfterFree": 0,
+        "description": "เปลี่ยนวันจองได้ไม่จำกัดครั้ง ฟรี!"
+      },
+      "travel": {
+        "enabled": true,
+        "medicalCoverage": 500000,
+        "accidentCoverage": 1000000,
+        "luggageCoverage": 50000,
+        "description": "ประกันการเดินทาง: รักษาพยาบาล 500,000 | อุบัติเหตุ 1,000,000 | สัมภาระ 50,000 บาท"
+      },
+      "weatherDisruption": {
+        "enabled": true,
+        "coverage": 20000,
+        "description": "คุ้มครองกรณีสภาพอากาศเลวร้าย วงเงินสูงสุด 20,000 บาท"
+      },
+      "emergencySupport": {
+        "enabled": true,
+        "hotline247": true,
+        "description": "บริการ Concierge 24/7 ทางโทรศัพท์ แชท และอีเมล"
+      }
+    },
+    "conditions": [
+      "ต้องซื้อภายใน 72 ชั่วโมงหลังจากทำการจอง",
+      "ใช้ได้กับการจองทุกมูลค่า",
+      "คุ้มครองทุกเหตุผลในการยกเลิก"
+    ],
+    "excludes": [
+      "การกระทำที่ผิดกฎหมาย",
+      "ความเสียหายจากการใช้สารเสพติด/แอลกอฮอล์"
+    ],
+    "maxClaimAmount": 200000,
+    "validityDays": 365,
+    "isActive": true,
+    "displayOrder": 3,
+    "createdAt": "2025-12-01T00:00:00Z",
+    "updatedAt": "2025-12-01T00:00:00Z"
+  },
+  {
+    "id": "plan-platinum",
+    "name": "Platinum Elite",
+    "type": "platinum",
+    "price": 1999,
+    "currency": "THB",
+    "description": "ความคุ้มครองระดับสูงสุด VIP Experience รับประกันความมั่นใจ 100%",
+    "features": [
+      "ยกเลิกได้ทุกเหตุผล คืนเงิน 100% ทุกกรณี",
+      "เปลี่ยนวัน/อัพเกรดห้องฟรีไม่จำกัด",
+      "ประกันการเดินทาง (วงเงิน 2,000,000 บาท)",
+      "คุ้มครองทุกอย่างรวมภัยธรรมชาติ",
+      "VIP Concierge & Personal Assistant",
+      "เคลมอัตโนมัติภายใน 1 ชม.",
+      "รถรับส่งฟรีหากมีปัญหา",
+      "ประกันภัยชีวิตระหว่างเดินทาง 1 ล้านบาท"
+    ],
+    "coverage": {
+      "cancellation": {
+        "enabled": true,
+        "refundPercentage": 100,
+        "daysBeforeCheckIn": 0,
+        "description": "คืนเงิน 100% ทุกกรณี แม้ยกเลิกก่อนเช็คอินเพียง 1 ชั่วโมง"
+      },
+      "modification": {
+        "enabled": true,
+        "freeChanges": 9999,
+        "feeAfterFree": 0,
+        "description": "เปลี่ยนวัน อัพเกรดห้อง โอนการจอง ได้ไม่จำกัดฟรี!"
+      },
+      "travel": {
+        "enabled": true,
+        "medicalCoverage": 2000000,
+        "accidentCoverage": 5000000,
+        "luggageCoverage": 100000,
+        "description": "ประกันการเดินทาง: รักษาพยาบาล 2 ล้าน | อุบัติเหตุ 5 ล้าน | สัมภาระ 100,000 บาท"
+      },
+      "weatherDisruption": {
+        "enabled": true,
+        "coverage": 50000,
+        "description": "คุ้มครองทุกภัยธรรมชาติ วงเงินสูงสุด 50,000 บาท"
+      },
+      "emergencySupport": {
+        "enabled": true,
+        "hotline247": true,
+        "description": "VIP Concierge 24/7 พร้อม Personal Assistant ดูแลทุกเรื่อง"
+      }
+    },
+    "conditions": [
+      "ซื้อได้ตลอดเวลาก่อนเช็คอิน",
+      "ไม่จำกัดมูลค่าการจอง",
+      "คุ้มครองทุกเหตุการณ์"
+    ],
+    "excludes": [
+      "การกระทำผิดกฎหมายอย่างร้ายแรง"
+    ],
+    "maxClaimAmount": 999999,
+    "validityDays": 730,
+    "isActive": true,
+    "displayOrder": 4,
+    "createdAt": "2025-12-01T00:00:00Z",
+    "updatedAt": "2025-12-01T00:00:00Z"
+  }
+]

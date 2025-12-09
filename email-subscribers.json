@@ -1,0 +1,20 @@
+[
+  {
+    "id": "sub-1765279047391-9e446hg8b",
+    "email": "wave.wavekung@hotmail.com",
+    "name": "TEERAPAT THONGJAM",
+    "phone": "0990457856",
+    "status": "active",
+    "tags": [
+      "vip"
+    ],
+    "preferences": {
+      "newsletter": true,
+      "promotions": true,
+      "booking_updates": true,
+      "special_events": true
+    },
+    "source": "manual",
+    "subscribedAt": "2025-12-09T11:17:27.391Z"
+  }
+]

@@ -166,5 +166,27 @@
     "userId": "501cf967-7be2-43b9-a765-73166f06177a",
     "createdAt": "2025-12-07T15:07:47.719Z",
     "expiresAt": "2025-12-14T15:07:47.719Z"
+  },
+  {
+    "token": "session_1765272319157_8ma6g4470",
+    "userId": "user_1765272319152_fjfo77io0",
+    "expiresAt": "2026-01-08T09:25:19.157Z"
+  },
+  {
+    "token": "session_1765272325490_ifcnpochh",
+    "userId": "user_1765272319152_fjfo77io0",
+    "expiresAt": "2026-01-08T09:25:25.490Z"
+  },
+  {
+    "token": "21f1ca60ceccf48bfb2e90548afa009b3e769bfa92a33f30a9257308c102fd1f",
+    "userId": "501cf967-7be2-43b9-a765-73166f06177a",
+    "createdAt": "2025-12-09T09:39:50.234Z",
+    "expiresAt": "2025-12-16T09:39:50.234Z"
+  },
+  {
+    "token": "6d200c32cce0d7ac73ecca674cf1e7acb48fa12c1204c858a3eca631232d6025",
+    "userId": "501cf967-7be2-43b9-a765-73166f06177a",
+    "createdAt": "2025-12-09T11:01:56.228Z",
+    "expiresAt": "2025-12-16T11:01:56.228Z"
   }
 ]

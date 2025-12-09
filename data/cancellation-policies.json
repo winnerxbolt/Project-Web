@@ -1,0 +1,128 @@
+[
+  {
+    "id": "policy-flexible",
+    "name": "Flexible Cancellation",
+    "description": "นโยบายการยกเลิกแบบยืดหยุ่น เหมาะสำหรับผู้ที่ต้องการความคล่องตัว",
+    "isDefault": true,
+    "rules": [
+      {
+        "daysBeforeCheckIn": 14,
+        "refundPercentage": 100,
+        "description": "ยกเลิกล่วงหน้า 14 วันขึ้นไป - คืนเงิน 100%"
+      },
+      {
+        "daysBeforeCheckIn": 7,
+        "refundPercentage": 75,
+        "description": "ยกเลิกล่วงหน้า 7-13 วัน - คืนเงิน 75%"
+      },
+      {
+        "daysBeforeCheckIn": 3,
+        "refundPercentage": 50,
+        "description": "ยกเลิกล่วงหน้า 3-6 วัน - คืนเงิน 50%"
+      },
+      {
+        "daysBeforeCheckIn": 1,
+        "refundPercentage": 25,
+        "description": "ยกเลิกล่วงหน้า 1-2 วัน - คืนเงิน 25%"
+      },
+      {
+        "daysBeforeCheckIn": 0,
+        "refundPercentage": 0,
+        "description": "ยกเลิกวันเดินทาง - ไม่คืนเงิน"
+      }
+    ],
+    "conditions": [
+      "ต้องยกเลิกผ่านระบบออนไลน์",
+      "เงินคืนจะโอนภายใน 7-14 วันทำการ",
+      "ไม่รวมค่าธรรมเนียมการชำระเงินที่ไม่สามารถคืนได้"
+    ],
+    "isActive": true,
+    "createdAt": "2025-12-01T00:00:00Z",
+    "updatedAt": "2025-12-01T00:00:00Z"
+  },
+  {
+    "id": "policy-moderate",
+    "name": "Moderate Cancellation",
+    "description": "นโยบายการยกเลิกปานกลาง สมดุลระหว่างความยืดหยุ่นและราคา",
+    "isDefault": false,
+    "rules": [
+      {
+        "daysBeforeCheckIn": 30,
+        "refundPercentage": 100,
+        "description": "ยกเลิกล่วงหน้า 30 วันขึ้นไป - คืนเงิน 100%"
+      },
+      {
+        "daysBeforeCheckIn": 14,
+        "refundPercentage": 50,
+        "description": "ยกเลิกล่วงหน้า 14-29 วัน - คืนเงิน 50%"
+      },
+      {
+        "daysBeforeCheckIn": 7,
+        "refundPercentage": 25,
+        "description": "ยกเลิกล่วงหน้า 7-13 วัน - คืนเงิน 25%"
+      },
+      {
+        "daysBeforeCheckIn": 0,
+        "refundPercentage": 0,
+        "description": "ยกเลิกภายใน 7 วัน - ไม่คืนเงิน"
+      }
+    ],
+    "conditions": [
+      "ต้องยกเลิกผ่านระบบออนไลน์",
+      "เงินคืนจะโอนภายใน 7-14 วันทำการ"
+    ],
+    "isActive": true,
+    "createdAt": "2025-12-01T00:00:00Z",
+    "updatedAt": "2025-12-01T00:00:00Z"
+  },
+  {
+    "id": "policy-strict",
+    "name": "Strict Cancellation",
+    "description": "นโยบายการยกเลิกแบบเข้มงวด ราคาถูกกว่าแต่ยืดหยุ่นน้อย",
+    "isDefault": false,
+    "rules": [
+      {
+        "daysBeforeCheckIn": 60,
+        "refundPercentage": 100,
+        "description": "ยกเลิกล่วงหน้า 60 วันขึ้นไป - คืนเงิน 100%"
+      },
+      {
+        "daysBeforeCheckIn": 30,
+        "refundPercentage": 50,
+        "description": "ยกเลิกล่วงหน้า 30-59 วัน - คืนเงิน 50%"
+      },
+      {
+        "daysBeforeCheckIn": 0,
+        "refundPercentage": 0,
+        "description": "ยกเลิกภายใน 30 วัน - ไม่คืนเงิน"
+      }
+    ],
+    "conditions": [
+      "ไม่สามารถยกเลิกได้ภายใน 30 วันก่อนเช็คอิน",
+      "เงินคืนจะโอนภายใน 14-21 วันทำการ"
+    ],
+    "isActive": true,
+    "createdAt": "2025-12-01T00:00:00Z",
+    "updatedAt": "2025-12-01T00:00:00Z"
+  },
+  {
+    "id": "policy-nonrefundable",
+    "name": "Non-Refundable",
+    "description": "ไม่สามารถยกเลิกหรือคืนเงินได้ แต่ราคาถูกที่สุด",
+    "isDefault": false,
+    "rules": [
+      {
+        "daysBeforeCheckIn": 0,
+        "refundPercentage": 0,
+        "description": "ไม่สามารถยกเลิกหรือคืนเงินได้ทุกกรณี"
+      }
+    ],
+    "conditions": [
+      "ไม่สามารถยกเลิกหรือเปลี่ยนแปลงการจองได้",
+      "ราคาพิเศษสำหรับผู้ที่มั่นใจในแผนการเดินทาง"
+    ],
+    "isActive": true,
+    "createdAt": "2025-12-01T00:00:00Z",
+    "updatedAt": "2025-12-01T00:00:00Z"
+  }
+]

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
+import SocialLogin from '@/components/SocialLogin'
 import { FaHome } from 'react-icons/fa'
 
 export default function LoginPage() {
@@ -87,6 +88,9 @@ export default function LoginPage() {
             <Link href="/register" className="text-sm text-primary-600 hover:underline">ยังไม่เป็นสมาชิก? สมัครเลย</Link>
           </div>
         </form>
+
+        {/* Social Login */}
+        <SocialLogin mode="login" onSuccess={() => router.push('/')} className="mt-6" />
       </section>
     </main>
   )

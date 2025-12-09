@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import SocialLogin from '@/components/SocialLogin'
 import { FaHome } from 'react-icons/fa'
 import { containsProfanity } from '@/lib/profanityFilter'
 
@@ -70,6 +71,9 @@ export default function RegisterPage() {
             <Link href="/login" className="text-sm text-primary-600">เข้าสู่ระบบ</Link>
           </div>
         </form>
+
+        {/* Social Login */}
+        <SocialLogin mode="register" onSuccess={() => router.push('/')} className="mt-6" />
       </section>
     </main>
   )

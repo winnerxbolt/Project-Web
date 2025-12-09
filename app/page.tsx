@@ -5,6 +5,8 @@ import Navbar from '@/components/Navbar'
 import Hero from '@/components/Hero'
 import FeaturedRooms from '@/components/FeaturedRooms'
 import Features from '@/components/Features'
+import InstagramFeed from '@/components/InstagramFeed'
+import EmailSubscribeForm from '@/components/EmailSubscribeForm'
 import Footer from '@/components/Footer'
 
 export default function Home() {
@@ -35,6 +37,21 @@ export default function Home() {
       </div>
       <FeaturedRooms />
       <Features />
+      
+      {/* Instagram Feed Section */}
+      <section className="py-16 bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <InstagramFeed limit={6} />
+        </div>
+      </section>
+      
+      {/* Email Subscribe Section */}
+      <section className="py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <EmailSubscribeForm />
+        </div>
+      </section>
+      
       <Footer />
     </main>
   )

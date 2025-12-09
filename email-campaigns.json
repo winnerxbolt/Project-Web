@@ -1,0 +1,58 @@
+[
+  {
+    "id": "campaign-1765278929579-4ykulvdbm",
+    "name": "Test Poolvilla",
+    "subject": "โปรใหม่มาๆ",
+    "templateId": "template-1765278905288-feihth6uh",
+    "type": "immediate",
+    "status": "sent",
+    "recipients": {
+      "type": "all",
+      "tags": [],
+      "customEmails": [
+        "thongjam.t02@gmail.com"
+      ],
+      "totalCount": 0
+    },
+    "stats": {
+      "sent": 0,
+      "delivered": 0,
+      "opened": 0,
+      "clicked": 0,
+      "bounced": 0,
+      "unsubscribed": 0,
+      "failed": 0
+    },
+    "createdAt": "2025-12-09T11:15:29.579Z",
+    "createdBy": "admin",
+    "sentAt": "2025-12-09T11:15:35.689Z"
+  },
+  {
+    "id": "campaign-1765279130297-1z7bsmm9b",
+    "name": "Test Poolvilla",
+    "subject": "โปรใหม่มาๆ",
+    "templateId": "template-1765278905288-feihth6uh",
+    "type": "immediate",
+    "status": "sent",
+    "recipients": {
+      "type": "all",
+      "tags": [
+        "vip"
+      ],
+      "customEmails": [],
+      "totalCount": 1
+    },
+    "stats": {
+      "sent": 0,
+      "delivered": 0,
+      "opened": 0,
+      "clicked": 0,
+      "bounced": 0,
+      "unsubscribed": 0,
+      "failed": 1
+    },
+    "createdAt": "2025-12-09T11:18:50.297Z",
+    "createdBy": "admin",
+    "sentAt": "2025-12-09T11:18:56.477Z"
+  }
+]

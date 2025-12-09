@@ -1,0 +1,3 @@
+@echo off
+echo Starting developmentBy Winnerboy server...
+npm run build

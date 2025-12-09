@@ -47,6 +47,11 @@ export default function Navbar() {
             <Link href="/rooms" className="relative text-pool-dark hover:text-pool-blue transition font-medium px-4 py-2 rounded-lg hover:bg-pool-blue/10 group">
               <span className="relative z-10">{t('nav.rooms')}</span>
             </Link>
+            <Link href="/insurance" className="relative text-pool-dark hover:text-purple-600 transition font-medium px-4 py-2 rounded-lg hover:bg-purple-100 group whitespace-nowrap">
+              <span className="relative z-10 flex items-center gap-1">
+                🛡️ ประกันการจอง
+              </span>
+            </Link>
             <Link href="/reviews" className="relative text-pool-dark hover:text-pool-blue transition font-medium px-4 py-2 rounded-lg hover:bg-pool-blue/10 group">
               <span className="relative z-10">{t('nav.reviews')}</span>
             </Link>
@@ -175,6 +180,16 @@ export default function Navbar() {
               onClick={() => setIsOpen(false)}
             >
               <span className="relative z-10">{t('nav.reviews')}</span>
+            </Link>
+            <Link
+              href="/insurance"
+              className="block px-4 py-2.5 text-purple-700 font-bold border-2 border-purple-300 bg-purple-50 rounded-lg hover:border-purple-500 hover:bg-purple-100 transition overflow-hidden relative group"
+              onClick={() => setIsOpen(false)}
+            >
+              <span className="relative z-10 flex items-center gap-2">
+                🛡️ ประกันการจอง
+                <span className="text-xs bg-purple-200 px-2 py-0.5 rounded-full">NEW</span>
+              </span>
             </Link>
             <Link
               href="/reviews/videos"

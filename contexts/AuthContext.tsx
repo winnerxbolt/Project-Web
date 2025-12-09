@@ -12,6 +12,7 @@ interface User {
 interface AuthContextType {
   user: User | null
   login: (email: string, password: string) => Promise<boolean>
+  loginWithUser: (userData: User) => void
   register: (name: string, email: string, password: string) => Promise<boolean>
   logout: () => void
   updateProfile: (name: string, email: string) => Promise<boolean>
@@ -87,6 +88,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setUser(null)
     localStorage.removeItem('user')
+  }
+
+  const loginWithUser = (userData: User) => {
+    setUser(userData)
+    localStorage.setItem('user', JSON.stringify(userData))
   }
 
   const updateProfile = async (name: string, email: string): Promise<boolean> => {
@@ -174,6 +180,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         login,
+        loginWithUser,
         register,
         logout,
         updateProfile,

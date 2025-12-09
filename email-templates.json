@@ -1,0 +1,19 @@
+[
+  {
+    "id": "template-1765278905288-feihth6uh",
+    "name": "Test Poolvilla",
+    "subject": "โปรใหม่มาๆ",
+    "previewText": "มีโปรโมชั่นใหม่มารีบมาจัดกันน้า",
+    "type": "newsletter",
+    "category": "marketing",
+    "htmlContent": "<html><body><h1>สวัสดี {{customer_name}}</h1></body></html>",
+    "textContent": "สวัสดี {{customer_name}}",
+    "variables": [
+      "customer_name"
+    ],
+    "status": "active",
+    "createdAt": "2025-12-09T11:15:05.288Z",
+    "updatedAt": "2025-12-09T11:15:05.288Z",
+    "usageCount": 2
+  }
+]

@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar'
 import Footer from '@/components/Footer'
 import GoogleMap from '@/components/GoogleMap'
 import GalleryViewer from '@/components/GalleryViewer'
+import SocialShare from '@/components/SocialShare'
 import Image from 'next/image'
 import { useAuth } from '@/contexts/AuthContext'
 import RoomCalendar from '@/components/RoomCalendar'
@@ -526,6 +527,15 @@ export default function RoomDetailPage({ params }: { params: Promise<{ id: strin
                     แกลเลอรี่ & VR Tour
                   </h2>
                   <GalleryViewer roomId={parseInt(resolvedParams.id)} />
+                </div>
+
+                {/* Social Share Section */}
+                <div className="mb-8">
+                  <SocialShare 
+                    roomId={resolvedParams.id}
+                    roomName={roomData.name}
+                    roomImage={images[0]}
+                  />
                 </div>
 
                 {/* Location */}
