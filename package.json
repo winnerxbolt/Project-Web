@@ -1,12 +1,16 @@
 {
-  "name": "hotel-booking-nextjs",
-  "version": "1.0.0",
+  "name": "poolvilla-pattaya",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
+    "security-check": "npm audit",
+    "analyze": "ANALYZE=true next build"
   },
   "dependencies": {
     "@types/nodemailer": "^7.0.4",

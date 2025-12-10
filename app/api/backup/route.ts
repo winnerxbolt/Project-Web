@@ -90,7 +90,10 @@ export async function POST(request: Request) {
     }
 
     // สร้าง backup ใหม่ (รองรับการเลือกไฟล์)
-    const result = await createBackup(selectedFiles, autoDelete !== false)
+    const result = await createBackup({
+      selectedFiles,
+      autoDelete: autoDelete !== false
+    })
     return NextResponse.json(result, { status: result.success ? 200 : 500 })
     
   } catch (error) {

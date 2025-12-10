@@ -7,7 +7,7 @@ import {
   FaPlus, FaEdit, FaTrash, FaEye, FaCheck, FaTimes,
   FaSearch, FaFilter, FaClock, FaCheckCircle, FaTimesCircle,
   FaMoneyBillWave, FaUsers, FaCalendarAlt, FaExclamationTriangle,
-  FaDownload, FaPrint, FaEnvelope, FaBell
+  FaDownload, FaPrint, FaEnvelope, FaBell, FaArrowLeft
 } from 'react-icons/fa'
 import { 
   InsurancePlan, 
@@ -155,10 +155,18 @@ export default function InsuranceManagementPage() {
           <div className="mb-8 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-pink-600/10 animate-pulse"></div>
             <div className="relative">
-              <h1 className="text-5xl font-extrabold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-3 flex items-center gap-3">
-                <FaShieldAlt className="text-blue-600" />
-                ระบบประกันการจอง
-              </h1>
+              <div className="flex items-center gap-4 mb-3">
+                <a
+                  href="/admin"
+                  className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white p-3 rounded-xl transition-all shadow-lg hover:scale-105"
+                >
+                  <FaArrowLeft className="text-xl" />
+                </a>
+                <h1 className="text-5xl font-extrabold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent flex items-center gap-3">
+                  <FaShieldAlt className="text-blue-600" />
+                  ระบบประกันการจอง
+                </h1>
+              </div>
               <p className="text-gray-600 text-lg">
                 จัดการแผนประกัน นโยบาย และเคลมทั้งหมดในที่เดียว
               </p>

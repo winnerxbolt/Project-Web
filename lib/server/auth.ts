@@ -22,8 +22,9 @@ const USERS_PATH = 'data/users.json'
 const SESSIONS_PATH = 'data/sessions.json'
 const SESSION_TTL_SEC = 60 * 60 * 24 * 7 // 7 days
 
+// Use 600,000 iterations as per OWASP 2023 recommendations
 function hashPassword(password: string, salt: string) {
-  return crypto.pbkdf2Sync(password, salt, 310000, 32, 'sha256').toString('hex')
+  return crypto.pbkdf2Sync(password, salt, 600000, 32, 'sha256').toString('hex')
 }
 
 export async function findUserByEmail(email: string) {

@@ -5,7 +5,7 @@ import ProtectedRoute from '@/components/ProtectedRoute'
 import { 
   FaEnvelope, FaUsers, FaFileAlt, FaChartLine, FaPaperPlane, 
   FaPlus, FaEdit, FaTrash, FaEye, FaClock, FaCheckCircle,
-  FaTimes, FaSearch, FaFilter, FaCopy, FaDownload, FaUpload
+  FaTimes, FaSearch, FaFilter, FaCopy, FaDownload, FaUpload, FaArrowLeft
 } from 'react-icons/fa'
 import { EmailCampaign, EmailTemplate, EmailSubscriber } from '@/types/email'
 
@@ -160,12 +160,22 @@ export default function EmailMarketingPage() {
         <div className="container mx-auto px-4">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
-              📧 Email Marketing
-            </h1>
-            <p className="text-gray-600">
-              จัดการ Campaigns, Templates และ Subscribers
-            </p>
+            <div className="flex items-center gap-4 mb-4">
+              <a
+                href="/admin"
+                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white p-3 rounded-xl transition-all shadow-lg hover:scale-105"
+              >
+                <FaArrowLeft className="text-xl" />
+              </a>
+              <div>
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
+                  📧 Email Marketing
+                </h1>
+                <p className="text-gray-600">
+                  จัดการ Campaigns, Templates และ Subscribers
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Stats Cards */}

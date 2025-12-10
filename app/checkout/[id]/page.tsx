@@ -5,6 +5,7 @@ import { use } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
+import DynamicPriceBreakdown from '@/components/DynamicPriceBreakdown'
 import { 
   FaArrowLeft, 
   FaCheckCircle, 
@@ -48,6 +49,9 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
+  
+  // Dynamic pricing
+  const [dynamicPrice, setDynamicPrice] = useState<number>(0)
   
   // Coupon states
   const [couponCode, setCouponCode] = useState('')
@@ -664,79 +668,95 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
 
           {/* Right Column - Price Summary */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 sticky top-24">
-              <h3 className="text-2xl font-bold text-gray-800 mb-6">สรุปราคา</h3>
-              
-              <div className="space-y-4 mb-6">
-                <div className="flex justify-between text-gray-700">
-                  <span>ค่าห้องพัก ({nights} คืน)</span>
-                  <span className="font-semibold">{formatPrice(booking.total)}</span>
-                </div>
-                <div className="flex justify-between text-gray-700">
-                  <span>จำนวนผู้เข้าพัก</span>
-                  <span className="font-semibold">{booking.guests} คน</span>
-                </div>
-                <div className="flex justify-between text-gray-700">
-                  <span>ค่าบริการ</span>
-                  <span className="font-semibold text-green-600">ฟรี</span>
-                </div>
-                {discount > 0 && (
-                  <div className="flex justify-between text-orange-600 bg-orange-50 p-3 rounded-lg -mx-2">
-                    <span className="flex items-center gap-2">
-                      <FaTicketAlt />
-                      ส่วนลด ({appliedCoupon?.code})
-                    </span>
-                    <span className="font-bold">-{formatPrice(discount)}</span>
+            {booking.roomId && booking.checkIn && booking.checkOut && (
+              <div className="sticky top-24">
+                <DynamicPriceBreakdown
+                  roomId={parseInt(booking.roomId)}
+                  checkIn={booking.checkIn}
+                  checkOut={booking.checkOut}
+                  guests={booking.guests}
+                  rooms={1}
+                  onPriceCalculated={(price) => setDynamicPrice(price)}
+                />
+              </div>
+            )}
+
+            {/* Fallback if no roomId */}
+            {!booking.roomId && (
+              <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 sticky top-24">
+                <h3 className="text-2xl font-bold text-gray-800 mb-6">สรุปราคา</h3>
+                
+                <div className="space-y-4 mb-6">
+                  <div className="flex justify-between text-gray-700">
+                    <span>ค่าห้องพัก ({nights} คืน)</span>
+                    <span className="font-semibold">{formatPrice(booking.total)}</span>
                   </div>
-                )}
-              </div>
+                  <div className="flex justify-between text-gray-700">
+                    <span>จำนวนผู้เข้าพัก</span>
+                    <span className="font-semibold">{booking.guests} คน</span>
+                  </div>
+                  <div className="flex justify-between text-gray-700">
+                    <span>ค่าบริการ</span>
+                    <span className="font-semibold text-green-600">ฟรี</span>
+                  </div>
+                  {discount > 0 && (
+                    <div className="flex justify-between text-orange-600 bg-orange-50 p-3 rounded-lg -mx-2">
+                      <span className="flex items-center gap-2">
+                        <FaTicketAlt />
+                        ส่วนลด ({appliedCoupon?.code})
+                      </span>
+                      <span className="font-bold">-{formatPrice(discount)}</span>
+                    </div>
+                  )}
+                </div>
 
-              <div className="border-t-2 border-gray-200 pt-4 mb-6">
-                <div className="flex justify-between items-center">
-                  <span className="text-xl font-bold text-gray-800">ยอดรวมทั้งหมด</span>
-                  <div className="text-right">
-                    {discount > 0 && (
-                      <div className="text-sm text-gray-400 line-through mb-1">
-                        {formatPrice(booking.total)}
-                      </div>
-                    )}
-                    <span className="text-3xl font-bold text-green-600">
-                      {formatPrice(booking.total - discount)}
-                    </span>
-                    {discount > 0 && (
-                      <div className="text-xs text-green-600 font-semibold mt-1">
-                        ประหยัด {formatPrice(discount)}!
-                      </div>
-                    )}
+                <div className="border-t-2 border-gray-200 pt-4 mb-6">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xl font-bold text-gray-800">ยอดรวมทั้งหมด</span>
+                    <div className="text-right">
+                      {discount > 0 && (
+                        <div className="text-sm text-gray-400 line-through mb-1">
+                          {formatPrice(booking.total)}
+                        </div>
+                      )}
+                      <span className="text-3xl font-bold text-green-600">
+                        {formatPrice(booking.total - discount)}
+                      </span>
+                      {discount > 0 && (
+                        <div className="text-xs text-green-600 font-semibold mt-1">
+                          ประหยัด {formatPrice(discount)}!
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <button
-                onClick={handlePayment}
-                disabled={isSubmitting || (paymentMethod === 'bank_transfer' && !slipImage)}
-                className="w-full py-4 bg-gradient-to-r from-pool-light to-pool-dark text-white rounded-xl font-bold text-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-              >
-                {isSubmitting ? (
-                  <>
-                    <FaSpinner className="animate-spin" />
-                    กำลังดำเนินการ...
-                  </>
-                ) : (
-                  <>
-                    <FaCheckCircle />
-                    ยืนยันการชำระเงิน
-                  </>
-                )}
-              </button>
+                <button
+                  onClick={handlePayment}
+                  disabled={isSubmitting || (paymentMethod === 'bank_transfer' && !slipImage)}
+                  className="w-full py-4 bg-gradient-to-r from-pool-light to-pool-dark text-white rounded-xl font-bold text-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <FaSpinner className="animate-spin" />
+                      กำลังดำเนินการ...
+                    </>
+                  ) : (
+                    <>
+                      <FaCheckCircle />
+                      ยืนยันการชำระเงิน
+                    </>
+                  )}
+                </button>
 
-              <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                <p className="text-xs text-gray-600 text-center">
-                  🔒 การชำระเงินปลอดภัย 100%<br/>
-                  ข้อมูลของคุณได้รับการเข้ารหัส
-                </p>
+                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                  <p className="text-xs text-gray-600 text-center">
+                    🔒 การชำระเงินปลอดภัย 100%<br/>
+                    ข้อมูลของคุณได้รับการเข้ารหัส
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

@@ -14,6 +14,7 @@ import {
   FaTimes,
   FaMapPin,
   FaCompass,
+  FaArrowLeft,
 } from 'react-icons/fa'
 
 interface Location {
@@ -276,10 +277,18 @@ export default function AdminLocationsPage() {
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-5xl font-black text-gray-900 flex items-center gap-3">
-                <FaMapMarkerAlt className="text-blue-600" />
-                จัดการแผนที่และสถานที่
-              </h1>
+              <div className="flex items-center gap-4 mb-2">
+                <a
+                  href="/admin"
+                  className="bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white p-3 rounded-xl transition-all shadow-lg hover:scale-105"
+                >
+                  <FaArrowLeft className="text-xl" />
+                </a>
+                <h1 className="text-5xl font-black text-gray-900 flex items-center gap-3">
+                  <FaMapMarkerAlt className="text-blue-600" />
+                  จัดการแผนที่และสถานที่
+                </h1>
+              </div>
               <p className="text-gray-600 mt-2">กำหนดตำแหน่งพิกัด, สถานที่ใกล้เคียง และเส้นทาง</p>
             </div>
             <button

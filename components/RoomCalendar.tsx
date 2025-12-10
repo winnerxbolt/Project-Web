@@ -6,11 +6,15 @@ import { FaChevronLeft, FaChevronRight, FaFire, FaCalendarAlt } from 'react-icon
 interface CalendarDay {
   roomId: number
   date: string
-  status: 'available' | 'booked' | 'pending' | 'holiday' | 'maintenance'
+  status: 'available' | 'booked' | 'pending' | 'holiday' | 'maintenance' | 'blackout'
   hasSpecialDiscount?: boolean
   note?: string
   discountAmount?: number
   discountReason?: string
+  priceMultiplier?: number
+  seasonalAdjustment?: number
+  isBlackout?: boolean
+  blackoutReason?: string
 }
 
 interface RoomCalendarProps {
@@ -73,9 +77,11 @@ export default function RoomCalendar({ roomId, roomName }: RoomCalendarProps) {
       case 'pending':
         return `${baseClasses} bg-gradient-to-br from-yellow-300 to-yellow-500 text-gray-800 shadow-md hover:shadow-lg ${isToday ? 'ring-2 ring-blue-400 ring-offset-2' : ''}`
       case 'holiday':
-        return `${baseClasses} bg-gradient-to-br from-green-400 to-green-600 text-white shadow-md hover:shadow-lg ${isToday ? 'ring-2 ring-blue-400 ring-offset-2' : ''}`
+        return `${baseClasses} bg-gradient-to-br from-yellow-400 to-orange-500 text-white shadow-md hover:shadow-lg ${isToday ? 'ring-2 ring-blue-400 ring-offset-2' : ''}`
       case 'maintenance':
-        return `${baseClasses} bg-gradient-to-br from-orange-400 to-orange-600 text-white shadow-md hover:shadow-lg ${isToday ? 'ring-2 ring-blue-400 ring-offset-2' : ''}`
+        return `${baseClasses} bg-gradient-to-br from-orange-400 to-red-600 text-white shadow-md hover:shadow-lg ${isToday ? 'ring-2 ring-blue-400 ring-offset-2' : ''}`
+      case 'blackout':
+        return `${baseClasses} bg-gradient-to-br from-gray-600 to-gray-800 text-white shadow-md hover:shadow-lg ${isToday ? 'ring-2 ring-blue-400 ring-offset-2' : ''}`
       default:
         return `${baseClasses} bg-white hover:bg-blue-50 text-gray-800 border border-gray-200 hover:border-blue-300 ${isToday ? 'ring-2 ring-blue-500 ring-offset-2 bg-blue-50' : ''}`
     }

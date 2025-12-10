@@ -10,7 +10,29 @@ const CONFIG_FILE = path.join(process.cwd(), 'data', 'backup-config.json')
 export const AVAILABLE_FILES = [
   'users.json',
   'sessions.json',
-  'reviews.json'
+  'reviews.json',
+  'bookings.json',
+  'rooms.json',
+  'payments.json',
+  'coupons.json',
+  'notifications.json',
+  'videos.json',
+  'wishlist.json',
+  'points.json',
+  'chat-messages.json',
+  'faq.json',
+  'auto-replies.json',
+  'locations.json',
+  'bookingCalendar.json',
+  'group-bookings.json',
+  'group-discount-settings.json',
+  'corporate-clients.json',
+  'group-quote-templates.json',
+  'dynamic-pricing-settings.json',
+  'demand-pricing-rules.json',
+  'seasonal-pricing.json',
+  'blackout-dates.json',
+  'backup-config.json'
 ]
 
 // Backup history record
@@ -124,13 +146,14 @@ async function ensureMonthlyBackupDir(): Promise<string> {
 /**
  * สร้าง backup ข้อมูล (จัดเก็บแยกตามเดือน ไม่ลบของเก่า)
  */
-export async function createBackup(selectedFiles?: string[], autoDelete: boolean = false): Promise<{ success: boolean; message: string; backupPath?: string }> {
+export async function createBackup(options?: { selectedFiles?: string[], autoDelete?: boolean }): Promise<{ success: boolean; message: string; backupPath?: string; backupName?: string; files?: string[] }> {
   try {
     await ensureBackupDir()
 
     // โหลด config ถ้าไม่ระบุ selectedFiles
     const config = await loadBackupConfig()
-    const filesToBackup = selectedFiles || config.selectedFiles
+    const filesToBackup = options?.selectedFiles || config.selectedFiles
+    const autoDelete = options?.autoDelete ?? false
 
     // สร้างโฟลเดอร์สำหรับเดือนปัจจุบัน
     const monthDir = await ensureMonthlyBackupDir()
@@ -173,7 +196,7 @@ export async function createBackup(selectedFiles?: string[], autoDelete: boolean
       filesBackedUp: backedUpFiles,
       totalFiles: filesToBackup.length,
       files: backedUpFileNames,
-      autoDelete
+      autoDelete: options?.autoDelete ?? false
     }
     await fs.writeFile(
       path.join(backupPath, 'backup-info.json'),
@@ -207,7 +230,9 @@ export async function createBackup(selectedFiles?: string[], autoDelete: boolean
     return {
       success: true,
       message: `✅ Backup สำเร็จ! สำรอง ${backedUpFiles} ไฟล์`,
-      backupPath
+      backupPath,
+      backupName,
+      files: backedUpFileNames
     }
   } catch (error) {
     console.error('เกิดข้อผิดพลาดในการสำรองข้อมูล:', error)

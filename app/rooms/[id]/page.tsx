@@ -7,6 +7,7 @@ import Footer from '@/components/Footer'
 import GoogleMap from '@/components/GoogleMap'
 import GalleryViewer from '@/components/GalleryViewer'
 import SocialShare from '@/components/SocialShare'
+import DynamicPriceBreakdown from '@/components/DynamicPriceBreakdown'
 import Image from 'next/image'
 import { useAuth } from '@/contexts/AuthContext'
 import RoomCalendar from '@/components/RoomCalendar'
@@ -126,15 +127,6 @@ export default function RoomDetailPage({ params }: { params: Promise<{ id: strin
     fetchRoom()
     fetchReviews()
     fetchLocation()
-          setReviews(data.reviews)
-        }
-      } catch (error) {
-        console.error('Error fetching reviews:', error)
-      }
-    }
-    
-    fetchRoom()
-    fetchReviews()
   }, [resolvedParams.id])
 
   const calculateTotal = async () => {
@@ -830,6 +822,18 @@ export default function RoomDetailPage({ params }: { params: Promise<{ id: strin
                   หรืออัพโหลดสลิปหลังจากจองเสร็จ
                 </p>
               </div>
+
+              {/* Dynamic Price Breakdown */}
+              {bookingData.checkIn && bookingData.checkOut && (
+                <DynamicPriceBreakdown
+                  roomId={roomData.id}
+                  checkIn={bookingData.checkIn}
+                  checkOut={bookingData.checkOut}
+                  guests={bookingData.guests}
+                  rooms={1}
+                  onPriceCalculated={(price) => setTotalAmount(price)}
+                />
+              )}
 
               {/* Discount Information */}
               {discountInfo && discountInfo.totalDiscount > 0 && (

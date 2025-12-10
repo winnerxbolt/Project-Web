@@ -2,8 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 
-type Language = 'th' | 'en' | 'cn'
-type Currency = 'THB' | 'USD' | 'CNY'
+type Language = 'th' | 'en' | 'cn' | 'ru' | 'kr'
+type Currency = 'THB' | 'USD' | 'CNY' | 'RUB' | 'KRW'
 
 interface LanguageContextType {
   language: Language
@@ -19,8 +19,10 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 // Exchange rates (THB as base)
 const exchangeRates = {
   THB: 1,
-  USD: 0.029, // 1 THB = 0.029 USD
-  CNY: 0.21,  // 1 THB = 0.21 CNY
+  USD: 0.029,  // 1 THB = 0.029 USD
+  CNY: 0.21,   // 1 THB = 0.21 CNY
+  RUB: 2.75,   // 1 THB = 2.75 RUB
+  KRW: 38.5,   // 1 THB = 38.5 KRW
 }
 
 // Currency symbols
@@ -28,6 +30,8 @@ const currencySymbols = {
   THB: '฿',
   USD: '$',
   CNY: '¥',
+  RUB: '₽',
+  KRW: '₩',
 }
 
 // Translations
@@ -383,6 +387,240 @@ const translations: Record<Language, Record<string, string>> = {
     'common.viewmore': '查看更多',
     'common.readmore': '阅读更多',
   },
+  ru: {
+    // Navigation
+    'nav.home': 'Главная',
+    'nav.rooms': 'Номера',
+    'nav.reviews': 'Отзывы',
+    'nav.about': 'О нас',
+    'nav.contact': 'Контакты',
+    'nav.login': 'Войти',
+    'nav.register': 'Регистрация',
+    'nav.account': 'Аккаунт',
+    'nav.admin': 'Админ',
+    'nav.logout': 'Выйти',
+
+    // Hero Section
+    'hero.title': 'Добро пожаловать в наш отель',
+    'hero.subtitle': 'Испытайте роскошь и комфорт в спокойной атмосфере',
+    'hero.cta': 'Забронировать',
+    'hero.learn': 'Узнать больше',
+
+    // Features
+    'features.title': 'Особенности',
+    'features.subtitle': 'Что делает нас особенными',
+    'feature.wifi.title': 'Высокоскоростной Wi-Fi',
+    'feature.wifi.desc': 'Бесплатный высокоскоростной Wi-Fi везде',
+    'feature.pool.title': 'Бассейн',
+    'feature.pool.desc': 'Открытый и крытый бассейны',
+    'feature.spa.title': 'Спа и фитнес',
+    'feature.spa.desc': 'Расслабьтесь со спа-услугами мирового класса',
+    'feature.restaurant.title': 'Ресторан',
+    'feature.restaurant.desc': 'Международная и местная кухня',
+    'feature.parking.title': 'Парковка',
+    'feature.parking.desc': 'Бесплатная парковка для гостей',
+    'feature.service.title': 'Круглосуточный сервис',
+    'feature.service.desc': 'Мы доступны 24/7',
+
+    // Rooms
+    'rooms.title': 'Наши номера',
+    'rooms.featured': 'Рекомендуемые номера',
+    'rooms.view': 'Посмотреть номера',
+    'rooms.book': 'Забронировать',
+    'rooms.pernight': '/ночь',
+    'rooms.guests': 'Гости',
+    'rooms.checkin': 'Заезд',
+    'rooms.checkout': 'Выезд',
+    'rooms.details': 'Детали',
+    'rooms.amenities': 'Удобства',
+
+    // Reviews
+    'reviews.title': 'Отзывы клиентов',
+    'reviews.subtitle': 'Что говорят наши гости',
+    'reviews.write': 'Написать отзыв',
+    'reviews.all': 'Все отзывы',
+    'reviews.rating': 'Рейтинг',
+    'reviews.verified': 'Проверено',
+
+    // About
+    'about.title': 'О нас',
+    'about.subtitle': 'Наша история',
+    'about.description': 'Мы ведущий отель, стремящийся предоставить лучший сервис',
+
+    // Contact
+    'contact.title': 'Свяжитесь с нами',
+    'contact.subtitle': 'Мы будем рады услышать вас',
+    'contact.name': 'Имя',
+    'contact.email': 'Электронная почта',
+    'contact.message': 'Сообщение',
+    'contact.send': 'Отправить',
+    'contact.livechat': 'Онлайн-чат',
+    'contact.faq': 'Часто задаваемые вопросы',
+
+    // Account
+    'account.dashboard': 'Панель',
+    'account.profile': 'Профиль',
+    'account.bookings': 'Бронирования',
+    'account.wishlist': 'Избранное',
+    'account.points': 'Баллы',
+    'account.payments': 'История платежей',
+    'account.security': 'Безопасность',
+    'account.welcome': 'Добро пожаловать',
+    'account.totalbookings': 'Бронирований',
+    'account.totalspent': 'Всего потрачено',
+    'account.tier': 'Уровень',
+
+    // Booking
+    'booking.title': 'Забронировать номер',
+    'booking.confirm': 'Подтвердить бронирование',
+    'booking.cancel': 'Отменить',
+    'booking.success': 'Успешно',
+    'booking.pending': 'В ожидании',
+    'booking.confirmed': 'Подтверждено',
+
+    // Auth
+    'auth.login': 'Войти',
+    'auth.register': 'Регистрация',
+    'auth.email': 'Электронная почта',
+    'auth.password': 'Пароль',
+    'auth.name': 'Имя',
+    'auth.confirmpassword': 'Подтвердите пароль',
+
+    // Footer
+    'footer.quicklinks': 'Быстрые ссылки',
+    'footer.contact': 'Связаться с нами',
+    'footer.follow': 'Подписывайтесь',
+    'footer.rights': 'Все права защищены',
+
+    // Common
+    'common.loading': 'Загрузка...',
+    'common.save': 'Сохранить',
+    'common.cancel': 'Отменить',
+    'common.edit': 'Редактировать',
+    'common.delete': 'Удалить',
+    'common.submit': 'Отправить',
+    'common.search': 'Поиск',
+    'common.filter': 'Фильтр',
+    'common.viewmore': 'Показать еще',
+    'common.readmore': 'Читать далее',
+  },
+  kr: {
+    // Navigation
+    'nav.home': '홈',
+    'nav.rooms': '객실',
+    'nav.reviews': '리뷰',
+    'nav.about': '소개',
+    'nav.contact': '연락처',
+    'nav.login': '로그인',
+    'nav.register': '회원가입',
+    'nav.account': '계정',
+    'nav.admin': '관리',
+    'nav.logout': '로그아웃',
+
+    // Hero Section
+    'hero.title': '호텔에 오신 것을 환영합니다',
+    'hero.subtitle': '평화로운 분위기에서 럭셔리와 편안함을 경험하세요',
+    'hero.cta': '지금 예약',
+    'hero.learn': '더 알아보기',
+
+    // Features
+    'features.title': '특별한 기능',
+    'features.subtitle': '우리를 특별하게 만드는 것',
+    'feature.wifi.title': '고속 Wi-Fi',
+    'feature.wifi.desc': '모든 곳에서 무료 고속 Wi-Fi',
+    'feature.pool.title': '수영장',
+    'feature.pool.desc': '실외 및 실내 수영장',
+    'feature.spa.title': '스파 및 피트니스',
+    'feature.spa.desc': '세계적인 수준의 스파 서비스로 휴식',
+    'feature.restaurant.title': '레스토랑',
+    'feature.restaurant.desc': '국제 및 현지 요리',
+    'feature.parking.title': '주차',
+    'feature.parking.desc': '투숙객을 위한 무료 주차',
+    'feature.service.title': '24시간 서비스',
+    'feature.service.desc': '24시간 이용 가능',
+
+    // Rooms
+    'rooms.title': '객실',
+    'rooms.featured': '추천 객실',
+    'rooms.view': '객실 보기',
+    'rooms.book': '지금 예약',
+    'rooms.pernight': '/박',
+    'rooms.guests': '투숙객',
+    'rooms.checkin': '체크인',
+    'rooms.checkout': '체크아웃',
+    'rooms.details': '세부정보',
+    'rooms.amenities': '편의시설',
+
+    // Reviews
+    'reviews.title': '고객 리뷰',
+    'reviews.subtitle': '투숙객의 말',
+    'reviews.write': '리뷰 작성',
+    'reviews.all': '모든 리뷰',
+    'reviews.rating': '평점',
+    'reviews.verified': '확인됨',
+
+    // About
+    'about.title': '소개',
+    'about.subtitle': '우리의 이야기',
+    'about.description': '우리는 최고의 서비스를 제공하는 선도적인 호텔입니다',
+
+    // Contact
+    'contact.title': '연락처',
+    'contact.subtitle': '문의 사항을 보내주세요',
+    'contact.name': '이름',
+    'contact.email': '이메일',
+    'contact.message': '메시지',
+    'contact.send': '메시지 보내기',
+    'contact.livechat': '실시간 채팅',
+    'contact.faq': '자주 묻는 질문',
+
+    // Account
+    'account.dashboard': '대시보드',
+    'account.profile': '프로필',
+    'account.bookings': '예약',
+    'account.wishlist': '위시리스트',
+    'account.points': '포인트',
+    'account.payments': '결제 내역',
+    'account.security': '보안',
+    'account.welcome': '환영합니다',
+    'account.totalbookings': '예약',
+    'account.totalspent': '총 지출',
+    'account.tier': '등급',
+
+    // Booking
+    'booking.title': '객실 예약',
+    'booking.confirm': '예약 확인',
+    'booking.cancel': '취소',
+    'booking.success': '성공',
+    'booking.pending': '대기 중',
+    'booking.confirmed': '확인됨',
+
+    // Auth
+    'auth.login': '로그인',
+    'auth.register': '회원가입',
+    'auth.email': '이메일',
+    'auth.password': '비밀번호',
+    'auth.name': '이름',
+    'auth.confirmpassword': '비밀번호 확인',
+
+    // Footer
+    'footer.quicklinks': '빠른 링크',
+    'footer.contact': '연락처',
+    'footer.follow': '팔로우',
+    'footer.rights': '모든 권리 보유',
+
+    // Common
+    'common.loading': '로딩 중...',
+    'common.save': '저장',
+    'common.cancel': '취소',
+    'common.edit': '편집',
+    'common.delete': '삭제',
+    'common.submit': '제출',
+    'common.search': '검색',
+    'common.filter': '필터',
+    'common.viewmore': '더 보기',
+    'common.readmore': '더 읽기',
+  },
 }
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
@@ -407,6 +645,8 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
       th: 'THB',
       en: 'USD',
       cn: 'CNY',
+      ru: 'RUB',
+      kr: 'KRW',
     }
     const newCurrency = currencyMap[lang]
     setCurrency(newCurrency)

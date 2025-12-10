@@ -1,15 +1,65 @@
 {
   "enabled": true,
   "schedule": "daily",
-  "customDays": 7,
+  "customDays": 1,
   "backupTime": "02:00",
   "selectedFiles": [
     "users.json",
     "sessions.json",
-    "reviews.json"
+    "reviews.json",
+    "bookings.json",
+    "rooms.json",
+    "payments.json",
+    "coupons.json",
+    "notifications.json",
+    "videos.json",
+    "wishlist.json",
+    "points.json",
+    "chat-messages.json",
+    "faq.json",
+    "auto-replies.json",
+    "locations.json",
+    "bookingCalendar.json",
+    "group-bookings.json",
+    "group-discount-settings.json",
+    "corporate-clients.json",
+    "dynamic-pricing-settings.json",
+    "demand-pricing-rules.json",
+    "seasonal-pricing.json",
+    "blackout-dates.json"
   ],
-  "autoDelete": false,
+  "autoDelete": true,
   "backupHistory": [
+    {
+      "name": "backup-day10_15-49",
+      "month": "2025-12",
+      "date": "2025-12-10T08:49:13.727Z",
+      "files": [
+        "users.json",
+        "sessions.json",
+        "reviews.json",
+        "bookings.json",
+        "rooms.json",
+        "payments.json",
+        "coupons.json",
+        "notifications.json",
+        "videos.json",
+        "wishlist.json",
+        "points.json",
+        "chat-messages.json",
+        "faq.json",
+        "auto-replies.json",
+        "locations.json",
+        "bookingCalendar.json",
+        "group-bookings.json",
+        "group-discount-settings.json",
+        "corporate-clients.json",
+        "dynamic-pricing-settings.json",
+        "seasonal-pricing.json",
+        "blackout-dates.json"
+      ],
+      "exists": true
+    },
     {
       "name": "backup-day07_09-41",
       "month": "2025-12",
@@ -22,5 +72,5 @@
       "exists": true
     }
   ],
-  "lastBackup": "2025-12-07T02:41:28.481Z"
+  "lastBackup": "2025-12-10T08:49:13.727Z"
 }

@@ -1,11 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Image from 'next/image'
 import Navbar from '@/components/Navbar'
 import RoomCalendar from '@/components/RoomCalendar'
 import { useAuth } from '@/contexts/AuthContext'
-import { FaHotel, FaCalendarCheck, FaDollarSign, FaUsers, FaPlus, FaEdit, FaTrash, FaUserShield, FaSearch, FaTimes, FaCalendarAlt, FaFire, FaCrown, FaChartLine, FaDatabase, FaComments, FaQuestionCircle, FaRobot, FaComment, FaMapMarkedAlt, FaImages, FaEnvelope, FaShieldAlt } from 'react-icons/fa'
+import { FaHotel, FaCalendarCheck, FaDollarSign, FaUsers, FaPlus, FaEdit, FaUserShield, FaSearch, FaTimes, FaCalendarAlt, FaFire, FaCrown, FaChartLine, FaDatabase, FaComments, FaQuestionCircle, FaRobot, FaMapMarkedAlt, FaImages, FaEnvelope, FaShieldAlt, FaBan } from 'react-icons/fa'
 import { containsProfanity } from '@/lib/profanityFilter'
 import AdminStats from '@/components/AdminStats'
 import AdminButton from '@/components/AdminButton'
@@ -72,7 +71,7 @@ interface RoomFormData {
 }
 
 export default function AdminPage() {
-  const { user, isAdmin, promoteToAdmin, demoteFromAdmin } = useAuth()
+  const { promoteToAdmin, demoteFromAdmin } = useAuth()
   const [activeTab, setActiveTab] = useState<'dashboard' | 'rooms' | 'calendar' | 'users'>('dashboard')
   const [searchEmail, setSearchEmail] = useState('')
   const [demoteEmail, setDemoteEmail] = useState('')
@@ -852,6 +851,27 @@ export default function AdminPage() {
             >
               <FaShieldAlt className="text-xl" />
               <span>🛡️ ระบบประกันการจอง</span>
+            </button>
+            <button
+              onClick={() => window.location.href = '/admin/blackout-dates'}
+              className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 flex items-center gap-2 bg-gradient-to-r from-red-600 via-orange-600 to-yellow-600 text-white hover:shadow-xl hover:scale-105 shadow-lg ring-2 ring-red-300`}
+            >
+              <FaBan className="text-xl" />
+              <span>📅 วันหยุด & ราคาตามฤดูกาล</span>
+            </button>
+            <button
+              onClick={() => window.location.href = '/admin/dynamic-pricing'}
+              className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 flex items-center gap-2 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white hover:shadow-xl hover:scale-105 shadow-lg ring-2 ring-indigo-300 animate-pulse`}
+            >
+              <FaChartLine className="text-xl" />
+              <span>💰 Dynamic Pricing (ปรับราคาอัตโนมัติ)</span>
+            </button>
+            <button
+              onClick={() => window.location.href = '/admin/group-bookings'}
+              className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 flex items-center gap-2 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white hover:shadow-xl hover:scale-105 shadow-lg ring-2 ring-purple-300`}
+            >
+              <FaUsers className="text-xl" />
+              <span>👨‍👩‍👧‍👦 Group Booking (จองหมู่คณะ)</span>
             </button>
           </div>
 

@@ -1,0 +1,63 @@
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+
+// Paths ที่ต้องการป้องกัน
+const protectedPaths = [
+  '/admin',
+  '/api/admin',
+]
+
+const authPaths = [
+  '/account',
+  '/api/member',
+]
+
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+  
+  // เช็คว่าเป็น protected path หรือไม่
+  const isProtectedPath = protectedPaths.some(path => pathname.startsWith(path))
+  const isAuthPath = authPaths.some(path => pathname.startsWith(path))
+  
+  // ดึง session จาก cookie
+  const session = request.cookies.get('session')?.value
+  
+  // ถ้าไม่มี session และพยายามเข้า protected/auth paths
+  if (!session && (isProtectedPath || isAuthPath)) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/login'
+    url.searchParams.set('redirect', pathname)
+    return NextResponse.redirect(url)
+  }
+  
+  // เพิ่ม security headers
+  const response = NextResponse.next()
+  
+  // ป้องกัน clickjacking
+  response.headers.set('X-Frame-Options', 'DENY')
+  
+  // ป้องกัน MIME sniffing
+  response.headers.set('X-Content-Type-Options', 'nosniff')
+  
+  // XSS Protection
+  response.headers.set('X-XSS-Protection', '1; mode=block')
+  
+  // Referrer Policy
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  
+  return response
+}
+
+// Config สำหรับ paths ที่ต้องการ run middleware
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - public folder
+     */
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+  ],
+}
