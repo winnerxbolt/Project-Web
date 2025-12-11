@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react'
 import { use } from 'react'
 import Link from 'next/link'
-import { FaCheckCircle, FaHome, FaPrint, FaClock } from 'react-icons/fa'
+import { FaCheckCircle, FaHome, FaPrint, FaClock, FaTicketAlt, FaStar, FaBell } from 'react-icons/fa'
 
 interface Booking {
   id: number
   roomName: string
   guestName: string
+  guestEmail?: string
+  guestPhone?: string
   checkIn: string
   checkOut: string
   guests: number
@@ -18,10 +20,21 @@ interface Booking {
 export default function PaymentSuccessPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params)
   const [booking, setBooking] = useState<Booking | null>(null)
+  const [eTicketId, setETicketId] = useState<string | null>(null)
+  const [loyaltyPoints, setLoyaltyPoints] = useState<number>(0)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     loadBooking()
   }, [])
+
+  useEffect(() => {
+    if (booking) {
+      generateETicket()
+      addLoyaltyPoints()
+      sendPushNotification()
+    }
+  }, [booking])
 
   const loadBooking = async () => {
     try {
@@ -34,6 +47,92 @@ export default function PaymentSuccessPage({ params }: { params: Promise<{ id: s
       }
     } catch (error) {
       console.error('Error:', error)
+    }
+  }
+
+  const generateETicket = async () => {
+    if (!booking) return
+
+    setLoading(true)
+    try {
+      const response = await fetch('/api/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingId: booking.id.toString(),
+          guestName: booking.guestName,
+          guestEmail: booking.guestEmail || `guest${booking.id}@example.com`,
+          guestPhone: booking.guestPhone || '0800000000',
+          roomName: booking.roomName,
+          checkIn: booking.checkIn,
+          checkOut: booking.checkOut,
+          nights: Math.ceil((new Date(booking.checkOut).getTime() - new Date(booking.checkIn).getTime()) / (1000 * 60 * 60 * 24)),
+          totalAmount: booking.total,
+          templateId: 'template-modern'
+        })
+      })
+
+      const data = await response.json()
+      if (data.ticketNumber) {
+        setETicketId(data.ticketNumber)
+      }
+    } catch (error) {
+      console.error('Error generating e-ticket:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const addLoyaltyPoints = async () => {
+    if (!booking) return
+
+    try {
+      const points = Math.floor(booking.total / 100)
+      const response = await fetch('/api/loyalty', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: booking.guestEmail || `guest${booking.id}@example.com`,
+          points: points,
+          description: `จากการจอง #${booking.id}`,
+          referenceId: booking.id.toString()
+        })
+      })
+
+      const data = await response.json()
+      if (data.transaction) {
+        setLoyaltyPoints(points)
+      }
+    } catch (error) {
+      console.error('Error adding loyalty points:', error)
+    }
+  }
+
+  const sendPushNotification = async () => {
+    if (!booking) return
+
+    try {
+      await fetch('/api/push/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: booking.guestEmail || `guest${booking.id}@example.com`,
+          title: '🎉 จองสำเร็จ!',
+          body: `การจองห้อง ${booking.roomName} ของคุณถูกยืนยันแล้ว`,
+          icon: '/icons/icon-192x192.png',
+          badge: '/icons/icon-72x72.png',
+          data: {
+            url: `/payment-success/${booking.id}`,
+            bookingId: booking.id.toString()
+          },
+          actions: [
+            { action: 'view', title: 'ดู E-Ticket' },
+            { action: 'close', title: 'ปิด' }
+          ]
+        })
+      })
+    } catch (error) {
+      console.error('Error sending push notification:', error)
     }
   }
 
@@ -76,6 +175,39 @@ export default function PaymentSuccessPage({ params }: { params: Promise<{ id: s
             รอการยืนยันจากแอดมินภายใน 24 ชั่วโมง
           </p>
         </div>
+
+        {/* Bonus Features */}
+        {(eTicketId || loyaltyPoints > 0) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            {eTicketId && (
+              <div className="bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl p-6 text-white shadow-xl transform hover:scale-105 transition-all">
+                <FaTicketAlt className="text-3xl mb-3" />
+                <h3 className="text-lg font-bold mb-1">E-Ticket พร้อมใช้งาน</h3>
+                <p className="text-sm opacity-90 mb-2">หมายเลข: {eTicketId}</p>
+                <Link
+                  href={`/admin/tickets`}
+                  className="inline-block bg-white text-purple-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-purple-100 transition-all"
+                >
+                  ดู E-Ticket
+                </Link>
+              </div>
+            )}
+
+            {loyaltyPoints > 0 && (
+              <div className="bg-gradient-to-r from-yellow-500 to-orange-500 rounded-xl p-6 text-white shadow-xl transform hover:scale-105 transition-all">
+                <FaStar className="text-3xl mb-3" />
+                <h3 className="text-lg font-bold mb-1">คะแนนสะสม</h3>
+                <p className="text-2xl font-black mb-2">+{loyaltyPoints} คะแนน</p>
+                <Link
+                  href="/loyalty"
+                  className="inline-block bg-white text-orange-600 px-4 py-2 rounded-lg text-sm font-bold hover:bg-orange-100 transition-all"
+                >
+                  ดูคะแนนสะสม
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Booking Summary Card */}
         <div className="bg-white rounded-2xl shadow-2xl p-8 mb-6">

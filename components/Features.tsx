@@ -1,12 +1,13 @@
 'use client'
 
+import { memo, useMemo } from 'react'
 import { FaBolt, FaShieldAlt, FaHeadset, FaPercent } from 'react-icons/fa'
 import { useLanguage } from '@/contexts/LanguageContext'
 
-export default function Features() {
+function Features() {
   const { t } = useLanguage()
   
-  const features = [
+  const features = useMemo(() => [
     {
       icon: FaBolt,
       title: 'feature.wifi.title',
@@ -35,7 +36,7 @@ export default function Features() {
       color: 'text-purple-500',
       bgColor: 'bg-purple-50',
     },
-  ]
+  ], [])
 
   return (
     <section className="py-20 bg-white">
@@ -68,3 +69,5 @@ export default function Features() {
     </section>
   )
 }
+
+export default memo(Features)

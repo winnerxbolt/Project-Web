@@ -6,11 +6,41 @@
 [![Security](https://img.shields.io/badge/Security-A+-green)](./SECURITY.md)
 [![License](https://img.shields.io/badge/License-Private-red)]()
 
-Modern, secure, and feature-rich booking system for Poolvilla Pattaya with multi-language support, group bookings, dynamic pricing, and comprehensive admin management.
+Modern, secure, and feature-rich booking system for Poolvilla Pattaya with multi-language support, group bookings, dynamic pricing, E-Tickets, loyalty program, push notifications, and comprehensive admin management.
 
 ---
 
 ## ✨ Features
+
+### 🎫 **NEW** E-Ticket System
+- PDF E-Tickets with QR codes and barcodes
+- 3 beautiful templates (Modern, Classic, Minimal)
+- Auto-generation after booking
+- HTML preview and download
+- Admin management dashboard
+
+### 🎁 **NEW** Loyalty Program
+- 5-tier system (Bronze → Diamond)
+- Points multipliers (1x - 3x)
+- Automatic tier upgrades
+- Redemption catalog (discounts, upgrades, services)
+- Transaction history
+
+### 🔔 **NEW** Web Push Notifications
+- Real-time notifications
+- Service Worker support
+- Custom actions (View, Close)
+- Check-in/Check-out reminders
+- Promotion alerts
+- PWA support
+
+### 📊 **NEW** Advanced Charts
+- 4 chart types (Line, Bar, Pie, Area)
+- Interactive tooltips
+- Revenue trends
+- Room bookings analysis
+- Booking status distribution
+- Occupancy rates
 
 ### 🌍 Multi-Language Support
 - 5 Languages: Thai 🇹🇭 | English 🇬🇧 | Chinese 🇨🇳 | Russian 🇷🇺 | Korean 🇰🇷
@@ -48,7 +78,34 @@ Modern, secure, and feature-rich booking system for Poolvilla Pattaya with multi
 - Complete admin UI
 - Backup history tracking
 
-### 🔒 Security Features
+### � Online Payment Gateway (NEW!)
+- **Real-time Payment Processing**
+- **Omise Integration** (Thailand):
+  - PromptPay QR Code ⭐
+  - Credit/Debit Cards
+  - TrueMoney Wallet
+  - Alipay
+- **Stripe Integration** (International):
+  - Credit/Debit Cards
+  - 3D Secure 2.0
+- **Auto-confirmation**: 5-10 seconds
+- **Webhook Integration**: Real-time updates
+- **Payment History**: Complete tracking
+- **Refund Support**: Via API
+
+📚 **Documentation**: [Payment Gateway Guide](./docs/PAYMENT_SETUP.md)
+
+### 🔒 Password Reset System (NEW!)
+- **Secure Token-Based Reset**
+- **256-bit Cryptographic Tokens**
+- **1-hour Expiration**
+- **Single-use Tokens**
+- **Email Notifications**
+- **Password Strength Validation**
+
+📚 **Documentation**: [Password Reset Guide](./docs/FORGOT_PASSWORD.md)
+
+### �🔒 Security Features
 - **Authentication**: PBKDF2 password hashing (600k iterations)
 - **Rate Limiting**: IP-based protection
 - **Input Validation**: XSS & injection prevention
@@ -132,14 +189,25 @@ Project-WebWin/
 │   │   ├── auth/            # Authentication
 │   │   ├── bookings/        # Booking management
 │   │   ├── group-bookings/  # Group booking system
+│   │   ├── tickets/         # 🎫 E-Ticket system (NEW)
+│   │   ├── loyalty/         # 🎁 Loyalty program (NEW)
+│   │   ├── push/            # 🔔 Push notifications (NEW)
 │   │   ├── backup/          # Backup system
 │   │   ├── payments/        # Payment processing
 │   │   └── ...
 │   ├── admin/               # Admin pages
+│   │   ├── tickets/         # E-Ticket management (NEW)
+│   │   ├── stats/           # Analytics with charts (NEW)
+│   │   └── ...
+│   ├── loyalty/             # 🎁 Loyalty page (NEW)
+│   ├── payment-success/     # Payment success with integrations (NEW)
 │   ├── account/             # User account pages
 │   ├── login/               # Authentication pages
 │   └── ...
 ├── components/              # React components
+│   ├── AdvancedCharts.tsx           # 📊 Chart components (NEW)
+│   ├── NotificationBell.tsx         # 🔔 Redesigned notifications (NEW)
+│   ├── PushNotificationManager.tsx  # 🔔 Push subscription UI (NEW)
 │   ├── Navbar.tsx
 │   ├── Footer.tsx
 │   ├── RoomCard.tsx
@@ -148,6 +216,7 @@ Project-WebWin/
 │   ├── AuthContext.tsx
 │   └── LanguageContext.tsx
 ├── lib/                     # Utility libraries
+│   ├── ticketGenerator.ts  # 🎫 PDF/QR/Barcode generator (NEW)
 │   ├── server/             # Server-side utilities
 │   │   ├── auth.ts
 │   │   ├── db.ts
@@ -158,10 +227,22 @@ Project-WebWin/
 │   │   └── headers.ts
 │   └── errors/             # Error handling
 ├── data/                    # JSON data storage
+│   ├── e-tickets.json      # 🎫 E-Ticket records (NEW)
+│   ├── loyalty-members.json # 🎁 Loyalty members (NEW)
+│   ├── push-subscriptions.json # 🔔 Push subscriptions (NEW)
+│   └── ...
 ├── backups/                 # Backup storage
 ├── types/                   # TypeScript types
+│   ├── ticket.ts           # 🎫 E-Ticket types (NEW)
+│   ├── loyalty.ts          # 🎁 Loyalty types (NEW)
+│   ├── push.ts             # 🔔 Push types (NEW)
+│   └── ...
 ├── public/                  # Static files
+│   ├── sw.js               # 🔔 Service Worker (NEW)
+│   ├── manifest.json       # PWA manifest (NEW)
+│   └── ...
 ├── SECURITY.md             # Security policy
+├── NEW_SYSTEMS_COMPLETE_GUIDE.md  # 🚀 Complete guide for new systems (NEW)
 ├── CHANGELOG.md            # Version history
 └── README.md               # This file
 ```
@@ -212,11 +293,22 @@ SMTP_PASSWORD=your-app-password
 # Payment (Optional)
 PAYMENT_API_KEY=your-payment-api-key
 PAYMENT_SECRET_KEY=your-payment-secret-key
+
+# Web Push Notifications (NEW)
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=your-vapid-public-key
+VAPID_PRIVATE_KEY=your-vapid-private-key
+VAPID_SUBJECT=mailto:your-email@example.com
 ```
 
 **Generate strong secrets:**
 ```bash
 openssl rand -base64 32
+```
+
+**Generate VAPID keys:**
+```bash
+npx web-push generate-vapid-keys
+# Or visit: https://vapidkeys.com/
 ```
 
 ---
@@ -365,6 +457,19 @@ npm start
 
 ---
 
+## � Documentation
+
+- [Security Policy](SECURITY.md) - Security practices and guidelines
+- [Changelog](CHANGELOG.md) - Version history and updates
+- [Group Booking Guide](GROUP_BOOKING_GUIDE.md) - Complete group booking system guide
+- [Dynamic Pricing Guide](DYNAMIC_PRICING_GUIDE.md) - Pricing rules and configuration
+- [Backup System Guide](BACKUP_SYSTEM_GUIDE.md) - Backup and restore procedures
+- [SMS Guide](SMS_NOTIFICATION_GUIDE.md) - SMS notification setup
+- [Email Marketing Guide](EMAIL_MARKETING_GUIDE.md) - Email campaign management
+- **🚀 [NEW] [Complete Systems Guide](NEW_SYSTEMS_COMPLETE_GUIDE.md)** - E-Ticket, Loyalty, Push Notifications, Charts
+
+---
+
 ## 🐛 Known Issues
 
 - None currently reported
@@ -378,6 +483,45 @@ npm start
 - **Time to Interactive**: <3s
 - **Bundle Size**: Optimized
 - **Image Optimization**: Enabled
+- **PWA**: Service Worker + Manifest (NEW)
+
+---
+
+## 🚀 What's New
+
+### Version 3.0.0 (Latest)
+
+#### 🎫 E-Ticket System
+- PDF generation with QR codes and barcodes
+- 3 beautiful templates
+- Auto-generation after booking
+- Admin management dashboard
+
+#### 🎁 Loyalty Program
+- 5-tier system with multipliers
+- Points on every booking
+- Redemption catalog
+- Automatic tier upgrades
+
+#### 🔔 Web Push Notifications
+- Real-time notifications
+- Service Worker support
+- Check-in/Check-out reminders
+- Promotion alerts
+
+#### 📊 Advanced Charts
+- 4 interactive chart types
+- Revenue & occupancy analytics
+- Room booking statistics
+- Beautiful gradient designs
+
+#### 🎨 UI/UX Enhancements
+- Redesigned NotificationBell
+- Modern gradient designs
+- Improved payment success page
+- Enhanced admin dashboard
+
+See [CHANGELOG.md](CHANGELOG.md) for complete version history.
 
 ---
 

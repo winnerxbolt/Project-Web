@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, memo, useCallback } from 'react'
 import { FaInstagram, FaHeart, FaComment, FaPlay } from 'react-icons/fa'
 import type { InstagramPost } from '@/types/social'
 
@@ -9,16 +9,12 @@ interface InstagramFeedProps {
   className?: string
 }
 
-export default function InstagramFeed({ limit = 6, className = '' }: InstagramFeedProps) {
+function InstagramFeed({ limit = 6, className = '' }: InstagramFeedProps) {
   const [posts, setPosts] = useState<InstagramPost[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedPost, setSelectedPost] = useState<InstagramPost | null>(null)
 
-  useEffect(() => {
-    fetchInstagramPosts()
-  }, [limit])
-
-  const fetchInstagramPosts = async () => {
+  const fetchInstagramPosts = useCallback(async () => {
     try {
       const response = await fetch(`/api/social?platform=instagram&limit=${limit}`)
       const data = await response.json()
@@ -31,7 +27,11 @@ export default function InstagramFeed({ limit = 6, className = '' }: InstagramFe
     } finally {
       setLoading(false)
     }
-  }
+  }, [limit])
+
+  useEffect(() => {
+    fetchInstagramPosts()
+  }, [fetchInstagramPosts])
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -225,3 +225,5 @@ export default function InstagramFeed({ limit = 6, className = '' }: InstagramFe
     </>
   )
 }
+
+export default memo(InstagramFeed)

@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, memo } from 'react'
 import { useLanguage } from '@/contexts/LanguageContext'
 import RoomCard from './RoomCard'
 
-export default function FeaturedRooms() {
+function FeaturedRooms() {
   const { t } = useLanguage()
   const [featuredRooms, setFeaturedRooms] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -73,3 +73,5 @@ export default function FeaturedRooms() {
     </section>
   )
 }
+
+export default memo(FeaturedRooms)

@@ -28,12 +28,22 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
   
-  // Add security headers
+  // Add security and performance headers
   const response = NextResponse.next()
   response.headers.set('X-Frame-Options', 'DENY')
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('X-XSS-Protection', '1; mode=block')
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  
+  // Add cache headers for static resources
+  if (pathname.match(/\.(jpg|jpeg|png|gif|webp|svg|ico|css|js|woff|woff2|ttf)$/)) {
+    response.headers.set('Cache-Control', 'public, max-age=31536000, immutable')
+  }
+  
+  // Add cache headers for API routes
+  if (pathname.startsWith('/api/')) {
+    response.headers.set('Cache-Control', 'no-store, must-revalidate')
+  }
   
   return response
 }

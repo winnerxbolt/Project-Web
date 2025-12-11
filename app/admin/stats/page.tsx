@@ -24,6 +24,7 @@ import {
   FaArrowDown,
 } from 'react-icons/fa'
 import type { AnalyticsReport } from '@/types/analytics'
+import AdvancedCharts from '@/components/AdvancedCharts'
 
 export default function AdminStatsPage() {
   const router = useRouter()
@@ -479,6 +480,11 @@ export default function AdminStatsPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+
+              {/* Advanced Charts Section */}
+              <div className="mt-8">
+                <AdvancedCharts />
               </div>
             </>
           )}

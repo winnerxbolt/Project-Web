@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, memo, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { FaBed, FaUsers, FaExpand, FaStar, FaBolt, FaFire } from 'react-icons/fa'
@@ -30,7 +30,7 @@ interface DynamicPriceInfo {
   badges: string[]
 }
 
-export default function RoomCard({ room }: { room: Room }) {
+function RoomCard({ room }: { room: Room }) {
   const { formatPrice, t } = useLanguage()
   const displayImage = (room.images && room.images.length > 0) ? room.images[0] : room.image
   const imageCount = room.images?.length || 1
@@ -38,11 +38,7 @@ export default function RoomCard({ room }: { room: Room }) {
   const [dynamicPrice, setDynamicPrice] = useState<DynamicPriceInfo | null>(null)
   const [loadingPrice, setLoadingPrice] = useState(false)
 
-  useEffect(() => {
-    fetchDynamicPrice()
-  }, [room.id])
-
-  const fetchDynamicPrice = async () => {
+  const fetchDynamicPrice = useCallback(async () => {
     try {
       setLoadingPrice(true)
       const checkIn = new Date()
@@ -87,7 +83,11 @@ export default function RoomCard({ room }: { room: Room }) {
     } finally {
       setLoadingPrice(false)
     }
-  }
+  }, [room.id, room.price])
+
+  useEffect(() => {
+    fetchDynamicPrice()
+  }, [fetchDynamicPrice])
 
   const displayPrice = dynamicPrice?.finalPrice || room.price
 
@@ -201,3 +201,5 @@ export default function RoomCard({ room }: { room: Room }) {
     </div>
   )
 }
+
+export default memo(RoomCard)

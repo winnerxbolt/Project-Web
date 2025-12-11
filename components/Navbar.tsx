@@ -2,23 +2,23 @@
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { useState } from 'react'
+import { useState, memo, useCallback } from 'react'
 import { FaBars, FaTimes, FaUserShield, FaUser, FaSignInAlt, FaSignOutAlt, FaCog } from 'react-icons/fa'
 import { useAuth } from '@/contexts/AuthContext'
 import { useLanguage } from '@/contexts/LanguageContext'
 import NotificationBell from './NotificationBell'
 import LanguageSwitcher from './LanguageSwitcher'
 
-export default function Navbar() {
+function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const { user, logout, isAdmin } = useAuth()
   const { t, language } = useLanguage()
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     logout()
     setUserMenuOpen(false)
-  }
+  }, [logout])
 
   return (
     <nav className="fixed w-full top-0 z-50 bg-white/80 backdrop-blur-xl shadow-lg border-b border-pool-blue/20">
@@ -295,3 +295,5 @@ export default function Navbar() {
     </nav>
   )
 }
+
+export default memo(Navbar)

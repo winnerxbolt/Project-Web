@@ -4,8 +4,14 @@ import { Inter } from 'next/font/google'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { LanguageProvider } from '@/contexts/LanguageContext'
 import ClientLayout from '../components/ClientLayout'
+import { WebVitals } from '@/components/WebVitals'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ 
+  subsets: ['latin'],
+  display: 'swap',
+  preload: true,
+  variable: '--font-inter',
+})
 
 export const metadata: Metadata = {
   title: 'Pool Villa Pattaya - ระบบจองบ้านพักพัทยา',
@@ -27,6 +33,7 @@ export default function RootLayout({
   return (
     <html lang="th">
       <body className={inter.className}>
+        <WebVitals />
         <AuthProvider>
           <LanguageProvider>
             <ClientLayout>

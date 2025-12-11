@@ -441,6 +441,35 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
                 เลือกวิธีชำระเงิน
               </h3>
 
+              {/* Online Payment CTA */}
+              <div className="mb-6 bg-gradient-to-r from-pool-light to-blue-600 rounded-xl p-6 text-white shadow-lg">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                    <FaQrcode className="text-2xl" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-xl font-bold mb-2">💳 ชำระเงินออนไลน์ (แนะนำ)</h4>
+                    <p className="text-sm text-white/90 mb-4">
+                      ชำระเงินทันที ผ่าน PromptPay QR, บัตรเครดิต, TrueMoney หรือ Alipay<br />
+                      ✅ ยืนยันการจองอัตโนมัติภายใน 5-10 วินาที • ไม่ต้องรอ Admin ตรวจสอบ
+                    </p>
+                    <button
+                      onClick={() => router.push(`/checkout-online/${booking.id}`)}
+                      className="w-full sm:w-auto px-6 py-3 bg-white text-pool-light rounded-lg hover:bg-gray-100 transition-all font-bold shadow-md flex items-center justify-center gap-2"
+                    >
+                      <FaCreditCard />
+                      เริ่มชำระเงินออนไลน์
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 mb-6">
+                <div className="flex-1 h-px bg-gray-200"></div>
+                <span className="text-sm text-gray-500 font-medium">หรือชำระด้วยวิธีอื่น</span>
+                <div className="flex-1 h-px bg-gray-200"></div>
+              </div>
+
               <div className="space-y-4">
                 {/* PromptPay */}
                 <div

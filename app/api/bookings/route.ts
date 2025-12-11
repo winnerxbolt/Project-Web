@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { readFile, writeFile } from 'fs/promises'
 import path from 'path'
 import { containsProfanity } from '@/lib/profanityFilter'
+import { sendBookingConfirmation } from '@/lib/server/emailService'
 
 const bookingsFilePath = path.join(process.cwd(), 'data', 'bookings.json')
 
@@ -111,6 +112,29 @@ export async function POST(request: Request) {
           console.error('Error updating calendar:', error)
         }
       }
+
+      // Send booking confirmation email
+      if (email) {
+        try {
+          await sendBookingConfirmation(newBooking)
+          console.log('✅ Booking confirmation email sent to:', email)
+        } catch (emailError) {
+          console.error('❌ Failed to send booking confirmation email:', emailError)
+          // Don't fail the booking if email fails
+        }
+      }
+
+      // Send booking confirmation SMS
+      if (phone) {
+        try {
+          const { sendBookingConfirmationSMS } = await import('@/lib/server/smsService')
+          await sendBookingConfirmationSMS(newBooking)
+          console.log('✅ Booking confirmation SMS sent to:', phone)
+        } catch (smsError) {
+          console.error('❌ Failed to send booking confirmation SMS:', smsError)
+          // Don't fail the booking if SMS fails
+        }
+      }
       
       return NextResponse.json({ success: true, booking: newBooking })
     } else {
@@ -189,6 +213,28 @@ export async function PUT(request: Request) {
           })
         } catch (error) {
           console.error('Error updating calendar:', error)
+        }
+
+        // Send confirmation SMS
+        if (booking.phone) {
+          try {
+            const { sendBookingConfirmationSMS } = await import('@/lib/server/smsService')
+            await sendBookingConfirmationSMS(booking)
+            console.log('✅ Booking confirmation SMS sent')
+          } catch (smsError) {
+            console.error('❌ Failed to send confirmation SMS:', smsError)
+          }
+        }
+      }
+
+      // Send cancellation SMS
+      if (status === 'cancelled' && bookings[bookingIndex].phone) {
+        try {
+          const { sendBookingCancellationSMS } = await import('@/lib/server/smsService')
+          await sendBookingCancellationSMS(bookings[bookingIndex], cancelReason)
+          console.log('✅ Cancellation SMS sent')
+        } catch (smsError) {
+          console.error('❌ Failed to send cancellation SMS:', smsError)
         }
       }
       

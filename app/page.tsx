@@ -1,13 +1,22 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, Suspense, lazy } from 'react'
 import Navbar from '@/components/Navbar'
 import Hero from '@/components/Hero'
-import FeaturedRooms from '@/components/FeaturedRooms'
-import Features from '@/components/Features'
-import InstagramFeed from '@/components/InstagramFeed'
-import EmailSubscribeForm from '@/components/EmailSubscribeForm'
-import Footer from '@/components/Footer'
+
+// Dynamic imports for better code splitting
+const FeaturedRooms = lazy(() => import('@/components/FeaturedRooms'))
+const Features = lazy(() => import('@/components/Features'))
+const InstagramFeed = lazy(() => import('@/components/InstagramFeed'))
+const EmailSubscribeForm = lazy(() => import('@/components/EmailSubscribeForm'))
+const Footer = lazy(() => import('@/components/Footer'))
+
+// Loading component
+const LoadingSection = () => (
+  <div className="py-20 flex items-center justify-center">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+  </div>
+)
 
 export default function Home() {
   // เรียกใช้ auto-checkout เพียงครั้งเดียวต่อ session
@@ -35,24 +44,36 @@ export default function Home() {
       <div className="pt-20">
         <Hero />
       </div>
-      <FeaturedRooms />
-      <Features />
+      
+      <Suspense fallback={<LoadingSection />}>
+        <FeaturedRooms />
+      </Suspense>
+      
+      <Suspense fallback={<LoadingSection />}>
+        <Features />
+      </Suspense>
       
       {/* Instagram Feed Section */}
-      <section className="py-16 bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <InstagramFeed limit={6} />
-        </div>
-      </section>
+      <Suspense fallback={<LoadingSection />}>
+        <section className="py-16 bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <InstagramFeed limit={6} />
+          </div>
+        </section>
+      </Suspense>
       
       {/* Email Subscribe Section */}
-      <section className="py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <EmailSubscribeForm />
-        </div>
-      </section>
+      <Suspense fallback={<LoadingSection />}>
+        <section className="py-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <EmailSubscribeForm />
+          </div>
+        </section>
+      </Suspense>
       
-      <Footer />
+      <Suspense fallback={<LoadingSection />}>
+        <Footer />
+      </Suspense>
     </main>
   )
 }

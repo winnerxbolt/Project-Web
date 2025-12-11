@@ -145,6 +145,18 @@ export async function PUT(request: Request) {
         bookings[bookingIndex].status = 'confirmed'
         bookings[bookingIndex].updatedAt = new Date().toISOString()
         await saveBookings(bookings)
+
+        // Send payment confirmation SMS
+        const booking = bookings[bookingIndex]
+        if (booking.phone) {
+          try {
+            const { sendPaymentConfirmationSMS } = await import('@/lib/server/smsService')
+            await sendPaymentConfirmationSMS(booking, payments[paymentIndex])
+            console.log('✅ Payment confirmation SMS sent')
+          } catch (smsError) {
+            console.error('❌ Failed to send payment SMS:', smsError)
+          }
+        }
       }
     }
 

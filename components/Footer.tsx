@@ -1,9 +1,12 @@
+'use client'
+
 import Link from 'next/link'
+import { memo } from 'react'
 import { FaHotel, FaPhone, FaEnvelope, FaMapMarkerAlt, FaFacebook, FaInstagram, FaLine } from 'react-icons/fa'
 import About from './About'
 import EmailSubscribeForm from './EmailSubscribeForm'
 
-export default function Footer() {
+function Footer() {
   return (
     <footer className="bg-gray-900 text-white pt-16 pb-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -53,3 +56,5 @@ export default function Footer() {
     </footer>
   )
 }
+
+export default memo(Footer)

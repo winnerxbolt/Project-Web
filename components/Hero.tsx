@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, memo } from 'react'
 import { FaMapMarkerAlt, FaCalendarAlt, FaUsers, FaSearch } from 'react-icons/fa'
 import { useRouter } from 'next/navigation'
 import { useLanguage } from '@/contexts/LanguageContext'
@@ -14,7 +14,7 @@ interface Stats {
   satisfactionRate: number
 }
 
-export default function Hero() {
+function Hero() {
   const router = useRouter()
   const { t } = useLanguage()
   const [searchData, setSearchData] = useState({
@@ -264,3 +264,5 @@ export default function Hero() {
     </section>
   )
 }
+
+export default memo(Hero)
