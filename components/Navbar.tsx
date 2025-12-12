@@ -51,11 +51,12 @@ function Navbar() {
                 🛡️ ประกันการจอง
               </span>
             </Link>
-            <Link href="/group-booking" className="relative text-pool-dark hover:text-indigo-600 transition font-medium px-4 py-2 rounded-lg hover:bg-indigo-100 group whitespace-nowrap">
+            {/* ปิดระบบจองหมู่คณะชั่วคราว */}
+            {/* <Link href="/group-booking" className="relative text-pool-dark hover:text-indigo-600 transition font-medium px-4 py-2 rounded-lg hover:bg-indigo-100 group whitespace-nowrap">
               <span className="relative z-10 flex items-center gap-1">
                 👨‍👩‍👧‍👦 จองหมู่คณะ
               </span>
-            </Link>
+            </Link> */}
             <Link href="/reviews" className="relative text-pool-dark hover:text-pool-blue transition font-medium px-4 py-2 rounded-lg hover:bg-pool-blue/10 group">
               <span className="relative z-10">{t('nav.reviews')}</span>
             </Link>
@@ -195,7 +196,8 @@ function Navbar() {
                 <span className="text-xs bg-purple-200 px-2 py-0.5 rounded-full">NEW</span>
               </span>
             </Link>
-            <Link
+            {/* ปิดระบบจองหมู่คณะชั่วคราว */}
+            {/* <Link
               href="/group-booking"
               className="block px-4 py-2.5 text-indigo-700 font-bold border-2 border-indigo-300 bg-indigo-50 rounded-lg hover:border-indigo-500 hover:bg-indigo-100 transition overflow-hidden relative group"
               onClick={() => setIsOpen(false)}
@@ -204,7 +206,7 @@ function Navbar() {
                 👨‍👩‍👧‍👦 จองหมู่คณะ
                 <span className="text-xs bg-indigo-200 px-2 py-0.5 rounded-full">HOT</span>
               </span>
-            </Link>
+            </Link> */}
             <Link
               href="/reviews/videos"
               className="block px-4 py-2.5 text-ocean-700 font-medium border-2 border-ocean-200 rounded-lg hover:border-ocean-400 hover:bg-ocean-50 transition overflow-hidden relative group"

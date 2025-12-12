@@ -6,8 +6,10 @@ import Hero from '@/components/Hero'
 
 // Dynamic imports for better code splitting
 const FeaturedRooms = lazy(() => import('@/components/FeaturedRooms'))
+const DevilleAccommodations = lazy(() => import('@/components/DevilleAccommodations'))
 const Features = lazy(() => import('@/components/Features'))
-const InstagramFeed = lazy(() => import('@/components/InstagramFeed'))
+// Instagram Feed ปิดชั่วคราว
+// const InstagramFeed = lazy(() => import('@/components/InstagramFeed'))
 const EmailSubscribeForm = lazy(() => import('@/components/EmailSubscribeForm'))
 const Footer = lazy(() => import('@/components/Footer'))
 
@@ -49,18 +51,23 @@ export default function Home() {
         <FeaturedRooms />
       </Suspense>
       
+      {/* Deville Accommodations Section */}
+      <Suspense fallback={<LoadingSection />}>
+        <DevilleAccommodations />
+      </Suspense>
+      
       <Suspense fallback={<LoadingSection />}>
         <Features />
       </Suspense>
       
-      {/* Instagram Feed Section */}
-      <Suspense fallback={<LoadingSection />}>
+      {/* Instagram Feed Section - ปิดชั่วคราว */}
+      {/* <Suspense fallback={<LoadingSection />}>
         <section className="py-16 bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <InstagramFeed limit={6} />
           </div>
         </section>
-      </Suspense>
+      </Suspense> */}
       
       {/* Email Subscribe Section */}
       <Suspense fallback={<LoadingSection />}>

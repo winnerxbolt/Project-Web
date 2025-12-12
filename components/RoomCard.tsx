@@ -3,7 +3,7 @@
 import { useState, useEffect, memo, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { FaBed, FaUsers, FaExpand, FaStar, FaBolt, FaFire } from 'react-icons/fa'
+import { FaBed, FaUsers, FaExpand, FaStar } from 'react-icons/fa'
 import { useLanguage } from '@/contexts/LanguageContext'
 
 interface Room {
@@ -36,11 +36,27 @@ function RoomCard({ room }: { room: Room }) {
   const imageCount = room.images?.length || 1
   
   const [dynamicPrice, setDynamicPrice] = useState<DynamicPriceInfo | null>(null)
-  const [loadingPrice, setLoadingPrice] = useState(false)
 
   const fetchDynamicPrice = useCallback(async () => {
     try {
-      setLoadingPrice(true)
+      // เช็คว่า Dynamic Pricing เปิดอยู่หรือไม่
+      const settingsRes = await fetch('/api/dynamic-pricing-toggle')
+      const settingsData = await settingsRes.json()
+      
+      if (!settingsData.enabled) {
+        // ถ้าปิด Dynamic Pricing ให้ใช้ราคาปกติ
+        setDynamicPrice({
+          finalPrice: room.price,
+          basePrice: room.price,
+          discount: 0,
+          hasDiscount: false,
+          hasIncrease: false,
+          badges: []
+        })
+        return
+      }
+      
+      // ถ้าเปิดอยู่ ให้คำนวณราคาปกติ
       const checkIn = new Date()
       checkIn.setDate(checkIn.getDate() + 7) // 7 days from now
       const checkOut = new Date(checkIn)
@@ -80,8 +96,6 @@ function RoomCard({ room }: { room: Room }) {
       }
     } catch (error) {
       console.error('Error fetching dynamic price:', error)
-    } finally {
-      setLoadingPrice(false)
     }
   }, [room.id, room.price])
 

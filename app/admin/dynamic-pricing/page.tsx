@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import ProtectedRoute from '@/components/ProtectedRoute'
+import DynamicPricingToggle from '@/components/DynamicPricingToggle'
 import {
   FaChartLine, FaFire, FaCalendarAlt, FaCog,
   FaPlus, FaEdit, FaTrash, FaToggleOn, FaToggleOff, FaRocket,
-  FaArrowUp, FaDollarSign, FaPercent, FaBolt, FaArrowLeft
+  FaArrowUp, FaDollarSign, FaPercent, FaArrowLeft
 } from 'react-icons/fa'
 import { DynamicPricingRule, DemandPricing } from '@/types/dynamic-pricing'
 
@@ -155,15 +156,9 @@ export default function DynamicPricingAdmin() {
                     <p className="text-purple-100 text-lg">ระบบปรับราคาอัตโนมัติ - เพิ่มรายได้สูงสุด</p>
                   </div>
                 </div>
-                <div className="bg-white/20 backdrop-blur-lg rounded-2xl p-4 border border-white/30">
-                  <div className="flex items-center gap-2 text-white">
-                    <FaBolt className="text-yellow-300 text-2xl" />
-                    <div>
-                      <p className="text-xs text-purple-100">AI-Powered</p>
-                      <p className="text-xl font-bold">Active</p>
-                    </div>
-                  </div>
-                </div>
+                
+                {/* เปิด-ปิด Dynamic Pricing */}
+                <DynamicPricingToggle />
               </div>
 
               {/* Stats Cards */}

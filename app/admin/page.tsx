@@ -794,13 +794,14 @@ export default function AdminPage() {
               <span>📅 วันหยุด & ราคาตามฤดู</span>
             </button>
 
-            <button
+            {/* ปิดระบบจองหมู่คณะชั่วคราว */}
+            {/* <button
               onClick={() => window.location.href = '/admin/group-bookings'}
               className="px-5 py-4 font-semibold rounded-xl transition-all duration-300 flex items-center gap-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow-xl hover:scale-105"
             >
               <FaUsers className="text-2xl" />
               <span>👨‍👩‍👧‍👦 จองหมู่คณะ</span>
-            </button>
+            </button> */}
 
             <button
               onClick={() => window.location.href = '/admin/insurance'}
@@ -841,6 +842,14 @@ export default function AdminPage() {
             >
               <FaEnvelope className="text-2xl" />
               <span>💬 LINE Notification</span>
+            </button>
+
+            <button
+              onClick={() => window.location.href = '/deville'}
+              className="px-5 py-4 font-semibold rounded-xl transition-all duration-300 flex items-center gap-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:shadow-xl hover:scale-105"
+            >
+              <FaDatabase className="text-2xl" />
+              <span>🏡 Deville Central API</span>
             </button>
 
             <button
