@@ -1,22 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
-export async function POST(request: NextRequest) {
+/**
+ * 🗑️ Clear Auth Cookie - สำหรับลบ token เก่าที่มีปัญหา
+ */
+export async function POST(_request: NextRequest) {
   try {
     const cookieStore = await cookies()
     
-    // Clear auth cookie
+    // ลบ auth cookie
     cookieStore.delete('auth_token')
     cookieStore.delete('csrf_token')
 
     return NextResponse.json({ 
       success: true,
-      message: 'Logged out successfully' 
+      message: 'Auth cookie cleared successfully' 
     }, { status: 200 })
   } catch (error) {
-    console.error('Logout error:', error)
+    console.error('Clear cookie error:', error)
     return NextResponse.json({ 
-      error: 'Logout failed' 
+      error: 'Failed to clear cookie' 
     }, { status: 500 })
   }
 }

@@ -8,6 +8,11 @@ function FeaturedRooms() {
   const { t } = useLanguage()
   const [featuredRooms, setFeaturedRooms] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     const fetchRooms = async () => {
@@ -27,13 +32,13 @@ function FeaturedRooms() {
     fetchRooms()
   }, [])
 
-  if (loading) {
+  if (!mounted || loading) {
     return (
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-            <p className="mt-4 text-gray-600">{t('common.loading')}</p>
+            <p className="mt-4 text-gray-600">Loading...</p>
           </div>
         </div>
       </section>
@@ -49,8 +54,8 @@ function FeaturedRooms() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">{t('rooms.featured')}</h2>
-          <p className="text-xl text-gray-600">{t('rooms.title')}</p>
+          <h2 className="text-4xl font-bold text-gray-900 mb-4" suppressHydrationWarning>{t('rooms.featured')}</h2>
+          <p className="text-xl text-gray-600" suppressHydrationWarning>{t('rooms.title')}</p>
         </div>
 
         {/* Rooms Grid */}
@@ -65,6 +70,7 @@ function FeaturedRooms() {
           <a
             href="/rooms"
             className="inline-block px-8 py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition shadow-lg hover:shadow-xl"
+            suppressHydrationWarning
           >
             {t('rooms.view')}
           </a>

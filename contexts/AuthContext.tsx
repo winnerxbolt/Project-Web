@@ -30,13 +30,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    // ตรวจสอบ session จาก localStorage
-    const checkAuth = () => {
-      const userData = localStorage.getItem('user')
-      if (userData) {
-        setUser(JSON.parse(userData))
+    // ตรวจสอบ session จาก server
+    const checkAuth = async () => {
+      try {
+        const res = await fetch('/api/auth/session', {
+          method: 'GET',
+          credentials: 'include'
+        })
+        
+        if (res.ok) {
+          const data = await res.json()
+          if (data.user) {
+            setUser(data.user)
+          }
+        }
+      } catch (error) {
+        console.error('Session check error:', error)
+      } finally {
+        setIsLoading(false)
       }
-      setIsLoading(false)
     }
     checkAuth()
   }, [])
@@ -47,13 +59,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
+        credentials: 'include'
       })
 
       const data = await res.json()
 
       if (res.ok && data.user) {
         setUser(data.user)
-        localStorage.setItem('user', JSON.stringify(data.user))
         return true
       }
       return false
@@ -69,13 +81,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password }),
+        credentials: 'include'
       })
 
       const data = await res.json()
 
       if (res.ok && data.user) {
         setUser(data.user)
-        localStorage.setItem('user', JSON.stringify(data.user))
         return true
       }
       return false
@@ -85,24 +97,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const logout = () => {
-    setUser(null)
-    localStorage.removeItem('user')
+  const logout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include'
+      })
+    } catch (error) {
+      console.error('Logout error:', error)
+    } finally {
+      setUser(null)
+    }
   }
 
   const loginWithUser = (userData: User) => {
     setUser(userData)
-    localStorage.setItem('user', JSON.stringify(userData))
   }
 
   const updateProfile = async (name: string, email: string): Promise<boolean> => {
     if (!user) return false
 
     try {
-      const updatedUser = { ...user, name, email }
-      setUser(updatedUser)
-      localStorage.setItem('user', JSON.stringify(updatedUser))
-      return true
+      const res = await fetch('/api/auth/update-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email }),
+        credentials: 'include'
+      })
+      
+      if (res.ok) {
+        const updatedUser = { ...user, name, email }
+        setUser(updatedUser)
+        return true
+      }
+      return false
     } catch (error) {
       console.error('Update profile error:', error)
       return false
@@ -113,8 +141,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) return false
 
     try {
-      // ในระบบจริงควรเรียก API เพื่อเปลี่ยนรหัสผ่าน
-      return true
+      const res = await fetch('/api/auth/change-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          userId: user.id,
+          currentPassword,
+          newPassword
+        }),
+        credentials: 'include'
+      })
+
+      return res.ok
     } catch (error) {
       console.error('Change password error:', error)
       return false

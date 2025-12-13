@@ -32,6 +32,10 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'img2.pic.in.th',
       },
+      {
+        protocol: 'https',
+        hostname: 'deville-central.com',
+      },
     ],
   },
   

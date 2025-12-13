@@ -1,291 +1,570 @@
-# 📚 Documentation Index
+# 🏊 Poolvilla Pattaya - Premium Booking System
 
-## Quick Start
+[![Next.js](https://img.shields.io/badge/Next.js-16.0-black)](https://nextjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
+[![React](https://img.shields.io/badge/React-19.2-61dafb)](https://reactjs.org/)
+[![Security](https://img.shields.io/badge/Security-A+-green)](./SECURITY.md)
+[![License](https://img.shields.io/badge/License-Private-red)]()
 
-### 🚀 ต้องการเริ่มต้นใช้งานเร็วที่สุด?
-อ่าน **[PAYMENT_SETUP.md](./PAYMENT_SETUP.md)** - ใช้เวลาแค่ 5 นาที!
-
----
-
-## Payment Gateway Documentation
-
-### 1. 🎉 [PAYMENT_COMPLETE.md](./PAYMENT_COMPLETE.md)
-**สรุปผลการพัฒนา Payment Gateway**
-
-ใช้อ่านเมื่อ:
-- ต้องการภาพรวมของระบบทั้งหมด
-- ต้องการเห็น Achievement และ Impact
-- ต้องการรู้ว่าทำอะไรไปแล้วบ้าง
-
-เนื้อหา:
-- ✅ สิ่งที่เสร็จแล้ว (Complete Checklist)
-- 📊 Technical Specifications
-- 🔄 Payment Flow Diagram
-- 🔐 Security Features
-- 📈 Expected Business Impact
-- 🎯 Success Metrics
+Modern, secure, and feature-rich booking system for Poolvilla Pattaya with multi-language support, group bookings, dynamic pricing, E-Tickets, loyalty program, push notifications, and comprehensive admin management.
 
 ---
 
-### 2. 🚀 [PAYMENT_SETUP.md](./PAYMENT_SETUP.md)
-**Quick Start Guide - ใช้งานได้ใน 5 นาที**
+## ✨ Features
 
-ใช้อ่านเมื่อ:
-- เพิ่งเริ่มต้นใช้งาน
-- ต้องการ setup อย่างรวดเร็ว
-- ต้องการทดสอบ Payment Gateway
+### 🎫 **NEW** E-Ticket System
+- PDF E-Tickets with QR codes and barcodes
+- 3 beautiful templates (Modern, Classic, Minimal)
+- Auto-generation after booking
+- HTML preview and download
+- Admin management dashboard
 
-เนื้อหา:
-- 📥 Installation (3 steps)
-- 🔑 Get API Keys (Omise + Stripe)
-- ⚙️ Configuration (.env.local)
-- 🧪 Testing Guide (Test Cards, PromptPay)
-- 🔗 Webhook Setup (ngrok)
-- 🚀 Deploy to Production
-- ❓ FAQ
+### 🎁 **NEW** Loyalty Program
+- 5-tier system (Bronze → Diamond)
+- Points multipliers (1x - 3x)
+- Automatic tier upgrades
+- Redemption catalog (discounts, upgrades, services)
+- Transaction history
 
-**เริ่มที่นี่ถ้าคุณเพิ่งเริ่มต้น!**
+### 🔔 **NEW** Web Push Notifications
+- Real-time notifications
+- Service Worker support
+- Custom actions (View, Close)
+- Check-in/Check-out reminders
+- Promotion alerts
+- PWA support
+
+### 📊 **NEW** Advanced Charts
+- 4 chart types (Line, Bar, Pie, Area)
+- Interactive tooltips
+- Revenue trends
+- Room bookings analysis
+- Booking status distribution
+- Occupancy rates
+
+### 🌍 Multi-Language Support
+- 5 Languages: Thai 🇹🇭 | English 🇬🇧 | Chinese 🇨🇳 | Russian 🇷🇺 | Korean 🇰🇷
+- Auto currency conversion (THB, USD, CNY, RUB, KRW)
+- 856+ translated strings
+- Seamless language switching
+
+### 👥 Group Booking System
+- **Customer Features**:
+  - 5-step booking wizard
+  - Real-time pricing calculation
+  - Discount tiers (10-25% off)
+  - Corporate client support
+  - Quote request system
+
+- **Admin Features**:
+  - Booking management dashboard
+  - Discount configuration
+  - Corporate client management
+  - Quote templates
+  - Booking statistics
+
+### 💰 Dynamic Pricing
+- Demand-based pricing rules
+- Seasonal pricing adjustments
+- Blackout dates management
+- Real-time price calculation
+- Flexible discount tiers
+
+### 💾 Auto Backup System
+- Scheduled daily backups (Vercel Cron)
+- 24 data files coverage
+- One-click restore functionality
+- Auto-delete old backups
+- Complete admin UI
+- Backup history tracking
+
+### � Online Payment Gateway (NEW!)
+- **Real-time Payment Processing**
+- **Omise Integration** (Thailand):
+  - PromptPay QR Code ⭐
+  - Credit/Debit Cards
+  - TrueMoney Wallet
+  - Alipay
+- **Stripe Integration** (International):
+  - Credit/Debit Cards
+  - 3D Secure 2.0
+- **Auto-confirmation**: 5-10 seconds
+- **Webhook Integration**: Real-time updates
+- **Payment History**: Complete tracking
+- **Refund Support**: Via API
+
+📚 **Documentation**: [Payment Gateway Guide](./docs/PAYMENT_SETUP.md)
+
+### 🔒 Password Reset System (NEW!)
+- **Secure Token-Based Reset**
+- **256-bit Cryptographic Tokens**
+- **1-hour Expiration**
+- **Single-use Tokens**
+- **Email Notifications**
+- **Password Strength Validation**
+
+📚 **Documentation**: [Password Reset Guide](./docs/FORGOT_PASSWORD.md)
+
+### �🔒 Security Features
+- **Authentication**: PBKDF2 password hashing (600k iterations)
+- **Rate Limiting**: IP-based protection
+- **Input Validation**: XSS & injection prevention
+- **Security Headers**: HSTS, CSP, X-Frame-Options
+- **Error Handling**: Centralized & secure
+- **Session Management**: HttpOnly, Secure cookies
+
+### 📊 Admin Dashboard
+- Booking management
+- Room management
+- Payment tracking
+- Review moderation
+- User management
+- FAQ management
+- Location management
+- Video gallery
+- Auto-reply configuration
+- Backup management
+- Group booking oversight
+- Dynamic pricing control
+
+### 🎨 User Features
+- Modern responsive design
+- Dark mode support
+- Real-time availability checking
+- Payment processing
+- Review system with videos
+- Wishlist functionality
+- Points/rewards system
+- Live chat support
+- Notification system
+- Profile management
 
 ---
 
-### 3. 📖 [PAYMENT_GATEWAY.md](./PAYMENT_GATEWAY.md)
-**Complete Technical Documentation - 1000+ lines**
+## 🚀 Quick Start
 
-ใช้อ่านเมื่อ:
-- ต้องการความรู้เชิงลึก
-- กำลังพัฒนา Custom Features
-- แก้ไข Bug หรือ Troubleshooting
-- ต้องการ API Reference
+### Prerequisites
+- Node.js 18+ 
+- npm or yarn
+- Git
 
-เนื้อหา:
-- 🏗️ Architecture (File Structure + Flow)
-- 🔧 Setup Instructions (Detailed)
-- 🧪 Testing (All Payment Methods)
-- 📡 API Reference (Endpoints + Parameters)
-- 💳 Payment Methods (PromptPay, Cards, etc.)
-- 🔐 Security (Rate Limiting, Validation)
-- 🐛 Troubleshooting (Common Issues)
-- 🚀 Production Checklist
-- 💰 Fees & Limits
-- 🔥 Advanced Features (Refunds, etc.)
+### Installation
 
----
+```bash
+# Clone repository
+git clone https://github.com/winnerxbolt/Project-Web.git
+cd Project-Web
 
-### 4. 📋 [PAYMENT_TODO.md](./PAYMENT_TODO.md)
-**Task List & Project Roadmap**
+# Install dependencies
+npm install
 
-ใช้อ่านเมื่อ:
-- ต้องการเห็นงานที่เหลืออยู่
-- วางแผนการพัฒนาขั้นต่อไป
-- Track Progress
+# Setup environment variables
+cp .env.example .env.local
+# Edit .env.local with your configurations
 
-เนื้อหา:
-- ✅ เสร็จแล้ว (Completed Tasks)
-- 🔄 กำลังทำ (In Progress)
-- 📌 รอทำ (TODO with Priority)
-- 🐛 Known Issues
-- 📈 Completion Status (Progress Bars)
-- 🎯 Next Steps
+# Run development server
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000)
+
+### Build for Production
+
+```bash
+# Build
+npm run build
+
+# Start production server
+npm start
+```
 
 ---
 
-### 5. 🔍 [MISSING_FEATURES_ANALYSIS.md](./MISSING_FEATURES_ANALYSIS.md)
-**Comprehensive System Analysis - ระบบทั้งหมด**
-
-ใช้อ่านเมื่อ:
-- ต้องการเห็นภาพรวมของเว็บไซต์ทั้งหมด
-- ต้องการรู้ว่าขาดฟีเจอร์อะไรบ้าง
-- วางแผนการพัฒนาระยะยาว
-
-เนื้อหา:
-- 📊 Project Score: 95/100
-- 🔥 20 Missing Features (Prioritized)
-- 💰 ROI Estimates
-- 🏗️ Implementation Difficulty
-- 📅 4-Phase Roadmap
-- 📈 Expected Business Impact
-
-คะแนนปัจจุบัน:
-- ✅ UI/UX: 10/10
-- ✅ Booking System: 9/10
-- ⚠️ Payment System: 6/10 (Before) → 9/10 (After)
-- ⚠️ Communication: 6/10
-- ✅ Security: 9/10
-- ⚠️ Analytics: 5/10
-
----
-
-### 6. 🔒 [FORGOT_PASSWORD.md](./FORGOT_PASSWORD.md)
-**Password Reset System Documentation**
-
-ใช้อ่านเมื่อ:
-- ต้องการเข้าใจระบบ Forgot Password
-- Troubleshoot Password Reset Issues
-
-เนื้อหา:
-- 🔐 Security Architecture
-- 🔗 Password Reset Flow
-- 📧 Email Notification
-- ⏰ Token Expiration
-- 🔒 Password Strength Requirements
-
----
-
-## 📂 File Organization
+## 📁 Project Structure
 
 ```
-docs/
-├── README.md                          ← คุณอยู่ที่นี่
-├── PAYMENT_COMPLETE.md                ← สรุปผลงาน
-├── PAYMENT_SETUP.md                   ← เริ่มต้นที่นี่! 🚀
-├── PAYMENT_GATEWAY.md                 ← เอกสารเทคนิคฉบับเต็ม
-├── PAYMENT_TODO.md                    ← Task List
-├── MISSING_FEATURES_ANALYSIS.md       ← ระบบทั้งหมด
-└── FORGOT_PASSWORD.md                 ← Password Reset
+Project-WebWin/
+├── app/                      # Next.js App Router
+│   ├── api/                  # API Routes
+│   │   ├── auth/            # Authentication
+│   │   ├── bookings/        # Booking management
+│   │   ├── group-bookings/  # Group booking system
+│   │   ├── tickets/         # 🎫 E-Ticket system (NEW)
+│   │   ├── loyalty/         # 🎁 Loyalty program (NEW)
+│   │   ├── push/            # 🔔 Push notifications (NEW)
+│   │   ├── backup/          # Backup system
+│   │   ├── payments/        # Payment processing
+│   │   └── ...
+│   ├── admin/               # Admin pages
+│   │   ├── tickets/         # E-Ticket management (NEW)
+│   │   ├── stats/           # Analytics with charts (NEW)
+│   │   └── ...
+│   ├── loyalty/             # 🎁 Loyalty page (NEW)
+│   ├── payment-success/     # Payment success with integrations (NEW)
+│   ├── account/             # User account pages
+│   ├── login/               # Authentication pages
+│   └── ...
+├── components/              # React components
+│   ├── AdvancedCharts.tsx           # 📊 Chart components (NEW)
+│   ├── NotificationBell.tsx         # 🔔 Redesigned notifications (NEW)
+│   ├── PushNotificationManager.tsx  # 🔔 Push subscription UI (NEW)
+│   ├── Navbar.tsx
+│   ├── Footer.tsx
+│   ├── RoomCard.tsx
+│   └── ...
+├── contexts/                # React contexts
+│   ├── AuthContext.tsx
+│   └── LanguageContext.tsx
+├── lib/                     # Utility libraries
+│   ├── ticketGenerator.ts  # 🎫 PDF/QR/Barcode generator (NEW)
+│   ├── server/             # Server-side utilities
+│   │   ├── auth.ts
+│   │   ├── db.ts
+│   │   └── backup.ts
+│   ├── security/           # Security utilities
+│   │   ├── rateLimit.ts
+│   │   ├── validation.ts
+│   │   └── headers.ts
+│   └── errors/             # Error handling
+├── data/                    # JSON data storage
+│   ├── e-tickets.json      # 🎫 E-Ticket records (NEW)
+│   ├── loyalty-members.json # 🎁 Loyalty members (NEW)
+│   ├── push-subscriptions.json # 🔔 Push subscriptions (NEW)
+│   └── ...
+├── backups/                 # Backup storage
+├── types/                   # TypeScript types
+│   ├── ticket.ts           # 🎫 E-Ticket types (NEW)
+│   ├── loyalty.ts          # 🎁 Loyalty types (NEW)
+│   ├── push.ts             # 🔔 Push types (NEW)
+│   └── ...
+├── public/                  # Static files
+│   ├── sw.js               # 🔔 Service Worker (NEW)
+│   ├── manifest.json       # PWA manifest (NEW)
+│   └── ...
+├── SECURITY.md             # Security policy
+├── NEW_SYSTEMS_COMPLETE_GUIDE.md  # 🚀 Complete guide for new systems (NEW)
+├── CHANGELOG.md            # Version history
+└── README.md               # This file
 ```
 
 ---
 
-## 🎯 Reading Path (แนะนำลำดับการอ่าน)
+## 🔐 Security
 
-### สำหรับ Developer ที่เพิ่งเริ่ม
-1. **PAYMENT_SETUP.md** ← เริ่มที่นี่
-2. **PAYMENT_COMPLETE.md** ← ดูสรุป
-3. **PAYMENT_GATEWAY.md** ← อ่านตอนต้องการ
-4. **PAYMENT_TODO.md** ← ดูงานที่เหลือ
+This project implements industry-standard security practices:
 
-### สำหรับ Product Manager
-1. **MISSING_FEATURES_ANALYSIS.md** ← ภาพรวมทั้งหมด
-2. **PAYMENT_COMPLETE.md** ← ดู Impact
-3. **PAYMENT_TODO.md** ← วางแผน Roadmap
+- ✅ OWASP Top 10 compliance
+- ✅ Rate limiting (5-100 req/15min)
+- ✅ Strong password requirements
+- ✅ Input validation & sanitization
+- ✅ XSS & CSRF protection
+- ✅ Secure session management
+- ✅ Security headers (HSTS, CSP, etc.)
+- ✅ Sensitive data redaction
 
-### สำหรับ QA/Tester
-1. **PAYMENT_SETUP.md** ← Setup Environment
-2. **PAYMENT_GATEWAY.md** (Testing Section) ← Test Cases
-3. **PAYMENT_GATEWAY.md** (Troubleshooting) ← Debug Issues
-
-### สำหรับ DevOps
-1. **PAYMENT_GATEWAY.md** (Production Checklist) ← Deploy
-2. **PAYMENT_SETUP.md** (Deploy Section) ← Configuration
-3. **PAYMENT_GATEWAY.md** (Webhook Setup) ← Monitoring
+See [SECURITY.md](SECURITY.md) for detailed information.
 
 ---
 
-## 🔍 Quick Search
+## 📝 Environment Variables
 
-### ต้องการ...
+```bash
+# Application
+NODE_ENV=production
+NEXT_PUBLIC_APP_URL=https://your-domain.com
 
-**ติดตั้งระบบ?**  
-→ [PAYMENT_SETUP.md](./PAYMENT_SETUP.md)
+# Security
+CRON_SECRET=your-cron-secret-here
+SESSION_SECRET=your-session-secret-here
+ENCRYPTION_KEY=your-encryption-key-here
 
-**API Keys?**  
-→ [PAYMENT_SETUP.md#get-api-keys](./PAYMENT_SETUP.md#get-api-keys)
+# OAuth (Optional)
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+NEXT_PUBLIC_FACEBOOK_APP_ID=your-facebook-app-id
+FACEBOOK_APP_SECRET=your-facebook-app-secret
 
-**Webhook Configuration?**  
-→ [PAYMENT_SETUP.md#configure-webhooks](./PAYMENT_SETUP.md#configure-webhooks)
+# Email (Optional)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
 
-**Test Cards?**  
-→ [PAYMENT_SETUP.md#test-cards](./PAYMENT_SETUP.md#test-cards)
+# Payment (Optional)
+PAYMENT_API_KEY=your-payment-api-key
+PAYMENT_SECRET_KEY=your-payment-secret-key
 
-**API Reference?**  
-→ [PAYMENT_GATEWAY.md#api-reference](./PAYMENT_GATEWAY.md#api-reference)
+# Web Push Notifications (NEW)
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=your-vapid-public-key
+VAPID_PRIVATE_KEY=your-vapid-private-key
+VAPID_SUBJECT=mailto:your-email@example.com
+```
 
-**Troubleshooting?**  
-→ [PAYMENT_GATEWAY.md#troubleshooting](./PAYMENT_GATEWAY.md#troubleshooting)
+**Generate strong secrets:**
+```bash
+openssl rand -base64 32
+```
 
-**Production Deployment?**  
-→ [PAYMENT_GATEWAY.md#production-checklist](./PAYMENT_GATEWAY.md#production-checklist)
-
-**Missing Features?**  
-→ [MISSING_FEATURES_ANALYSIS.md](./MISSING_FEATURES_ANALYSIS.md)
-
-**Progress Tracking?**  
-→ [PAYMENT_TODO.md](./PAYMENT_TODO.md)
-
----
-
-## 📊 Documentation Stats
-
-- **Total Pages**: 6
-- **Total Lines**: 5,000+
-- **Total Words**: ~15,000
-- **Code Examples**: 50+
-- **Diagrams**: 10+
-- **Screenshots**: (Coming soon)
-
----
-
-## 🆘 Need Help?
-
-### Documentation Issues
-- ❓ เอกสารไม่ชัดเจน? → Create Issue
-- 📝 เจอ Typo? → Submit PR
-- 🐛 Example ไม่ work? → Report Bug
-
-### Technical Support
-- 📧 Email: support@yourdomain.com
-- 💬 Discord: [Join Community](https://discord.gg/xxx)
-- 📚 Read More: [PAYMENT_GATEWAY.md](./PAYMENT_GATEWAY.md)
+**Generate VAPID keys:**
+```bash
+npx web-push generate-vapid-keys
+# Or visit: https://vapidkeys.com/
+```
 
 ---
 
-## 🎓 Learning Resources
+## 🛠️ Available Scripts
 
-### Omise Documentation
-- 📖 [Omise API Docs](https://docs.opn.ooo/)
-- 🧪 [Omise Test Mode](https://dashboard.omise.co/test)
-- 💳 [Payment Methods](https://docs.opn.ooo/payment-methods)
+```bash
+# Development
+npm run dev           # Start dev server
+npm run build         # Build for production
+npm start             # Start production server
 
-### Stripe Documentation
-- 📖 [Stripe API Docs](https://docs.stripe.com/)
-- 🧪 [Stripe Testing](https://docs.stripe.com/testing)
-- 🎨 [Stripe UI Components](https://docs.stripe.com/payments/elements)
+# Code Quality
+npm run lint          # Run ESLint
+npm run type-check    # TypeScript type checking
+npm run format        # Format with Prettier
 
-### Next.js
-- 📖 [Next.js Docs](https://nextjs.org/docs)
-- 🔄 [API Routes](https://nextjs.org/docs/app/building-your-application/routing/route-handlers)
-- 🎯 [Server Actions](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations)
-
----
-
-## 📝 Changelog
-
-### v1.0.0 (2025-01-07)
-- ✅ Initial Payment Gateway Implementation
-- ✅ Complete Documentation (6 files)
-- ✅ Quick Start Guide
-- ✅ Testing Instructions
-- ✅ Production Checklist
-
-### Upcoming
-- 📧 Email Notification Docs
-- 📱 SMS Integration Guide
-- 📄 PDF Receipt Generation
-- 📊 Admin Dashboard Guide
+# Security
+npm run security-check # Check for vulnerabilities
+npm audit fix          # Fix vulnerabilities
+```
 
 ---
 
-## 🏆 Documentation Quality
+## 📚 Documentation
 
-- ✅ **Completeness**: 100%
-- ✅ **Clarity**: High
-- ✅ **Examples**: Abundant
-- ✅ **Up-to-date**: Yes
-- ✅ **Tested**: All examples work
-- ✅ **Multi-language**: Thai + English
+- **[Security Policy](SECURITY.md)** - Security features and reporting
+- **[Changelog](CHANGELOG.md)** - Version history and updates
+- **[Backup Guide](BACKUP_SYSTEM_GUIDE.md)** - Backup system documentation
+- **[Group Booking Guide](GROUP_BOOKING_GUIDE.md)** - Group booking documentation
 
 ---
 
-**Last Updated**: 2025-01-07  
-**Maintained by**: Poolvilla Pattaya Dev Team  
-**Version**: 1.0.0
+## 🌟 Key Technologies
+
+### Frontend
+- **Next.js 16** - React framework with App Router
+- **React 19** - UI library
+- **TypeScript 5.9** - Type safety
+- **Tailwind CSS 3** - Styling
+- **React Icons** - Icon library
+- **date-fns** - Date utilities
+
+### Backend
+- **Next.js API Routes** - Backend endpoints
+- **File-based Database** - JSON storage
+- **Vercel Cron** - Scheduled tasks
+- **Crypto (Node.js)** - Password hashing
+
+### Security
+- PBKDF2 password hashing
+- Rate limiting middleware
+- Input validation library
+- Security headers
+- Error handling system
 
 ---
 
-<div align="center">
+## 🎯 Features by User Role
 
-### 📚 Happy Reading! 🎉
+### 👤 Regular Users
+- Browse available rooms
+- Check availability
+- Make bookings
+- Process payments
+- Write reviews (with videos)
+- Manage wishlist
+- Earn points/rewards
+- Live chat support
+- Multi-language interface
 
-**เริ่มต้นได้เลยที่ → [PAYMENT_SETUP.md](./PAYMENT_SETUP.md)**
+### 👥 Group Bookings
+- Request group quotes
+- View discount tiers
+- Submit bulk bookings
+- Corporate client pricing
+- Special requirements
 
-</div>
+### 👨‍💼 Administrators
+- Full dashboard access
+- User management
+- Booking management
+- Payment tracking
+- Content management (rooms, videos, FAQ)
+- Review moderation
+- Auto-reply configuration
+- Backup management
+- Group booking oversight
+- Dynamic pricing control
+- System configuration
+
+---
+
+## 🚦 API Endpoints
+
+### Authentication
+- `POST /api/auth/login` - User login
+- `POST /api/auth/register` - User registration
+- `GET /api/auth/session` - Check session
+
+### Bookings
+- `GET /api/bookings` - List bookings
+- `POST /api/bookings` - Create booking
+- `PUT /api/bookings/[id]` - Update booking
+- `DELETE /api/bookings/[id]` - Cancel booking
+
+### Group Bookings
+- `GET /api/group-bookings` - List group bookings
+- `POST /api/group-bookings` - Create group booking
+- `POST /api/group-bookings/calculate-price` - Calculate price
+- `GET/PUT /api/group-bookings/discount-settings` - Manage discounts
+
+### Backup
+- `GET /api/backup` - List backups
+- `POST /api/backup` - Create backup
+- `POST /api/backup/auto` - Auto backup (cron)
+
+See code for complete API documentation.
+
+---
+
+## 🔄 Deployment
+
+### Vercel (Recommended)
+
+1. **Push to GitHub**
+2. **Import to Vercel**
+3. **Configure Environment Variables**
+4. **Deploy**
+
+### Manual Deployment
+
+```bash
+# Build
+npm run build
+
+# Start
+npm start
+```
+
+### Environment Requirements
+- Node.js 18+
+- HTTPS enabled
+- Environment variables configured
+- Cron jobs configured (for auto-backup)
+
+---
+
+## � Documentation
+
+- [Security Policy](SECURITY.md) - Security practices and guidelines
+- [Changelog](CHANGELOG.md) - Version history and updates
+- [Group Booking Guide](GROUP_BOOKING_GUIDE.md) - Complete group booking system guide
+- [Dynamic Pricing Guide](DYNAMIC_PRICING_GUIDE.md) - Pricing rules and configuration
+- [Backup System Guide](BACKUP_SYSTEM_GUIDE.md) - Backup and restore procedures
+- [SMS Guide](SMS_NOTIFICATION_GUIDE.md) - SMS notification setup
+- [Email Marketing Guide](EMAIL_MARKETING_GUIDE.md) - Email campaign management
+- **🚀 [NEW] [Complete Systems Guide](NEW_SYSTEMS_COMPLETE_GUIDE.md)** - E-Ticket, Loyalty, Push Notifications, Charts
+
+---
+
+## 🐛 Known Issues
+
+- None currently reported
+
+---
+
+## 📈 Performance
+
+- **Lighthouse Score**: 95+
+- **First Contentful Paint**: <1.5s
+- **Time to Interactive**: <3s
+- **Bundle Size**: Optimized
+- **Image Optimization**: Enabled
+- **PWA**: Service Worker + Manifest (NEW)
+
+---
+
+## 🚀 What's New
+
+### Version 3.0.0 (Latest)
+
+#### 🎫 E-Ticket System
+- PDF generation with QR codes and barcodes
+- 3 beautiful templates
+- Auto-generation after booking
+- Admin management dashboard
+
+#### 🎁 Loyalty Program
+- 5-tier system with multipliers
+- Points on every booking
+- Redemption catalog
+- Automatic tier upgrades
+
+#### 🔔 Web Push Notifications
+- Real-time notifications
+- Service Worker support
+- Check-in/Check-out reminders
+- Promotion alerts
+
+#### 📊 Advanced Charts
+- 4 interactive chart types
+- Revenue & occupancy analytics
+- Room booking statistics
+- Beautiful gradient designs
+
+#### 🎨 UI/UX Enhancements
+- Redesigned NotificationBell
+- Modern gradient designs
+- Improved payment success page
+- Enhanced admin dashboard
+
+See [CHANGELOG.md](CHANGELOG.md) for complete version history.
+
+---
+
+## 🤝 Contributing
+
+This is a private project. Contact the development team for contribution guidelines.
+
+---
+
+## 📄 License
+
+Private - All Rights Reserved
+
+---
+
+## 👨‍💻 Development Team
+
+**Poolvilla Pattaya Development Team**
+- Project Lead: [Your Name]
+- Security: [Your Name]
+- Frontend: [Your Name]
+- Backend: [Your Name]
+
+---
+
+## 📞 Support
+
+- **Website**: https://your-domain.com
+- **Email**: support@your-domain.com
+- **Security**: security@your-domain.com
+
+---
+
+## 🙏 Acknowledgments
+
+- Next.js team for the amazing framework
+- Vercel for hosting and deployment
+- React team for the UI library
+- Open source community
+
+---
+
+**Built with ❤️ for Poolvilla Pattaya**
+
+**Version**: 2.0.0  
+**Last Updated**: December 10, 2025

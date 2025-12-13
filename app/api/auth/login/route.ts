@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server'
-import { findUserByEmail, verifyUserPassword, createSession } from '../../../../lib/server/auth'
+import { findUserByEmail, verifyUserPassword } from '../../../../lib/server/auth'
 import { checkLoginRateLimit, getClientIdentifier } from '../../../../lib/security/rateLimit'
 import { isValidEmail, sanitizeString } from '../../../../lib/security/validation'
 import { addSecurityHeaders, getRateLimitHeaders } from '../../../../lib/security/headers'
+import { createSecureToken } from '../../../../lib/security/jwt'
+import { cookies } from 'next/headers'
 
 type Body = { email?: string; password?: string }
 
@@ -59,7 +61,14 @@ export async function POST(req: Request) {
       )
     }
 
-    const session = await createSession(user.id)
+    // 🔒 สร้าง Secure JWT Token (Double-signed + Encrypted Payload)
+    const token = createSecureToken({
+      id: user.id,
+      email: user.email,
+      name: sanitizeString(user.name),
+      role: user.role || 'user'
+    })
+
     const userData = { 
       id: user.id, 
       name: sanitizeString(user.name), 
@@ -67,15 +76,18 @@ export async function POST(req: Request) {
       role: user.role || 'user'
     }
     
+    const cookieStore = await cookies()
+    
+    // 🍪 Set secure cookie (httpOnly + sameSite + secure)
+    cookieStore.set('auth_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 60 * 60 * 24 * 365, // 365 days
+      path: '/'
+    })
+    
     const res = NextResponse.json({ user: userData })
-    
-    // Set secure cookie
-    const isProduction = process.env.NODE_ENV === 'production'
-    res.headers.set(
-      'Set-Cookie',
-      `session=${session.token}; Path=/; HttpOnly; Max-Age=${60 * 60 * 24 * 7}; SameSite=Strict${isProduction ? '; Secure' : ''}`
-    )
-    
     return addSecurityHeaders(res)
   } catch (err) {
     console.error('Login error:', err)

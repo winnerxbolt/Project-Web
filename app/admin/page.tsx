@@ -837,6 +837,14 @@ export default function AdminPage() {
             </button>
 
             <button
+              onClick={() => window.location.href = '/admin-articles'}
+              className="px-5 py-4 font-semibold rounded-xl transition-all duration-300 flex items-center gap-3 bg-gradient-to-r from-teal-500 to-blue-600 text-white hover:shadow-xl hover:scale-105"
+            >
+              <FaDatabase className="text-2xl" />
+              <span>📝 จัดการบทความ</span>
+            </button>
+
+            <button
               onClick={() => window.location.href = '/admin/line'}
               className="px-5 py-4 font-semibold rounded-xl transition-all duration-300 flex items-center gap-3 bg-gradient-to-r from-green-500 to-green-600 text-white hover:shadow-xl hover:scale-105"
             >

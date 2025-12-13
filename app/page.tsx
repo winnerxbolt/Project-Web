@@ -6,7 +6,9 @@ import Hero from '@/components/Hero'
 
 // Dynamic imports for better code splitting
 const FeaturedRooms = lazy(() => import('@/components/FeaturedRooms'))
-const DevilleAccommodations = lazy(() => import('@/components/DevilleAccommodations'))
+const ArticleSection = lazy(() => import('@/components/ArticleSection'))
+// Deville Accommodations ปิดชั่วคราว
+// const DevilleAccommodations = lazy(() => import('@/components/DevilleAccommodations'))
 const Features = lazy(() => import('@/components/Features'))
 // Instagram Feed ปิดชั่วคราว
 // const InstagramFeed = lazy(() => import('@/components/InstagramFeed'))
@@ -51,10 +53,15 @@ export default function Home() {
         <FeaturedRooms />
       </Suspense>
       
-      {/* Deville Accommodations Section */}
+      {/* Article Section */}
       <Suspense fallback={<LoadingSection />}>
-        <DevilleAccommodations />
+        <ArticleSection />
       </Suspense>
+      
+      {/* Deville Accommodations Section - ปิดชั่วคราว */}
+      {/* <Suspense fallback={<LoadingSection />}>
+        <DevilleAccommodations />
+      </Suspense> */}
       
       <Suspense fallback={<LoadingSection />}>
         <Features />

@@ -7,19 +7,20 @@ import { useAuth } from '@/contexts/AuthContext'
 interface ProtectedRouteProps {
   children: React.ReactNode
   requireAdmin?: boolean
+  adminOnly?: boolean
 }
 
-export default function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
+export default function ProtectedRoute({ children, requireAdmin = false, adminOnly = false }: ProtectedRouteProps) {
   const { user, isLoading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
     if (!isLoading && !user) {
       router.push('/login')
-    } else if (!isLoading && user && requireAdmin && user.role !== 'admin') {
+    } else if (!isLoading && user && (requireAdmin || adminOnly) && user.role !== 'admin') {
       router.push('/')
     }
-  }, [user, isLoading, requireAdmin, router])
+  }, [user, isLoading, requireAdmin, adminOnly, router])
 
   if (isLoading) {
     return (

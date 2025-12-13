@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { readJson, writeJson } from '@/lib/server/db'
 import type { SocialLoginProvider } from '@/types/social'
+import { createSecureToken } from '@/lib/security/jwt'
+import { cookies } from 'next/headers'
 
 interface User {
   id: string
@@ -74,17 +76,24 @@ export async function POST(request: Request) {
       await writeJson('data/users.json', users)
     }
 
-    // Create session
-    const sessions = await readJson('data/sessions.json') || []
-    const sessionToken = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-    
-    sessions.push({
-      token: sessionToken,
-      userId: user.id,
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days
+    // 🔒 สร้าง Secure JWT Token
+    const token = createSecureToken({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role
     })
+
+    const cookieStore = await cookies()
     
-    await writeJson('data/sessions.json', sessions)
+    // 🍪 Set secure cookie
+    cookieStore.set('auth_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 60 * 60 * 24 * 365, // 365 days
+      path: '/'
+    })
 
     return NextResponse.json({
       success: true,
@@ -95,7 +104,6 @@ export async function POST(request: Request) {
         role: user.role,
         picture: user.picture
       },
-      token: sessionToken,
       message: 'Social login successful'
     })
 

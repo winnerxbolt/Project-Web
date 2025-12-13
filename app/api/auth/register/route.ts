@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server'
-import { createUser, findUserByEmail, createSession } from '../../../../lib/server/auth'
+import { createUser, findUserByEmail } from '../../../../lib/server/auth'
 import { containsProfanity } from '@/lib/profanityFilter'
 import { checkMutationRateLimit, getClientIdentifier } from '../../../../lib/security/rateLimit'
 import { isValidEmail, sanitizeString, isStrongPassword } from '../../../../lib/security/validation'
 import { addSecurityHeaders, getRateLimitHeaders } from '../../../../lib/security/headers'
+import { createSecureToken } from '../../../../lib/security/jwt'
+import { cookies } from 'next/headers'
 
 type Body = { name?: string; email?: string; password?: string }
 
@@ -73,7 +75,14 @@ export async function POST(req: Request) {
 
     // Create user with sanitized inputs
     const user = await createUser(sanitizedName, sanitizedEmail, password)
-    const session = await createSession(user.id)
+    
+    // 🔒 สร้าง Secure JWT Token (Double-signed + Encrypted Payload)
+    const token = createSecureToken({
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role
+    })
 
     const userData = { 
       id: user.id, 
@@ -82,15 +91,18 @@ export async function POST(req: Request) {
       role: user.role
     }
     
+    const cookieStore = await cookies()
+    
+    // 🍪 Set secure cookie
+    cookieStore.set('auth_token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 60 * 60 * 24 * 365, // 365 days
+      path: '/'
+    })
+    
     const res = NextResponse.json({ user: userData })
-    
-    // Set secure cookie
-    const isProduction = process.env.NODE_ENV === 'production'
-    res.headers.set(
-      'Set-Cookie',
-      `session=${session.token}; Path=/; HttpOnly; Max-Age=${60 * 60 * 24 * 7}; SameSite=Strict${isProduction ? '; Secure' : ''}`
-    )
-    
     return addSecurityHeaders(res)
   } catch (err) {
     console.error('Register error:', err)

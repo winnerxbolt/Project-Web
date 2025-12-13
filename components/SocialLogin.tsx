@@ -161,13 +161,13 @@ export default function SocialLogin({ mode = 'login', onSuccess, className = '' 
           provider: 'google',
           token: response.credential,
           profile: googleProfile
-        })
+        }),
+        credentials: 'include'
       })
 
       const data = await apiResponse.json()
 
       if (data.success) {
-        localStorage.setItem('token', data.token)
         loginWithUser(data.user)
         
         if (onSuccess) {
@@ -260,13 +260,13 @@ export default function SocialLogin({ mode = 'login', onSuccess, className = '' 
                     provider: 'facebook',
                     token: response.authResponse.accessToken,
                     profile: facebookProfile
-                  })
+                  }),
+                  credentials: 'include'
                 })
 
                 const data = await apiResponse.json()
 
                 if (data.success) {
-                  localStorage.setItem('token', data.token)
                   loginWithUser(data.user)
                   
                   if (onSuccess) {
