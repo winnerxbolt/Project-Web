@@ -47,9 +47,16 @@ export default function MemberDashboard() {
       // Fetch bookings
       const bookingsRes = await fetch('/api/bookings');
       const bookingsData = await bookingsRes.json();
-      const userBookings = bookingsData.success
-        ? bookingsData.bookings.filter((b: any) => b.email === user?.email)
-        : [];
+      
+      // Validate array
+      let bookingsArray: any[] = [];
+      if (Array.isArray(bookingsData)) {
+        bookingsArray = bookingsData;
+      } else if (bookingsData.success && Array.isArray(bookingsData.bookings)) {
+        bookingsArray = bookingsData.bookings;
+      }
+      
+      const userBookings = bookingsArray.filter((b: any) => b.email === user?.email);
 
       // Fetch wishlist
       const wishlistRes = await fetch(`/api/member/wishlist?userId=${user?.id}`);

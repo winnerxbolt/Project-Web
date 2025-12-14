@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyStripePayment } from '@/lib/server/paymentGateway'
-import { readJson, writeJson } from '@/lib/server/db'
-
-const PAYMENT_INTENTS_FILE = 'data/payment-intents.json'
-const BOOKINGS_FILE = 'data/bookings.json'
-const PAYMENTS_FILE = 'data/payments.json'
+import { supabaseAdmin } from '@/lib/supabase'
 
 /**
  * POST /api/payment/webhook/stripe
@@ -30,13 +26,17 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ received: true })
       }
 
-      // อัพเดท Payment Intent
-      const paymentIntents = (await readJson<any[]>(PAYMENT_INTENTS_FILE)) || []
-      const index = paymentIntents.findIndex(p => p.id === paymentIntent.id)
-      if (index !== -1) {
-        paymentIntents[index] = paymentIntent
-        await writeJson(PAYMENT_INTENTS_FILE, paymentIntents)
-      }
+      // อัพเดท Payment Intent to database
+      await supabaseAdmin
+        .from('payment_intents')
+        .upsert({
+          id: paymentIntent.id,
+          booking_id: paymentIntent.bookingId,
+          provider: paymentIntent.provider,
+          amount: paymentIntent.amount,
+          currency: paymentIntent.currency,
+          status: 'succeeded',
+        })
 
       // Auto-confirm booking
       await confirmBooking(paymentIntent.bookingId, paymentIntent)
@@ -60,41 +60,35 @@ export async function POST(request: NextRequest) {
 
 async function confirmBooking(bookingId: number, paymentIntent: any) {
   try {
-    const bookings = (await readJson<any[]>(BOOKINGS_FILE)) || []
-    const bookingIndex = bookings.findIndex(b => b.id === bookingId)
+    // Update booking
+    const { error: bookingError } = await supabaseAdmin
+      .from('bookings')
+      .update({
+        status: 'confirmed',
+        confirmed_at: new Date().toISOString(),
+        payment_method: 'online_payment',
+        payment_provider: paymentIntent.provider,
+        payment_intent_id: paymentIntent.id,
+        paid_amount: paymentIntent.amount,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', bookingId)
 
-    if (bookingIndex === -1) {
-      console.error('❌ Booking not found:', bookingId)
-      return
-    }
+    if (bookingError) throw bookingError
 
-    const booking = bookings[bookingIndex]
-
-    booking.status = 'confirmed'
-    booking.confirmedAt = new Date().toISOString()
-    booking.paymentMethod = 'online_payment'
-    booking.paymentProvider = paymentIntent.provider
-    booking.paymentIntentId = paymentIntent.id
-    booking.paidAmount = paymentIntent.amount
-    booking.updatedAt = new Date().toISOString()
-
-    await writeJson(BOOKINGS_FILE, bookings)
-
-    const payments = (await readJson<any[]>(PAYMENTS_FILE)) || []
-    const payment = {
-      id: payments.length > 0 ? Math.max(...payments.map((p: any) => p.id)) + 1 : 1,
-      bookingId,
-      method: paymentIntent.paymentMethod,
-      provider: paymentIntent.provider,
-      amount: paymentIntent.amount,
-      currency: paymentIntent.currency,
-      status: 'confirmed',
-      transactionId: paymentIntent.chargeId,
-      createdAt: new Date().toISOString(),
-      confirmedAt: new Date().toISOString(),
-    }
-    payments.push(payment)
-    await writeJson(PAYMENTS_FILE, payments)
+    // Create payment record
+    await supabaseAdmin
+      .from('payments')
+      .insert({
+        booking_id: bookingId,
+        method: paymentIntent.paymentMethod,
+        provider: paymentIntent.provider,
+        amount: paymentIntent.amount,
+        currency: paymentIntent.currency,
+        status: 'confirmed',
+        transaction_id: paymentIntent.chargeId,
+        confirmed_at: new Date().toISOString(),
+      })
 
     console.log(`✅ Booking #${bookingId} auto-confirmed via Stripe!`)
   } catch (error) {
@@ -104,18 +98,14 @@ async function confirmBooking(bookingId: number, paymentIntent: any) {
 
 async function failBooking(bookingId: number, errorMessage?: string) {
   try {
-    const bookings = (await readJson<any[]>(BOOKINGS_FILE)) || []
-    const bookingIndex = bookings.findIndex(b => b.id === bookingId)
-
-    if (bookingIndex === -1) {
-      return
-    }
-
-    bookings[bookingIndex].status = 'pending'
-    bookings[bookingIndex].paymentError = errorMessage
-    bookings[bookingIndex].updatedAt = new Date().toISOString()
-
-    await writeJson(BOOKINGS_FILE, bookings)
+    await supabaseAdmin
+      .from('bookings')
+      .update({
+        status: 'pending',
+        payment_error: errorMessage,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', bookingId)
 
     console.log(`❌ Booking #${bookingId} payment failed via Stripe`)
   } catch (error) {

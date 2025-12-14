@@ -1,25 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { readJson, writeJson } from '@/lib/server/db'
 import { cookies } from 'next/headers'
 import { verifySecureToken } from '@/lib/security/jwt'
-
-interface Article {
-  id: string
-  title: string
-  content: string
-  excerpt: string
-  author: string
-  authorId: string
-  coverImage?: string
-  category: string
-  tags: string[]
-  published: boolean
-  createdAt: string
-  updatedAt: string
-  views: number
-}
-
-const ARTICLES_FILE = 'data/articles.json'
+import { supabase, supabaseAdmin } from '@/lib/supabase'
 
 // GET - ดึงบทความทั้งหมด (public) หรือตาม query
 export async function GET(request: NextRequest) {
@@ -29,29 +11,34 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category')
     const limit = searchParams.get('limit')
     
-    const articles = await readJson<Article[]>(ARTICLES_FILE) || []
-    
-    let filtered = articles
+    let query = supabase.from('articles').select('*')
     
     // Filter by published status
     if (published === 'true') {
-      filtered = filtered.filter(a => a.published)
+      query = query.eq('published', true)
     }
     
     // Filter by category
     if (category) {
-      filtered = filtered.filter(a => a.category === category)
+      query = query.eq('category', category)
     }
     
     // Sort by date (newest first)
-    filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    query = query.order('created_at', { ascending: false })
     
     // Limit results
     if (limit) {
-      filtered = filtered.slice(0, parseInt(limit))
+      query = query.limit(parseInt(limit))
     }
     
-    return NextResponse.json({ articles: filtered, total: filtered.length })
+    const { data: articles, error } = await query
+    
+    if (error) {
+      console.error('Supabase error:', error)
+      return NextResponse.json({ success: false, error: 'Failed to fetch articles' }, { status: 500 })
+    }
+    
+    return NextResponse.json({ success: true, articles: articles || [], total: articles?.length || 0 })
   } catch (error) {
     console.error('Get articles error:', error)
     return NextResponse.json({ error: 'Failed to fetch articles' }, { status: 500 })
@@ -82,26 +69,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Title and content are required' }, { status: 400 })
     }
     
-    const articles = await readJson<Article[]>(ARTICLES_FILE) || []
+    const { data: newArticle, error } = await supabaseAdmin
+      .from('articles')
+      .insert({
+        title,
+        content,
+        excerpt: excerpt || content.substring(0, 150) + '...',
+        author: payload.name,
+        author_id: payload.id,
+        cover_image: coverImage || '',
+        category: category || 'general',
+        tags: tags || [],
+        published: published ?? true,
+        views: 0
+      })
+      .select()
+      .single()
     
-    const newArticle: Article = {
-      id: `article_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      title,
-      content,
-      excerpt: excerpt || content.substring(0, 150) + '...',
-      author: payload.name,
-      authorId: payload.id,
-      coverImage: coverImage || '',
-      category: category || 'general',
-      tags: tags || [],
-      published: published ?? true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      views: 0
+    if (error) {
+      console.error('Supabase error:', error)
+      return NextResponse.json({ error: 'Failed to create article' }, { status: 500 })
     }
-    
-    articles.push(newArticle)
-    await writeJson(ARTICLES_FILE, articles)
     
     return NextResponse.json({ success: true, article: newArticle })
   } catch (error) {
@@ -134,29 +122,33 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Article ID is required' }, { status: 400 })
     }
     
-    const articles = await readJson<Article[]>(ARTICLES_FILE) || []
-    const articleIndex = articles.findIndex(a => a.id === id)
+    const updates: any = {}
+    if (title !== undefined) updates.title = title
+    if (content !== undefined) updates.content = content
+    if (excerpt !== undefined) updates.excerpt = excerpt
+    if (coverImage !== undefined) updates.cover_image = coverImage
+    if (category !== undefined) updates.category = category
+    if (tags !== undefined) updates.tags = tags
+    if (published !== undefined) updates.published = published
+    updates.updated_at = new Date().toISOString()
     
-    if (articleIndex === -1) {
+    const { data: updatedArticle, error } = await supabaseAdmin
+      .from('articles')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('Supabase error:', error)
+      return NextResponse.json({ error: 'Failed to update article' }, { status: 500 })
+    }
+    
+    if (!updatedArticle) {
       return NextResponse.json({ error: 'Article not found' }, { status: 404 })
     }
     
-    // Update article
-    articles[articleIndex] = {
-      ...articles[articleIndex],
-      title: title || articles[articleIndex].title,
-      content: content || articles[articleIndex].content,
-      excerpt: excerpt || articles[articleIndex].excerpt,
-      coverImage: coverImage !== undefined ? coverImage : articles[articleIndex].coverImage,
-      category: category || articles[articleIndex].category,
-      tags: tags || articles[articleIndex].tags,
-      published: published !== undefined ? published : articles[articleIndex].published,
-      updatedAt: new Date().toISOString()
-    }
-    
-    await writeJson(ARTICLES_FILE, articles)
-    
-    return NextResponse.json({ success: true, article: articles[articleIndex] })
+    return NextResponse.json({ success: true, article: updatedArticle })
   } catch (error) {
     console.error('Update article error:', error)
     return NextResponse.json({ error: 'Failed to update article' }, { status: 500 })
@@ -187,14 +179,15 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Article ID is required' }, { status: 400 })
     }
     
-    const articles = await readJson<Article[]>(ARTICLES_FILE) || []
-    const filtered = articles.filter(a => a.id !== id)
+    const { error } = await supabaseAdmin
+      .from('articles')
+      .delete()
+      .eq('id', id)
     
-    if (filtered.length === articles.length) {
-      return NextResponse.json({ error: 'Article not found' }, { status: 404 })
+    if (error) {
+      console.error('Supabase error:', error)
+      return NextResponse.json({ error: 'Failed to delete article' }, { status: 500 })
     }
-    
-    await writeJson(ARTICLES_FILE, filtered)
     
     return NextResponse.json({ success: true, message: 'Article deleted' })
   } catch (error) {

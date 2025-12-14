@@ -1,43 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-
-const notificationsPath = path.join(process.cwd(), 'data', 'notifications.json');
+import { supabase, supabaseAdmin } from '@/lib/supabase';
 
 interface Notification {
-  id: string;
-  type: 'booking' | 'status' | 'checkin_reminder' | 'promotion' | 'video' | 'announcement';
+  id?: string;
+  user_id?: string;
+  type: string;
   title: string;
   message: string;
-  recipientType: 'admin' | 'user' | 'all';
-  recipientId?: string;
-  bookingId?: string;
-  videoId?: string;
-  couponCode?: string;
-  priority: 'low' | 'normal' | 'high' | 'urgent';
-  channels: ('web' | 'email' | 'line' | 'sms')[];
-  isRead: boolean;
-  createdAt: string;
-  scheduledFor?: string;
-  metadata?: {
-    reason?: string;
-    discount?: string;
-    imageUrl?: string;
-    actionUrl?: string;
-  };
-}
-
-function readNotifications(): Notification[] {
-  try {
-    const data = fs.readFileSync(notificationsPath, 'utf-8');
-    return JSON.parse(data);
-  } catch (error) {
-    return [];
-  }
-}
-
-function writeNotifications(notifications: Notification[]) {
-  fs.writeFileSync(notificationsPath, JSON.stringify(notifications, null, 2));
+  link?: string;
+  priority?: string;
+  action_url?: string;
+  metadata?: any;
+  read?: boolean;
+  read_at?: string;
+  created_at?: string;
 }
 
 // GET - Fetch notifications
@@ -45,36 +21,40 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
-    const recipientType = searchParams.get('recipientType');
     const unreadOnly = searchParams.get('unreadOnly') === 'true';
     const type = searchParams.get('type');
+    const limit = searchParams.get('limit');
 
-    let notifications = readNotifications();
+    let query = supabase.from('notifications').select('*');
 
-    // Filter by recipient
-    if (recipientType === 'admin') {
-      notifications = notifications.filter(n => n.recipientType === 'admin' || n.recipientType === 'all');
-    } else if (userId) {
-      notifications = notifications.filter(
-        n => n.recipientType === 'all' || 
-           (n.recipientType === 'user' && n.recipientId === userId)
-      );
+    if (userId && userId !== 'guest') {
+      query = query.eq('user_id', userId);
+    } else if (userId === 'guest') {
+      query = query.is('user_id', null);
     }
 
-    // Filter by type
-    if (type) {
-      notifications = notifications.filter(n => n.type === type);
-    }
-
-    // Filter by read status
     if (unreadOnly) {
-      notifications = notifications.filter(n => !n.isRead);
+      query = query.eq('read', false);
     }
 
-    // Sort by created date (newest first)
-    notifications.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    if (type) {
+      query = query.eq('type', type);
+    }
 
-    return NextResponse.json(notifications);
+    query = query.order('created_at', { ascending: false });
+
+    if (limit) {
+      query = query.limit(parseInt(limit));
+    }
+
+    const { data: notifications, error } = await query;
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 });
+    }
+
+    return NextResponse.json(notifications || []);
   } catch (error) {
     console.error('Error fetching notifications:', error);
     return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 });
@@ -85,127 +65,92 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const notifications = readNotifications();
 
-    const newNotification: Notification = {
-      id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      type: body.type,
+    const notificationData = {
+      user_id: body.userId || body.user_id || null,
+      type: body.type || 'announcement',
       title: body.title,
       message: body.message,
-      recipientType: body.recipientType || 'user',
-      recipientId: body.recipientId,
-      bookingId: body.bookingId,
-      videoId: body.videoId,
-      couponCode: body.couponCode,
+      link: body.link || null,
       priority: body.priority || 'normal',
-      channels: body.channels || ['web'],
-      isRead: false,
-      createdAt: new Date().toISOString(),
-      scheduledFor: body.scheduledFor,
-      metadata: body.metadata,
+      action_url: body.actionUrl || body.action_url || null,
+      metadata: body.metadata || null,
+      read: false
     };
 
-    notifications.push(newNotification);
-    writeNotifications(notifications);
+    const { data: newNotification, error } = await supabaseAdmin
+      .from('notifications')
+      .insert(notificationData)
+      .select()
+      .single();
 
-    // Here you would integrate with email/LINE/SMS services
-    await sendNotification(newNotification);
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: 'Failed to create notification' }, { status: 500 });
+    }
 
-    return NextResponse.json({ success: true, notification: newNotification });
+    return NextResponse.json(newNotification, { status: 201 });
   } catch (error) {
     console.error('Error creating notification:', error);
     return NextResponse.json({ error: 'Failed to create notification' }, { status: 500 });
   }
 }
 
-// PUT - Mark as read or update
+// PUT - Mark notification as read
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { notificationId, action, isRead, userId } = body;
+    const { id, read } = body;
 
-    const notifications = readNotifications();
-    const index = notifications.findIndex(n => n.id === notificationId);
-
-    if (index === -1) {
-      return NextResponse.json({ error: 'Notification not found' }, { status: 404 });
+    if (!id) {
+      return NextResponse.json({ error: 'Notification ID required' }, { status: 400 });
     }
 
-    if (action === 'markAsRead') {
-      notifications[index].isRead = isRead !== undefined ? isRead : true;
-    } else if (action === 'markAllAsRead') {
-      notifications.forEach(n => {
-        if (userId) {
-          if (n.recipientType === 'all' || (n.recipientType === 'user' && n.recipientId === userId)) {
-            n.isRead = true;
-          }
-        } else {
-          n.isRead = true;
-        }
-      });
+    const { data: updatedNotification, error } = await supabaseAdmin
+      .from('notifications')
+      .update({
+        read: read !== undefined ? read : true,
+        read_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: 'Failed to update notification' }, { status: 500 });
     }
 
-    writeNotifications(notifications);
-    return NextResponse.json({ success: true });
+    return NextResponse.json(updatedNotification);
   } catch (error) {
     console.error('Error updating notification:', error);
     return NextResponse.json({ error: 'Failed to update notification' }, { status: 500 });
   }
 }
 
-// DELETE - Delete notification
+// DELETE - Remove notification
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const notificationId = searchParams.get('notificationId');
+    const id = searchParams.get('id');
 
-    if (!notificationId) {
+    if (!id) {
       return NextResponse.json({ error: 'Notification ID required' }, { status: 400 });
     }
 
-    const notifications = readNotifications();
-    const filtered = notifications.filter(n => n.id !== notificationId);
+    const { error } = await supabaseAdmin
+      .from('notifications')
+      .delete()
+      .eq('id', id);
 
-    writeNotifications(filtered);
-    return NextResponse.json({ success: true });
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: 'Failed to delete notification' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, message: 'Notification deleted' });
   } catch (error) {
     console.error('Error deleting notification:', error);
     return NextResponse.json({ error: 'Failed to delete notification' }, { status: 500 });
-  }
-}
-
-// Helper function to send notifications via different channels
-async function sendNotification(notification: Notification) {
-  const { channels, title, message } = notification;
-
-  for (const channel of channels) {
-    try {
-      switch (channel) {
-        case 'email':
-          // Integration with email service (SendGrid, AWS SES, etc.)
-          console.log(`Sending email: ${title} - ${message}`);
-          // await sendEmail(notification);
-          break;
-        
-        case 'line':
-          // Integration with LINE Notify or LINE Messaging API
-          console.log(`Sending LINE: ${title} - ${message}`);
-          // await sendLineNotification(notification);
-          break;
-        
-        case 'sms':
-          // Integration with SMS service (Twilio, AWS SNS, etc.)
-          console.log(`Sending SMS: ${title} - ${message}`);
-          // await sendSMS(notification);
-          break;
-        
-        case 'web':
-          // Web notification is handled by the frontend
-          console.log(`Web notification created: ${title}`);
-          break;
-      }
-    } catch (error) {
-      console.error(`Failed to send ${channel} notification:`, error);
-    }
   }
 }

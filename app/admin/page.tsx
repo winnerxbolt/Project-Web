@@ -245,8 +245,14 @@ export default function AdminPage() {
     try {
       const response = await fetch('/api/rooms')
       const data = await response.json()
-      if (data.success) {
-        setRooms(data.rooms)
+      
+      // Validate array
+      if (Array.isArray(data)) {
+        setRooms(data);
+      } else if (data.success && Array.isArray(data.rooms)) {
+        setRooms(data.rooms);
+      } else {
+        setRooms([]);
       }
     } catch (error) {
       console.error('Error fetching rooms:', error)

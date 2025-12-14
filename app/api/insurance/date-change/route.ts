@@ -1,10 +1,5 @@
 import { NextResponse } from 'next/server'
-import { readJson, writeJson } from '@/lib/server/db'
-import { DateChangeRequest, BookingInsurance, InsurancePlan } from '@/types/insurance'
-
-const REQUESTS_FILE = 'date-change-requests.json'
-const INSURANCES_FILE = 'booking-insurances.json'
-const PLANS_FILE = 'insurance-plans.json'
+import { supabase, supabaseAdmin } from '@/lib/supabase'
 
 export async function GET(request: Request) {
   try {
@@ -13,27 +8,31 @@ export async function GET(request: Request) {
     const userId = searchParams.get('userId')
     const status = searchParams.get('status')
 
-    let requests = await readJson<DateChangeRequest[]>(REQUESTS_FILE) || []
+    let query = supabase.from('date_change_requests').select('*')
 
     // Filter by booking ID
     if (bookingId) {
-      requests = requests.filter(r => r.bookingId === bookingId)
+      query = query.eq('booking_id', bookingId)
     }
 
     // Filter by user ID
     if (userId) {
-      requests = requests.filter(r => r.userId === userId)
+      query = query.eq('user_id', userId)
     }
 
     // Filter by status
     if (status) {
-      requests = requests.filter(r => r.status === status)
+      query = query.eq('status', status)
     }
 
     // Sort by created date (newest first)
-    requests.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    query = query.order('created_at', { ascending: false })
 
-    return NextResponse.json({ requests })
+    const { data: requests, error } = await query
+
+    if (error) throw error
+
+    return NextResponse.json({ requests: requests || [] })
   } catch (error) {
     console.error('Error fetching date change requests:', error)
     return NextResponse.json({ error: 'Failed to fetch date change requests' }, { status: 500 })
@@ -60,27 +59,30 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
 
-    const requests = await readJson<DateChangeRequest[]>(REQUESTS_FILE) || []
-
     // Check if there's insurance coverage
     let coveredByInsurance = false
     let insuranceCoverage = 0
 
     if (insuranceId) {
-      const insurances = await readJson<BookingInsurance[]>(INSURANCES_FILE) || []
-      const insurance = insurances.find(i => i.id === insuranceId && i.status === 'active')
+      const { data: insurance } = await supabase
+        .from('booking_insurance')
+        .select('*, insurance_plans(*)')
+        .eq('id', insuranceId)
+        .eq('status', 'active')
+        .single()
 
-      if (insurance) {
-        const plans = await readJson<InsurancePlan[]>(PLANS_FILE) || []
-        const plan = plans.find(p => p.id === insurance.planId)
+      if (insurance && insurance.insurance_plans) {
+        const plan = insurance.insurance_plans
 
-        if (plan?.coverage.modification.enabled) {
+        if (plan?.coverage?.modification?.enabled) {
           // Count existing change requests for this booking
-          const existingChanges = requests.filter(
-            r => r.bookingId === bookingId && r.status !== 'rejected'
-          ).length
+          const { count } = await supabase
+            .from('date_change_requests')
+            .select('*', { count: 'exact', head: true })
+            .eq('booking_id', bookingId)
+            .neq('status', 'rejected')
 
-          if (existingChanges < plan.coverage.modification.freeChanges) {
+          if ((count || 0) < plan.coverage.modification.freeChanges) {
             coveredByInsurance = true
             insuranceCoverage = plan.coverage.modification.feeAfterFree
           }
@@ -91,34 +93,36 @@ export async function POST(request: Request) {
     const changeFee = coveredByInsurance ? 0 : 500 // Default fee
     const priceDifference = 0 // Calculate based on room rates
 
-    const newRequest: DateChangeRequest = {
-      id: `dcr-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      bookingId,
-      insuranceId,
-      userId,
-      originalCheckIn: originalCheckIn || '',
-      originalCheckOut: originalCheckOut || '',
-      requestedCheckIn,
-      requestedCheckOut,
+    const newRequest = {
+      booking_id: bookingId,
+      insurance_id: insuranceId,
+      user_id: userId,
+      original_check_in: originalCheckIn || '',
+      original_check_out: originalCheckOut || '',
+      requested_check_in: requestedCheckIn,
+      requested_check_out: requestedCheckOut,
       status: 'pending',
       reason,
-      changeFee,
-      priceDifference,
-      totalCost: changeFee + priceDifference,
+      change_fee: changeFee,
+      price_difference: priceDifference,
+      total_cost: changeFee + priceDifference,
       currency: 'THB',
-      coveredByInsurance,
-      insuranceCoverage,
+      covered_by_insurance: coveredByInsurance,
+      insurance_coverage: insuranceCoverage,
       metadata: {},
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     }
 
-    requests.push(newRequest)
-    await writeJson(REQUESTS_FILE, requests)
+    const { data: dateChangeRequest, error } = await supabaseAdmin
+      .from('date_change_requests')
+      .insert(newRequest)
+      .select()
+      .single()
+
+    if (error) throw error
 
     return NextResponse.json({ 
       message: 'Date change request submitted successfully',
-      request: newRequest
+      request: dateChangeRequest
     }, { status: 201 })
   } catch (error) {
     console.error('Error submitting date change request:', error)
@@ -135,30 +139,33 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Request ID required' }, { status: 400 })
     }
 
-    const requests = await readJson<DateChangeRequest[]>(REQUESTS_FILE) || []
-    const index = requests.findIndex(r => r.id === id)
-
-    if (index === -1) {
-      return NextResponse.json({ error: 'Request not found' }, { status: 404 })
+    const updates: any = {
+      updated_at: new Date().toISOString(),
+      processed_at: new Date().toISOString(),
     }
 
-    const now = new Date().toISOString()
+    if (status) updates.status = status
+    if (approvalNotes) updates.approval_notes = approvalNotes
+    if (rejectionReason) updates.rejection_reason = rejectionReason
+    if (processedBy) updates.processed_by = processedBy
 
-    requests[index] = {
-      ...requests[index],
-      status: status || requests[index].status,
-      approvalNotes,
-      rejectionReason,
-      processedBy,
-      processedAt: now,
-      updatedAt: now,
+    const { data: dateChangeRequest, error } = await supabaseAdmin
+      .from('date_change_requests')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Request not found' }, { status: 404 })
+      }
+      throw error
     }
-
-    await writeJson(REQUESTS_FILE, requests)
 
     return NextResponse.json({ 
       message: 'Date change request updated successfully',
-      request: requests[index]
+      request: dateChangeRequest
     })
   } catch (error) {
     console.error('Error updating date change request:', error)

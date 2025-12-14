@@ -1,11 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createOmisePayment, createStripePayment, PaymentMethod } from '@/lib/server/paymentGateway'
-import { readJson, writeJson } from '@/lib/server/db'
+import { supabase, supabaseAdmin } from '@/lib/supabase'
 import { checkMutationRateLimit, getClientIdentifier } from '@/lib/security/rateLimit'
 import { addSecurityHeaders, getRateLimitHeaders } from '@/lib/security/headers'
-
-const PAYMENT_INTENTS_FILE = 'data/payment-intents.json'
-const BOOKINGS_FILE = 'data/bookings.json'
 
 /**
  * POST /api/payment/create-intent
@@ -60,10 +57,13 @@ export async function POST(request: Request) {
     }
 
     // ตรวจสอบว่า booking มีจริง
-    const bookings = (await readJson<any[]>(BOOKINGS_FILE)) || []
-    const booking = bookings.find(b => b.id === bookingId)
+    const { data: booking, error: bookingError } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('id', bookingId)
+      .single()
 
-    if (!booking) {
+    if (bookingError || !booking) {
       return addSecurityHeaders(
         NextResponse.json(
           { error: 'Booking not found' },
@@ -120,16 +120,20 @@ export async function POST(request: Request) {
     }
 
     // บันทึก Payment Intent
-    const paymentIntents = (await readJson<any[]>(PAYMENT_INTENTS_FILE)) || []
-    paymentIntents.push(result.paymentIntent)
-    await writeJson(PAYMENT_INTENTS_FILE, paymentIntents)
+    await supabaseAdmin
+      .from('payment_intents')
+      .insert(result.paymentIntent)
 
     // อัพเดท booking status เป็น processing
-    booking.status = 'processing'
-    booking.paymentIntentId = result.paymentIntent?.id
-    booking.paymentProvider = provider
-    booking.updatedAt = new Date().toISOString()
-    await writeJson(BOOKINGS_FILE, bookings)
+    await supabaseAdmin
+      .from('bookings')
+      .update({
+        status: 'processing',
+        payment_intent_id: result.paymentIntent?.id,
+        payment_provider: provider,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', bookingId)
 
     console.log(`✅ Payment intent created: ${result.paymentIntent?.id} for booking #${bookingId}`)
 
@@ -171,8 +175,13 @@ export async function GET(request: Request) {
       )
     }
 
-    const paymentIntents = (await readJson<any[]>(PAYMENT_INTENTS_FILE)) || []
-    const paymentIntent = paymentIntents.find(p => p.bookingId === parseInt(bookingId))
+    const { data: paymentIntent } = await supabase
+      .from('payment_intents')
+      .select('*')
+      .eq('booking_id', parseInt(bookingId))
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single()
 
     return addSecurityHeaders(
       NextResponse.json({

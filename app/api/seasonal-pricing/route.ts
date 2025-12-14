@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { readJson, writeJson } from '@/lib/server/db'
-import { SeasonalPricing } from '@/types/blackout'
-
-const DATA_FILE = 'data/seasonal-pricing.json'
+import { supabase, supabaseAdmin } from '@/lib/supabase'
 
 // GET - Get seasonal pricing
 export async function GET(request: Request) {
@@ -11,27 +8,28 @@ export async function GET(request: Request) {
     const date = searchParams.get('date')
     const active = searchParams.get('active')
 
-    let pricing: SeasonalPricing[] = await readJson(DATA_FILE) || []
+    let query = supabase.from('seasonal_pricing').select('*')
 
     // Filter active only
     if (active === 'true') {
-      pricing = pricing.filter((p) => p.isActive)
+      query = query.eq('is_active', true)
     }
 
     // Filter by specific date
     if (date) {
-      const targetDate = new Date(date)
-      pricing = pricing.filter((p) => {
-        const start = new Date(p.startDate)
-        const end = new Date(p.endDate)
-        return targetDate >= start && targetDate <= end
-      })
+      query = query.lte('start_date', date).gte('end_date', date)
     }
 
     // Sort by priority
-    pricing.sort((a, b) => b.priority - a.priority)
+    query = query.order('priority', { ascending: false })
 
-    return NextResponse.json({ pricing })
+    const { data: pricing, error } = await query
+
+    if (error) {
+      throw error
+    }
+
+    return NextResponse.json({ pricing: pricing || [] })
   } catch (error) {
     console.error('Error fetching seasonal pricing:', error)
     return NextResponse.json(
@@ -45,40 +43,41 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const pricing: SeasonalPricing[] = await readJson(DATA_FILE) || []
 
-    const newPricing: SeasonalPricing = {
-      id: `season-${Date.now()}`,
-      seasonName: body.seasonName,
-      seasonNameTh: body.seasonNameTh || body.seasonName,
-      seasonNameEn: body.seasonNameEn || body.seasonName,
-      description: body.description || '',
-      startDate: body.startDate,
-      endDate: body.endDate,
-      isRecurring: body.isRecurring ?? false,
-      strategy: body.strategy || 'percentage',
-      baseAdjustment: body.baseAdjustment || 0,
-      roomPricing: body.roomPricing || [],
-      minimumStay: body.minimumStay || 1,
-      advanceBookingRequired: body.advanceBookingRequired || 0,
-      cancellationPolicy: body.cancellationPolicy,
-      weekendMultiplier: body.weekendMultiplier,
-      longStayDiscount: body.longStayDiscount || [],
-      color: body.color || '#4ECDC4',
-      badge: body.badge,
-      tags: body.tags || [],
-      maxBookingsPerDay: body.maxBookingsPerDay,
-      enableEarlyBird: body.enableEarlyBird ?? false,
-      earlyBirdDiscount: body.earlyBirdDiscount,
-      earlyBirdDays: body.earlyBirdDays,
-      isActive: body.isActive ?? true,
-      priority: body.priority || 5,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+    const { data: newPricing, error } = await supabaseAdmin
+      .from('seasonal_pricing')
+      .insert({
+        season_name: body.seasonName,
+        season_name_th: body.seasonNameTh || body.seasonName,
+        season_name_en: body.seasonNameEn || body.seasonName,
+        description: body.description || '',
+        start_date: body.startDate,
+        end_date: body.endDate,
+        is_recurring: body.isRecurring ?? false,
+        strategy: body.strategy || 'percentage',
+        base_adjustment: body.baseAdjustment || 0,
+        room_pricing: body.roomPricing || [],
+        minimum_stay: body.minimumStay || 1,
+        advance_booking_required: body.advanceBookingRequired || 0,
+        cancellation_policy: body.cancellationPolicy,
+        weekend_multiplier: body.weekendMultiplier,
+        long_stay_discount: body.longStayDiscount || [],
+        color: body.color || '#4ECDC4',
+        badge: body.badge,
+        tags: body.tags || [],
+        max_bookings_per_day: body.maxBookingsPerDay,
+        enable_early_bird: body.enableEarlyBird ?? false,
+        early_bird_discount: body.earlyBirdDiscount,
+        early_bird_days: body.earlyBirdDays,
+        is_active: body.isActive ?? true,
+        priority: body.priority || 5
+      })
+      .select()
+      .single()
+
+    if (error) {
+      throw error
     }
-
-    pricing.push(newPricing)
-    await writeJson(DATA_FILE, pricing)
 
     return NextResponse.json({ 
       pricing: newPricing,
@@ -106,26 +105,40 @@ export async function PATCH(request: Request) {
       )
     }
 
-    let pricing: SeasonalPricing[] = await readJson(DATA_FILE) || []
-    const index = pricing.findIndex((p) => p.id === id)
+    // Convert camelCase to snake_case for Supabase
+    const dbUpdates: any = {}
+    if (updates.seasonName !== undefined) dbUpdates.season_name = updates.seasonName
+    if (updates.seasonNameTh !== undefined) dbUpdates.season_name_th = updates.seasonNameTh
+    if (updates.seasonNameEn !== undefined) dbUpdates.season_name_en = updates.seasonNameEn
+    if (updates.description !== undefined) dbUpdates.description = updates.description
+    if (updates.startDate !== undefined) dbUpdates.start_date = updates.startDate
+    if (updates.endDate !== undefined) dbUpdates.end_date = updates.endDate
+    if (updates.isRecurring !== undefined) dbUpdates.is_recurring = updates.isRecurring
+    if (updates.strategy !== undefined) dbUpdates.strategy = updates.strategy
+    if (updates.baseAdjustment !== undefined) dbUpdates.base_adjustment = updates.baseAdjustment
+    if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive
+    if (updates.priority !== undefined) dbUpdates.priority = updates.priority
+    dbUpdates.updated_at = new Date().toISOString()
 
-    if (index === -1) {
-      return NextResponse.json(
-        { error: 'Seasonal pricing not found' },
-        { status: 404 }
-      )
+    const { data: updatedPricing, error } = await supabaseAdmin
+      .from('seasonal_pricing')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return NextResponse.json(
+          { error: 'Seasonal pricing not found' },
+          { status: 404 }
+        )
+      }
+      throw error
     }
-
-    pricing[index] = {
-      ...pricing[index],
-      ...updates,
-      updatedAt: new Date().toISOString(),
-    }
-
-    await writeJson(DATA_FILE, pricing)
 
     return NextResponse.json({ 
-      pricing: pricing[index],
+      pricing: updatedPricing,
       message: 'Seasonal pricing updated successfully'
     })
   } catch (error) {
@@ -150,17 +163,14 @@ export async function DELETE(req: NextRequest) {
       )
     }
 
-    let pricing: SeasonalPricing[] = await readJson(DATA_FILE) || []
-    const filteredPricing = pricing.filter((p) => p.id !== id)
+    const { error } = await supabaseAdmin
+      .from('seasonal_pricing')
+      .delete()
+      .eq('id', id)
 
-    if (filteredPricing.length === pricing.length) {
-      return NextResponse.json(
-        { error: 'Seasonal pricing not found' },
-        { status: 404 }
-      )
+    if (error) {
+      throw error
     }
-
-    await writeJson(DATA_FILE, filteredPricing)
 
     return NextResponse.json({ message: 'Seasonal pricing deleted successfully' })
   } catch (error) {

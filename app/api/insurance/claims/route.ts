@@ -1,9 +1,5 @@
 import { NextResponse } from 'next/server'
-import { readJson, writeJson } from '@/lib/server/db'
-import { InsuranceClaim, BookingInsurance } from '@/types/insurance'
-
-const CLAIMS_FILE = 'insurance-claims.json'
-const INSURANCES_FILE = 'booking-insurances.json'
+import { supabase, supabaseAdmin } from '@/lib/supabase'
 
 export async function GET(request: Request) {
   try {
@@ -11,22 +7,23 @@ export async function GET(request: Request) {
     const insuranceId = searchParams.get('insuranceId')
     const status = searchParams.get('status')
 
-    let claims = await readJson<InsuranceClaim[]>(CLAIMS_FILE) || []
+    let query = supabase.from('insurance_claims').select('*').order('submitted_date', { ascending: false })
 
     // Filter by insurance ID
     if (insuranceId) {
-      claims = claims.filter(c => c.insuranceId === insuranceId)
+      query = query.eq('insurance_id', insuranceId)
     }
 
     // Filter by status
     if (status) {
-      claims = claims.filter(c => c.status === status)
+      query = query.eq('status', status)
     }
 
-    // Sort by submitted date (newest first)
-    claims.sort((a, b) => new Date(b.submittedDate).getTime() - new Date(a.submittedDate).getTime())
+    const { data: claims, error } = await query
 
-    return NextResponse.json({ claims })
+    if (error) throw error
+
+    return NextResponse.json({ claims: claims || [] })
   } catch (error) {
     console.error('Error fetching claims:', error)
     return NextResponse.json({ error: 'Failed to fetch claims' }, { status: 500 })
@@ -53,10 +50,13 @@ export async function POST(request: Request) {
     }
 
     // Verify insurance exists
-    const insurances = await readJson<BookingInsurance[]>(INSURANCES_FILE) || []
-    const insurance = insurances.find(i => i.id === insuranceId)
+    const { data: insurance, error: insError } = await supabase
+      .from('booking_insurance')
+      .select('*')
+      .eq('id', insuranceId)
+      .single()
 
-    if (!insurance) {
+    if (insError || !insurance) {
       return NextResponse.json({ error: 'Insurance not found' }, { status: 404 })
     }
 
@@ -64,44 +64,44 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Insurance is not active' }, { status: 400 })
     }
 
-    const claims = await readJson<InsuranceClaim[]>(CLAIMS_FILE) || []
-
-    const newClaim: InsuranceClaim = {
-      id: `claim-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      insuranceId,
-      bookingId,
-      claimType,
+    const newClaim = {
+      insurance_id: insuranceId,
+      booking_id: bookingId,
+      claim_type: claimType,
       reason,
-      reasonDetails: reasonDetails || '',
-      claimAmount: claimAmount || 0,
-      approvedAmount: 0,
+      reason_details: reasonDetails || '',
+      claim_amount: claimAmount || 0,
+      approved_amount: 0,
       currency: insurance.currency,
       status: 'pending',
-      submittedDate: new Date().toISOString(),
+      submitted_date: new Date().toISOString(),
       documents: documents || [],
-      refundType: 'none',
-      refundPercentage: 0,
-      refundAmount: 0,
+      refund_type: 'none',
+      refund_percentage: 0,
+      refund_amount: 0,
       metadata: {},
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     }
 
-    claims.push(newClaim)
-    await writeJson(CLAIMS_FILE, claims)
+    const { data: claim, error } = await supabaseAdmin
+      .from('insurance_claims')
+      .insert(newClaim)
+      .select()
+      .single()
+
+    if (error) throw error
 
     // Update insurance status
-    const insIndex = insurances.findIndex(i => i.id === insuranceId)
-    if (insIndex !== -1) {
-      insurances[insIndex].claims.push(newClaim)
-      insurances[insIndex].status = 'claimed'
-      insurances[insIndex].updatedAt = new Date().toISOString()
-      await writeJson(INSURANCES_FILE, insurances)
-    }
+    await supabaseAdmin
+      .from('booking_insurance')
+      .update({ 
+        status: 'claimed',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', insuranceId)
 
     return NextResponse.json({ 
       message: 'Claim submitted successfully',
-      claim: newClaim
+      claim
     }, { status: 201 })
   } catch (error) {
     console.error('Error submitting claim:', error)
@@ -118,38 +118,58 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Claim ID required' }, { status: 400 })
     }
 
-    const claims = await readJson<InsuranceClaim[]>(CLAIMS_FILE) || []
-    const index = claims.findIndex(c => c.id === id)
-
-    if (index === -1) {
-      return NextResponse.json({ error: 'Claim not found' }, { status: 404 })
-    }
-
     const now = new Date().toISOString()
 
-    claims[index] = {
-      ...claims[index],
-      status: status || claims[index].status,
-      approvedAmount: approvedAmount !== undefined ? approvedAmount : claims[index].approvedAmount,
-      reviewerNotes,
-      rejectionReason,
-      processedDate: status === 'approved' || status === 'rejected' ? now : claims[index].processedDate,
-      paidDate: status === 'paid' ? now : claims[index].paidDate,
-      updatedAt: now,
+    const updates: any = {
+      updated_at: now,
     }
+
+    if (status) {
+      updates.status = status
+      if (status === 'approved' || status === 'rejected') {
+        updates.processed_date = now
+      }
+      if (status === 'paid') {
+        updates.paid_date = now
+      }
+    }
+
+    if (approvedAmount !== undefined) updates.approved_amount = approvedAmount
+    if (reviewerNotes) updates.reviewer_notes = reviewerNotes
+    if (rejectionReason) updates.rejection_reason = rejectionReason
 
     // Calculate refund
     if (status === 'approved' && approvedAmount) {
-      claims[index].refundAmount = approvedAmount
-      claims[index].refundPercentage = (approvedAmount / claims[index].claimAmount) * 100
-      claims[index].refundType = approvedAmount >= claims[index].claimAmount ? 'full' : 'partial'
+      const { data: claim } = await supabase
+        .from('insurance_claims')
+        .select('claim_amount')
+        .eq('id', id)
+        .single()
+
+      if (claim) {
+        updates.refund_amount = approvedAmount
+        updates.refund_percentage = (approvedAmount / claim.claim_amount) * 100
+        updates.refund_type = approvedAmount >= claim.claim_amount ? 'full' : 'partial'
+      }
     }
 
-    await writeJson(CLAIMS_FILE, claims)
+    const { data: updatedClaim, error } = await supabaseAdmin
+      .from('insurance_claims')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Claim not found' }, { status: 404 })
+      }
+      throw error
+    }
 
     return NextResponse.json({ 
       message: 'Claim updated successfully',
-      claim: claims[index]
+      claim: updatedClaim
     })
   } catch (error) {
     console.error('Error updating claim:', error)

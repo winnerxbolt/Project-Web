@@ -1,8 +1,5 @@
 import { NextResponse } from 'next/server'
-import { readJson, writeJson } from '@/lib/server/db'
-import { InsurancePlan } from '@/types/insurance'
-
-const PLANS_FILE = 'insurance-plans.json'
+import { supabase, supabaseAdmin } from '@/lib/supabase'
 
 export async function GET(request: Request) {
   try {
@@ -10,22 +7,26 @@ export async function GET(request: Request) {
     const type = searchParams.get('type')
     const activeOnly = searchParams.get('activeOnly') === 'true'
 
-    let plans = await readJson<InsurancePlan[]>(PLANS_FILE) || []
+    let query = supabase.from('insurance_plans').select('*')
 
     // Filter by type
     if (type) {
-      plans = plans.filter(p => p.type === type)
+      query = query.eq('type', type)
     }
 
     // Filter active only
     if (activeOnly) {
-      plans = plans.filter(p => p.isActive)
+      query = query.eq('is_active', true)
     }
 
     // Sort by display order
-    plans.sort((a, b) => a.displayOrder - b.displayOrder)
+    query = query.order('display_order', { ascending: true })
 
-    return NextResponse.json({ plans })
+    const { data: plans, error } = await query
+
+    if (error) throw error
+
+    return NextResponse.json({ plans: plans || [] })
   } catch (error) {
     console.error('Error fetching insurance plans:', error)
     return NextResponse.json({ error: 'Failed to fetch insurance plans' }, { status: 500 })
@@ -43,10 +44,11 @@ export async function POST(request: Request) {
       }, { status: 400 })
     }
 
-    const plans = await readJson<InsurancePlan[]>(PLANS_FILE) || []
+    const { count } = await supabase
+      .from('insurance_plans')
+      .select('*', { count: 'exact', head: true })
 
-    const newPlan: InsurancePlan = {
-      id: `plan-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    const newPlan = {
       name,
       type,
       price,
@@ -62,20 +64,23 @@ export async function POST(request: Request) {
       },
       conditions: conditions || [],
       excludes: excludes || [],
-      maxClaimAmount: maxClaimAmount || 0,
-      validityDays: validityDays || 365,
-      isActive: true,
-      displayOrder: plans.length + 1,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      max_claim_amount: maxClaimAmount || 0,
+      validity_days: validityDays || 365,
+      is_active: true,
+      display_order: (count || 0) + 1,
     }
 
-    plans.push(newPlan)
-    await writeJson(PLANS_FILE, plans)
+    const { data: plan, error } = await supabaseAdmin
+      .from('insurance_plans')
+      .insert(newPlan)
+      .select()
+      .single()
+
+    if (error) throw error
 
     return NextResponse.json({ 
       message: 'Insurance plan created successfully',
-      plan: newPlan
+      plan
     }, { status: 201 })
   } catch (error) {
     console.error('Error creating insurance plan:', error)
@@ -92,24 +97,23 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Plan ID required' }, { status: 400 })
     }
 
-    const plans = await readJson<InsurancePlan[]>(PLANS_FILE) || []
-    const index = plans.findIndex(p => p.id === id)
+    const { data: plan, error } = await supabaseAdmin
+      .from('insurance_plans')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single()
 
-    if (index === -1) {
-      return NextResponse.json({ error: 'Plan not found' }, { status: 404 })
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Plan not found' }, { status: 404 })
+      }
+      throw error
     }
-
-    plans[index] = {
-      ...plans[index],
-      ...updates,
-      updatedAt: new Date().toISOString(),
-    }
-
-    await writeJson(PLANS_FILE, plans)
 
     return NextResponse.json({ 
       message: 'Insurance plan updated successfully',
-      plan: plans[index]
+      plan
     })
   } catch (error) {
     console.error('Error updating insurance plan:', error)
@@ -126,14 +130,12 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Plan ID required' }, { status: 400 })
     }
 
-    const plans = await readJson<InsurancePlan[]>(PLANS_FILE) || []
-    const filteredPlans = plans.filter(p => p.id !== id)
+    const { error } = await supabaseAdmin
+      .from('insurance_plans')
+      .delete()
+      .eq('id', id)
 
-    if (filteredPlans.length === plans.length) {
-      return NextResponse.json({ error: 'Plan not found' }, { status: 404 })
-    }
-
-    await writeJson(PLANS_FILE, filteredPlans)
+    if (error) throw error
 
     return NextResponse.json({ message: 'Insurance plan deleted successfully' })
   } catch (error) {

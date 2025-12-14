@@ -76,9 +76,18 @@ export default function ReviewsPage() {
     try {
       const response = await fetch('/api/reviews');
       const data = await response.json();
-      setReviews(data);
+      
+      // Handle both array response and object with reviews property
+      if (Array.isArray(data)) {
+        setReviews(data);
+      } else if (data.reviews && Array.isArray(data.reviews)) {
+        setReviews(data.reviews);
+      } else {
+        setReviews([]);
+      }
     } catch (error) {
       console.error('Error fetching reviews:', error);
+      setReviews([]);
     } finally {
       setLoading(false);
     }
@@ -142,7 +151,7 @@ export default function ReviewsPage() {
   };
 
   // Filter and sort reviews
-  let filteredReviews = reviews;
+  let filteredReviews = Array.isArray(reviews) ? reviews : [];
 
   if (filterRating > 0) {
     filteredReviews = filteredReviews.filter(
@@ -163,37 +172,42 @@ export default function ReviewsPage() {
   });
 
   // Calculate stats
+  const validOverall = reviews.filter(r => r.ratings && typeof r.ratings.overall === 'number');
   const averageOverall =
-    reviews.length > 0
-      ? (reviews.reduce((sum, r) => sum + r.ratings.overall, 0) / reviews.length).toFixed(1)
+    validOverall.length > 0
+      ? (validOverall.reduce((sum, r) => sum + r.ratings.overall, 0) / validOverall.length).toFixed(1)
       : '0';
 
+  const validCleanliness = reviews.filter(r => r.ratings && typeof r.ratings.cleanliness === 'number');
   const averageCleanliness =
-    reviews.length > 0
-      ? (reviews.reduce((sum, r) => sum + r.ratings.cleanliness, 0) / reviews.length).toFixed(1)
+    validCleanliness.length > 0
+      ? (validCleanliness.reduce((sum, r) => sum + r.ratings.cleanliness, 0) / validCleanliness.length).toFixed(1)
       : '0';
 
+  const validStaff = reviews.filter(r => r.ratings && typeof r.ratings.staff === 'number');
   const averageStaff =
-    reviews.length > 0
-      ? (reviews.reduce((sum, r) => sum + r.ratings.staff, 0) / reviews.length).toFixed(1)
+    validStaff.length > 0
+      ? (validStaff.reduce((sum, r) => sum + r.ratings.staff, 0) / validStaff.length).toFixed(1)
       : '0';
 
+  const validAmenities = reviews.filter(r => r.ratings && typeof r.ratings.amenities === 'number');
   const averageAmenities =
-    reviews.length > 0
-      ? (reviews.reduce((sum, r) => sum + r.ratings.amenities, 0) / reviews.length).toFixed(1)
+    validAmenities.length > 0
+      ? (validAmenities.reduce((sum, r) => sum + r.ratings.amenities, 0) / validAmenities.length).toFixed(1)
       : '0';
 
+  const validLocation = reviews.filter(r => r.ratings && typeof r.ratings.location === 'number');
   const averageLocation =
-    reviews.length > 0
-      ? (reviews.reduce((sum, r) => sum + r.ratings.location, 0) / reviews.length).toFixed(1)
+    validLocation.length > 0
+      ? (validLocation.reduce((sum, r) => sum + r.ratings.location, 0) / validLocation.length).toFixed(1)
       : '0';
 
   const ratingCounts = [5, 4, 3, 2, 1].map((rating) => ({
     rating,
-    count: reviews.filter((r) => Math.round(r.ratings.overall) === rating).length,
+    count: reviews.filter((r) => r.ratings && typeof r.ratings.overall === 'number' && Math.round(r.ratings.overall) === rating).length,
     percentage:
       reviews.length > 0
-        ? ((reviews.filter((r) => Math.round(r.ratings.overall) === rating).length / reviews.length) *
+        ? ((reviews.filter((r) => r.ratings && typeof r.ratings.overall === 'number' && Math.round(r.ratings.overall) === rating).length / reviews.length) *
             100).toFixed(0)
         : '0',
   }));
@@ -360,7 +374,7 @@ export default function ReviewsPage() {
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-start gap-4">
                         <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-xl">
-                          {review.userName.charAt(0).toUpperCase()}
+                          {review.userName && review.userName.length > 0 ? review.userName.charAt(0).toUpperCase() : '?'}
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
@@ -370,11 +384,14 @@ export default function ReviewsPage() {
                             )}
                           </div>
                           <p className="text-sm text-gray-500">
-                            {new Date(review.createdAt).toLocaleDateString('th-TH', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric',
-                            })}
+                            {review.createdAt && !isNaN(new Date(review.createdAt).getTime())
+                              ? new Date(review.createdAt).toLocaleDateString('th-TH', {
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric',
+                                })
+                              : <span className="text-red-600 font-semibold">ไม่พบวันที่</span>
+                            }
                           </p>
                           <Link
                             href={`/rooms/${review.roomId}`}
@@ -404,13 +421,15 @@ export default function ReviewsPage() {
                           <FaStar
                             key={star}
                             className={`text-2xl ${
-                              star <= review.ratings.overall ? 'text-yellow-400' : 'text-gray-300'
+                              review.ratings && typeof review.ratings.overall === 'number' && star <= review.ratings.overall ? 'text-yellow-400' : 'text-gray-300'
                             }`}
                           />
                         ))}
                       </div>
                       <span className="font-bold text-xl text-gray-800">
-                        {review.ratings.overall}.0
+                        <span className={typeof review.ratings?.overall === 'number' ? 'text-blue-700' : 'text-gray-400'}>
+                          {typeof review.ratings?.overall === 'number' ? `${review.ratings.overall}.0` : '-'}
+                        </span>
                       </span>
                     </div>
 
@@ -421,7 +440,9 @@ export default function ReviewsPage() {
                           <FaBroom className="text-blue-600" />
                           <span className="text-sm">ความสะอาด</span>
                         </div>
-                        <span className="font-bold">{review.ratings.cleanliness}</span>
+                        <span className={typeof review.ratings?.cleanliness === 'number' ? 'text-blue-700 font-bold' : 'text-gray-400'}>
+                          {typeof review.ratings?.cleanliness === 'number' ? review.ratings.cleanliness : '-'}
+                        </span>
                       </div>
 
                       <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
@@ -429,7 +450,9 @@ export default function ReviewsPage() {
                           <FaUserTie className="text-green-600" />
                           <span className="text-sm">พนักงาน</span>
                         </div>
-                        <span className="font-bold">{review.ratings.staff}</span>
+                        <span className={typeof review.ratings?.staff === 'number' ? 'text-green-700 font-bold' : 'text-gray-400'}>
+                          {typeof review.ratings?.staff === 'number' ? review.ratings.staff : '-'}
+                        </span>
                       </div>
 
                       <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
@@ -437,7 +460,9 @@ export default function ReviewsPage() {
                           <FaWifi className="text-purple-600" />
                           <span className="text-sm">สิ่งอำนวยความสะดวก</span>
                         </div>
-                        <span className="font-bold">{review.ratings.amenities}</span>
+                        <span className={typeof review.ratings?.amenities === 'number' ? 'text-purple-700 font-bold' : 'text-gray-400'}>
+                          {typeof review.ratings?.amenities === 'number' ? review.ratings.amenities : '-'}
+                        </span>
                       </div>
 
                       <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
@@ -445,7 +470,9 @@ export default function ReviewsPage() {
                           <FaMapMarkerAlt className="text-red-600" />
                           <span className="text-sm">ทำเล/สถานที่</span>
                         </div>
-                        <span className="font-bold">{review.ratings.location}</span>
+                        <span className={typeof review.ratings?.location === 'number' ? 'text-red-700 font-bold' : 'text-gray-400'}>
+                          {typeof review.ratings?.location === 'number' ? review.ratings.location : '-'}
+                        </span>
                       </div>
                     </div>
 

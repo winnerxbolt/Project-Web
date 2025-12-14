@@ -57,19 +57,25 @@ export default function OnlineCheckoutPage({ params }: { params: Promise<{ id: s
       const res = await fetch('/api/bookings')
       const data = await res.json()
       
-      if (data.success) {
-        const found = data.bookings.find((b: Booking) => b.id === Number(resolvedParams.id))
-        if (found) {
-          setBooking(found)
-          
-          // Check if already paid
-          if (found.status === 'confirmed' || found.status === 'completed') {
-            router.push(`/payment-success/${found.id}`)
-            return
-          }
-        } else {
-          setError('ไม่พบรายการจอง')
+      // Validate array
+      let bookingsArray: Booking[] = [];
+      if (Array.isArray(data)) {
+        bookingsArray = data;
+      } else if (data.success && Array.isArray(data.bookings)) {
+        bookingsArray = data.bookings;
+      }
+      
+      const found = bookingsArray.find((b: Booking) => b.id === Number(resolvedParams.id));
+      if (found) {
+        setBooking(found)
+        
+        // Check if already paid
+        if (found.status === 'confirmed' || found.status === 'completed') {
+          router.push(`/payment-success/${found.id}`)
+          return
         }
+      } else {
+        setError('ไม่พบรายการจอง')
       }
     } catch (error) {
       console.error('Error:', error)

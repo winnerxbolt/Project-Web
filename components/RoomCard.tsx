@@ -108,13 +108,19 @@ function RoomCard({ room }: { room: Room }) {
   return (
     <div className="bg-white rounded-xl overflow-hidden shadow-lg hover:shadow-2xl transition duration-300 transform hover:-translate-y-1">
       {/* Room Image */}
-      <div className="relative h-48 overflow-hidden group">
-        <Image
-          src={displayImage}
-          alt={room.name}
-          fill
-          className="object-cover group-hover:scale-110 transition duration-300"
-        />
+      <div className="relative h-48 overflow-hidden group bg-gray-200">
+        {displayImage ? (
+          <Image
+            src={displayImage}
+            alt={room.name}
+            fill
+            className="object-cover group-hover:scale-110 transition duration-300"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-gray-400">
+            <span className="text-4xl">🏠</span>
+          </div>
+        )}
         {/* Image Count Badge */}
         {imageCount > 1 && (
           <div className="absolute bottom-4 right-4 bg-black bg-opacity-70 text-white px-2 py-1 rounded text-xs font-semibold">
@@ -194,7 +200,7 @@ function RoomCard({ room }: { room: Room }) {
 
         {/* Amenities */}
         <div className="flex flex-wrap gap-2 mb-4">
-          {room.amenities.slice(0, 3).map((amenity, index) => (
+          {room.amenities && room.amenities.length > 0 && room.amenities.slice(0, 3).map((amenity, index) => (
             <span
               key={index}
               className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full"

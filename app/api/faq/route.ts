@@ -1,53 +1,146 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-
-const faqFilePath = path.join(process.cwd(), 'data', 'faq.json');
+import { supabase, supabaseAdmin } from '@/lib/supabase';
 
 interface FAQ {
-  id: string;
+  id?: string;
   question: string;
   answer: string;
-  category: 'booking' | 'payment' | 'facilities' | 'policies' | 'other';
-  order: number;
-  isActive: boolean;
-  views: number;
-  helpful: number;
-  notHelpful: number;
-  createdAt: string;
-  updatedAt: string;
+  category?: string;
+  order_index?: number;
+  active?: boolean;
+  created_at?: string;
 }
 
-// Get all FAQs or filter by category
+// GET - Fetch all FAQs
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
     const activeOnly = searchParams.get('activeOnly');
 
-    let faqs: FAQ[] = JSON.parse(fs.readFileSync(faqFilePath, 'utf-8'));
+    let query = supabase.from('faq').select('*');
 
     if (activeOnly === 'true') {
-      faqs = faqs.filter((faq) => faq.isActive);
+      query = query.eq('active', true);
     }
 
     if (category && category !== 'all') {
-      faqs = faqs.filter((faq) => faq.category === category);
+      query = query.eq('category', category);
     }
 
-    // Sort by order
-    faqs.sort((a, b) => a.order - b.order);
+    query = query.order('order_index', { ascending: true });
 
-    return NextResponse.json(faqs);
+    const { data: faqs, error } = await query;
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: 'Failed to fetch FAQs' }, { status: 500 });
+    }
+
+    return NextResponse.json(faqs || []);
   } catch (error) {
-    console.error('Error reading FAQs:', error);
+    console.error('Error fetching FAQs:', error);
     return NextResponse.json([], { status: 500 });
   }
 }
 
-// Create new FAQ
+// POST - Create new FAQ
 export async function POST(request: NextRequest) {
   try {
+    const body = await request.json();
+
+    const faqData = {
+      question: body.question,
+      answer: body.answer,
+      category: body.category || 'other',
+      order_index: body.order || body.order_index || 0,
+      active: body.isActive !== undefined ? body.isActive : true
+    };
+
+    const { data: newFAQ, error } = await supabaseAdmin
+      .from('faq')
+      .insert(faqData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: 'Failed to create FAQ' }, { status: 500 });
+    }
+
+    return NextResponse.json(newFAQ, { status: 201 });
+  } catch (error) {
+    console.error('Error creating FAQ:', error);
+    return NextResponse.json({ error: 'Failed to create FAQ' }, { status: 500 });
+  }
+}
+
+// PUT - Update FAQ
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { id, ...updates } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: 'FAQ ID required' }, { status: 400 });
+    }
+
+    const faqUpdates: any = {};
+    if (updates.question !== undefined) faqUpdates.question = updates.question;
+    if (updates.answer !== undefined) faqUpdates.answer = updates.answer;
+    if (updates.category !== undefined) faqUpdates.category = updates.category;
+    if (updates.order !== undefined || updates.order_index !== undefined) {
+      faqUpdates.order_index = updates.order_index !== undefined ? updates.order_index : updates.order;
+    }
+    if (updates.active !== undefined || updates.isActive !== undefined) {
+      faqUpdates.active = updates.active !== undefined ? updates.active : updates.isActive;
+    }
+
+    const { data: updatedFAQ, error } = await supabaseAdmin
+      .from('faq')
+      .update(faqUpdates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: 'Failed to update FAQ' }, { status: 500 });
+    }
+
+    return NextResponse.json(updatedFAQ);
+  } catch (error) {
+    console.error('Error updating FAQ:', error);
+    return NextResponse.json({ error: 'Failed to update FAQ' }, { status: 500 });
+  }
+}
+
+// DELETE - Remove FAQ
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'FAQ ID required' }, { status: 400 });
+    }
+
+    const { error } = await supabaseAdmin
+      .from('faq')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: 'Failed to delete FAQ' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, message: 'FAQ deleted' });
+  } catch (error) {
+    console.error('Error deleting FAQ:', error);
+    return NextResponse.json({ error: 'Failed to delete FAQ' }, { status: 500 });
+  }
+}
     const body = await request.json();
     const { question, answer, category, order, isActive } = body;
 

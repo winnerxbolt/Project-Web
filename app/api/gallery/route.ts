@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { readJson, writeJson } from '@/lib/server/db'
+import { supabase, supabaseAdmin } from '@/lib/supabase'
 import { RoomGallery } from '@/types/gallery'
-
-const GALLERY_FILE = 'data/gallery.json'
 
 // GET - Fetch all galleries or by roomId
 export async function GET(request: NextRequest) {
@@ -10,14 +8,19 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const roomId = searchParams.get('roomId')
 
-    const galleries: RoomGallery[] = (await readJson(GALLERY_FILE)) || []
+    let query = supabase.from('room_galleries').select('*')
 
     if (roomId) {
-      const gallery = galleries.find((g) => g.roomId === parseInt(roomId))
+      query = query.eq('room_id', parseInt(roomId)).single()
+      const { data: gallery, error } = await query
+      if (error && error.code !== 'PGRST116') throw error
       return NextResponse.json(gallery || null)
     }
 
-    return NextResponse.json(galleries)
+    const { data: galleries, error } = await query
+    if (error) throw error
+
+    return NextResponse.json(galleries || [])
   } catch (error) {
     console.error('Error fetching galleries:', error)
     return NextResponse.json({ error: 'Failed to fetch galleries' }, { status: 500 })
@@ -30,21 +33,32 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { roomId, type, data } = body
 
-    const galleries: RoomGallery[] = (await readJson(GALLERY_FILE)) || []
-    let gallery = galleries.find((g) => g.roomId === roomId)
+    // Get or create gallery for room
+    let { data: gallery, error: fetchError } = await supabase
+      .from('room_galleries')
+      .select('*')
+      .eq('room_id', roomId)
+      .single()
 
-    if (!gallery) {
-      gallery = {
-        id: galleries.length + 1,
-        roomId,
-        images: [],
-        vrTours: [],
-        videos: [],
-        droneViews: [],
-        updatedAt: new Date().toISOString(),
-      }
-      galleries.push(gallery)
+    if (fetchError && fetchError.code === 'PGRST116') {
+      // Create new gallery
+      const { data: newGallery, error: createError } = await supabaseAdmin
+        .from('room_galleries')
+        .insert({
+          room_id: roomId,
+          images: [],
+          vr_tours: [],
+          videos: [],
+          drone_views: [],
+        })
+        .select()
+        .single()
+      
+      if (createError) throw createError
+      gallery = newGallery
     }
+
+    if (!gallery) throw new Error('Failed to get or create gallery')
 
     // Add item based on type
     const itemId = `${type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
@@ -54,30 +68,36 @@ export async function POST(request: NextRequest) {
       uploadedAt: new Date().toISOString(),
     }
 
+    const updates: any = {}
     switch (type) {
       case 'image':
-        gallery.images.push(newItem)
+        updates.images = [...(gallery.images || []), newItem]
         break
       case 'vr':
         newItem.createdAt = new Date().toISOString()
-        gallery.vrTours.push(newItem)
+        updates.vr_tours = [...(gallery.vr_tours || []), newItem]
         break
       case 'video':
-        gallery.videos.push(newItem)
+        updates.videos = [...(gallery.videos || []), newItem]
         break
       case 'drone':
         newItem.capturedAt = new Date().toISOString()
-        gallery.droneViews.push(newItem)
+        updates.drone_views = [...(gallery.drone_views || []), newItem]
         break
       default:
         return NextResponse.json({ error: 'Invalid type' }, { status: 400 })
     }
 
-    gallery.updatedAt = new Date().toISOString()
+    const { data: updatedGallery, error: updateError } = await supabaseAdmin
+      .from('room_galleries')
+      .update(updates)
+      .eq('id', gallery.id)
+      .select()
+      .single()
 
-    await writeJson(GALLERY_FILE, galleries)
+    if (updateError) throw updateError
 
-    return NextResponse.json({ success: true, gallery, item: newItem })
+    return NextResponse.json({ success: true, gallery: updatedGallery, item: newItem })
   } catch (error) {
     console.error('Error creating gallery item:', error)
     return NextResponse.json({ error: 'Failed to create gallery item' }, { status: 500 })
@@ -90,41 +110,54 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     const { roomId, type, itemId, data } = body
 
-    const galleries: RoomGallery[] = (await readJson(GALLERY_FILE)) || []
-    const gallery = galleries.find((g) => g.roomId === roomId)
+    const { data: gallery, error: fetchError } = await supabase
+      .from('room_galleries')
+      .select('*')
+      .eq('room_id', roomId)
+      .single()
 
-    if (!gallery) {
+    if (fetchError) {
       return NextResponse.json({ error: 'Gallery not found' }, { status: 404 })
     }
 
     // Update item based on type
     let updated = false
+    const updates: any = {}
+    
     switch (type) {
       case 'image':
-        const imgIndex = gallery.images.findIndex((img) => img.id === itemId)
+        const images = gallery.images || []
+        const imgIndex = images.findIndex((img: any) => img.id === itemId)
         if (imgIndex !== -1) {
-          gallery.images[imgIndex] = { ...gallery.images[imgIndex], ...data }
+          images[imgIndex] = { ...images[imgIndex], ...data }
+          updates.images = images
           updated = true
         }
         break
       case 'vr':
-        const vrIndex = gallery.vrTours.findIndex((vr) => vr.id === itemId)
+        const vrTours = gallery.vr_tours || []
+        const vrIndex = vrTours.findIndex((vr: any) => vr.id === itemId)
         if (vrIndex !== -1) {
-          gallery.vrTours[vrIndex] = { ...gallery.vrTours[vrIndex], ...data }
+          vrTours[vrIndex] = { ...vrTours[vrIndex], ...data }
+          updates.vr_tours = vrTours
           updated = true
         }
         break
       case 'video':
-        const vidIndex = gallery.videos.findIndex((vid) => vid.id === itemId)
+        const videos = gallery.videos || []
+        const vidIndex = videos.findIndex((vid: any) => vid.id === itemId)
         if (vidIndex !== -1) {
-          gallery.videos[vidIndex] = { ...gallery.videos[vidIndex], ...data }
+          videos[vidIndex] = { ...videos[vidIndex], ...data }
+          updates.videos = videos
           updated = true
         }
         break
       case 'drone':
-        const droneIndex = gallery.droneViews.findIndex((drone) => drone.id === itemId)
+        const droneViews = gallery.drone_views || []
+        const droneIndex = droneViews.findIndex((drone: any) => drone.id === itemId)
         if (droneIndex !== -1) {
-          gallery.droneViews[droneIndex] = { ...gallery.droneViews[droneIndex], ...data }
+          droneViews[droneIndex] = { ...droneViews[droneIndex], ...data }
+          updates.drone_views = droneViews
           updated = true
         }
         break
@@ -134,10 +167,16 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Item not found' }, { status: 404 })
     }
 
-    gallery.updatedAt = new Date().toISOString()
-    await writeJson(GALLERY_FILE, galleries)
+    const { data: updatedGallery, error: updateError } = await supabaseAdmin
+      .from('room_galleries')
+      .update(updates)
+      .eq('id', gallery.id)
+      .select()
+      .single()
 
-    return NextResponse.json({ success: true, gallery })
+    if (updateError) throw updateError
+
+    return NextResponse.json({ success: true, gallery: updatedGallery })
   } catch (error) {
     console.error('Error updating gallery item:', error)
     return NextResponse.json({ error: 'Failed to update gallery item' }, { status: 500 })
@@ -156,33 +195,43 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Missing parameters' }, { status: 400 })
     }
 
-    const galleries: RoomGallery[] = (await readJson(GALLERY_FILE)) || []
-    const gallery = galleries.find((g) => g.roomId === parseInt(roomId))
+    const { data: gallery, error: fetchError } = await supabase
+      .from('room_galleries')
+      .select('*')
+      .eq('room_id', parseInt(roomId))
+      .single()
 
-    if (!gallery) {
+    if (fetchError) {
       return NextResponse.json({ error: 'Gallery not found' }, { status: 404 })
     }
 
     // Delete item based on type
+    const updates: any = {}
     switch (type) {
       case 'image':
-        gallery.images = gallery.images.filter((img) => img.id !== itemId)
+        updates.images = (gallery.images || []).filter((img: any) => img.id !== itemId)
         break
       case 'vr':
-        gallery.vrTours = gallery.vrTours.filter((vr) => vr.id !== itemId)
+        updates.vr_tours = (gallery.vr_tours || []).filter((vr: any) => vr.id !== itemId)
         break
       case 'video':
-        gallery.videos = gallery.videos.filter((vid) => vid.id !== itemId)
+        updates.videos = (gallery.videos || []).filter((vid: any) => vid.id !== itemId)
         break
       case 'drone':
-        gallery.droneViews = gallery.droneViews.filter((drone) => drone.id !== itemId)
+        updates.drone_views = (gallery.drone_views || []).filter((drone: any) => drone.id !== itemId)
         break
     }
 
-    gallery.updatedAt = new Date().toISOString()
-    await writeJson(GALLERY_FILE, galleries)
+    const { data: updatedGallery, error: updateError } = await supabaseAdmin
+      .from('room_galleries')
+      .update(updates)
+      .eq('id', gallery.id)
+      .select()
+      .single()
 
-    return NextResponse.json({ success: true, gallery })
+    if (updateError) throw updateError
+
+    return NextResponse.json({ success: true, gallery: updatedGallery })
   } catch (error) {
     console.error('Error deleting gallery item:', error)
     return NextResponse.json({ error: 'Failed to delete gallery item' }, { status: 500 })

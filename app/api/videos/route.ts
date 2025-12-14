@@ -1,55 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-
-const videosPath = path.join(process.cwd(), 'data', 'videos.json');
-const notificationsPath = path.join(process.cwd(), 'data', 'notifications.json');
+import { supabase, supabaseAdmin } from '@/lib/supabase';
 
 interface Video {
-  id: string;
+  id?: string;
+  room_id?: number;
+  video_url: string;
+  thumbnail_url?: string;
   title: string;
-  description: string;
-  youtubeUrl: string;
-  thumbnailUrl?: string;
-  category: 'poolvilla' | 'room_tour' | 'amenities' | 'promotion' | 'other';
-  tags: string[];
-  isActive: boolean;
-  viewCount: number;
-  createdAt: string;
-  notification?: {
-    enabled: boolean;
-    type: 'promotion' | 'discount' | 'special_event' | 'new_video';
-    reason: string;
-    couponCode?: string;
-    discount?: string;
-    channels: ('web' | 'email' | 'line' | 'sms')[];
-  };
-}
-
-function readVideos(): Video[] {
-  try {
-    const data = fs.readFileSync(videosPath, 'utf-8');
-    return JSON.parse(data);
-  } catch (error) {
-    return [];
-  }
-}
-
-function writeVideos(videos: Video[]) {
-  fs.writeFileSync(videosPath, JSON.stringify(videos, null, 2));
-}
-
-function readNotifications(): any[] {
-  try {
-    const data = fs.readFileSync(notificationsPath, 'utf-8');
-    return JSON.parse(data);
-  } catch (error) {
-    return [];
-  }
-}
-
-function writeNotifications(notifications: any[]) {
-  fs.writeFileSync(notificationsPath, JSON.stringify(notifications, null, 2));
+  description?: string;
+  duration?: number;
+  order_index?: number;
+  active?: boolean;
+  created_at?: string;
+  // Legacy fields for compatibility
+  youtubeUrl?: string;
+  category?: string;
+  tags?: string[];
+  isActive?: boolean;
+  viewCount?: number;
 }
 
 // GET - Fetch videos
@@ -58,21 +26,30 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
     const activeOnly = searchParams.get('activeOnly') === 'true';
+    const roomId = searchParams.get('roomId');
 
-    let videos = readVideos();
+    let query = supabase.from('videos').select('*');
 
-    if (category) {
-      videos = videos.filter(v => v.category === category);
+    if (roomId) {
+      query = query.eq('room_id', parseInt(roomId));
     }
 
     if (activeOnly) {
-      videos = videos.filter(v => v.isActive);
+      query = query.eq('active', true);
     }
 
-    // Sort by created date (newest first)
-    videos.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    // Sort by order_index and created date
+    query = query.order('order_index', { ascending: true })
+                 .order('created_at', { ascending: false });
 
-    return NextResponse.json(videos);
+    const { data: videos, error } = await query;
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: 'Failed to fetch videos' }, { status: 500 });
+    }
+
+    return NextResponse.json(videos || []);
   } catch (error) {
     console.error('Error fetching videos:', error);
     return NextResponse.json({ error: 'Failed to fetch videos' }, { status: 500 });
@@ -83,31 +60,36 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const videos = readVideos();
 
-    const newVideo: Video = {
-      id: `video_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    // Map legacy fields to new schema
+    const videoData = {
+      room_id: body.roomId || body.room_id || null,
+      video_url: body.youtubeUrl || body.videoUrl || body.video_url,
+      thumbnail_url: body.thumbnailUrl || body.thumbnail_url || extractYoutubeThumbnail(body.youtubeUrl || body.video_url),
       title: body.title,
-      description: body.description,
-      youtubeUrl: body.youtubeUrl,
-      thumbnailUrl: body.thumbnailUrl || extractYoutubeThumbnail(body.youtubeUrl),
-      category: body.category || 'other',
-      tags: body.tags || [],
-      isActive: body.isActive !== undefined ? body.isActive : true,
-      viewCount: 0,
-      createdAt: new Date().toISOString(),
-      notification: body.notification,
+      description: body.description || null,
+      duration: body.duration || null,
+      order_index: body.orderIndex || body.order_index || 0,
+      active: body.isActive !== undefined ? body.isActive : (body.active !== undefined ? body.active : true)
     };
 
-    videos.push(newVideo);
-    writeVideos(videos);
+    const { data: newVideo, error } = await supabaseAdmin
+      .from('videos')
+      .insert(videoData)
+      .select()
+      .single();
 
-    // Create notification if enabled
-    if (newVideo.notification?.enabled) {
-      await createVideoNotification(newVideo);
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: 'Failed to create video' }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, video: newVideo });
+    // Create notification if needed
+    if (body.notification?.enabled) {
+      await createVideoNotification(newVideo.id, body.notification);
+    }
+
+    return NextResponse.json(newVideo, { status: 201 });
   } catch (error) {
     console.error('Error creating video:', error);
     return NextResponse.json({ error: 'Failed to create video' }, { status: 500 });
@@ -118,144 +100,114 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { videoId, ...updateData } = body;
+    const { id, ...updates } = body;
 
-    const videos = readVideos();
-    const index = videos.findIndex(v => v.id === videoId);
-
-    if (index === -1) {
-      return NextResponse.json({ error: 'Video not found' }, { status: 404 });
+    if (!id) {
+      return NextResponse.json({ error: 'Video ID is required' }, { status: 400 });
     }
 
-    videos[index] = {
-      ...videos[index],
-      ...updateData,
-      id: videoId, // Preserve ID
-      createdAt: videos[index].createdAt, // Preserve creation date
-    };
-
-    writeVideos(videos);
-
-    // Create notification if enabled and notification settings changed
-    if (updateData.notification?.enabled && updateData.notifyUsers) {
-      await createVideoNotification(videos[index]);
+    // Map legacy fields
+    const videoUpdates: any = {};
+    if (updates.room_id !== undefined || updates.roomId !== undefined) {
+      videoUpdates.room_id = updates.room_id || updates.roomId;
+    }
+    if (updates.video_url !== undefined || updates.youtubeUrl !== undefined) {
+      videoUpdates.video_url = updates.video_url || updates.youtubeUrl;
+    }
+    if (updates.thumbnail_url !== undefined || updates.thumbnailUrl !== undefined) {
+      videoUpdates.thumbnail_url = updates.thumbnail_url || updates.thumbnailUrl;
+    }
+    if (updates.title !== undefined) videoUpdates.title = updates.title;
+    if (updates.description !== undefined) videoUpdates.description = updates.description;
+    if (updates.duration !== undefined) videoUpdates.duration = updates.duration;
+    if (updates.order_index !== undefined || updates.orderIndex !== undefined) {
+      videoUpdates.order_index = updates.order_index !== undefined ? updates.order_index : updates.orderIndex;
+    }
+    if (updates.active !== undefined || updates.isActive !== undefined) {
+      videoUpdates.active = updates.active !== undefined ? updates.active : updates.isActive;
     }
 
-    return NextResponse.json({ success: true, video: videos[index] });
+    const { data: updatedVideo, error } = await supabaseAdmin
+      .from('videos')
+      .update(videoUpdates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: 'Failed to update video' }, { status: 500 });
+    }
+
+    return NextResponse.json(updatedVideo);
   } catch (error) {
     console.error('Error updating video:', error);
     return NextResponse.json({ error: 'Failed to update video' }, { status: 500 });
   }
 }
 
-// DELETE - Delete video
+// DELETE - Remove video
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const videoId = searchParams.get('videoId');
+    const id = searchParams.get('id');
 
-    if (!videoId) {
-      return NextResponse.json({ error: 'Video ID required' }, { status: 400 });
+    if (!id) {
+      return NextResponse.json({ error: 'Video ID is required' }, { status: 400 });
     }
 
-    const videos = readVideos();
-    const filtered = videos.filter(v => v.id !== videoId);
+    const { error } = await supabaseAdmin
+      .from('videos')
+      .delete()
+      .eq('id', id);
 
-    writeVideos(filtered);
-    return NextResponse.json({ success: true });
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: 'Failed to delete video' }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, message: 'Video deleted' });
   } catch (error) {
     console.error('Error deleting video:', error);
     return NextResponse.json({ error: 'Failed to delete video' }, { status: 500 });
   }
 }
 
-// PATCH - Increment view count
-export async function PATCH(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { videoId } = body;
-
-    const videos = readVideos();
-    const index = videos.findIndex(v => v.id === videoId);
-
-    if (index === -1) {
-      return NextResponse.json({ error: 'Video not found' }, { status: 404 });
-    }
-
-    videos[index].viewCount = (videos[index].viewCount || 0) + 1;
-    writeVideos(videos);
-
-    return NextResponse.json({ success: true, viewCount: videos[index].viewCount });
-  } catch (error) {
-    console.error('Error updating view count:', error);
-    return NextResponse.json({ error: 'Failed to update view count' }, { status: 500 });
-  }
-}
-
-// Helper function to create notification for video
-async function createVideoNotification(video: Video) {
-  if (!video.notification?.enabled) return;
-
-  const notifications = readNotifications();
-  
-  let title = '';
-  let message = '';
-
-  switch (video.notification.type) {
-    case 'promotion':
-      title = '🎉 โปรโมชั่นพิเศษ!';
-      message = `${video.title}${video.notification.reason ? ` - ${video.notification.reason}` : ''}`;
-      break;
-    case 'discount':
-      title = '💰 ส่วนลดพิเศษ!';
-      message = `${video.title}${video.notification.discount ? ` ลด ${video.notification.discount}` : ''}`;
-      break;
-    case 'special_event':
-      title = '✨ กิจกรรมพิเศษ!';
-      message = `${video.title} - ${video.notification.reason || ''}`;
-      break;
-    case 'new_video':
-      title = '📹 วิดีโอใหม่!';
-      message = video.title;
-      break;
-  }
-
-  if (video.notification.couponCode) {
-    message += ` | โค้ด: ${video.notification.couponCode}`;
-  }
-
-  const newNotification = {
-    id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-    type: 'video',
-    title,
-    message,
-    recipientType: 'all',
-    videoId: video.id,
-    couponCode: video.notification.couponCode,
-    priority: video.notification.type === 'promotion' ? 'high' : 'normal',
-    channels: video.notification.channels || ['web'],
-    isRead: false,
-    createdAt: new Date().toISOString(),
-    metadata: {
-      reason: video.notification.reason,
-      discount: video.notification.discount,
-      imageUrl: video.thumbnailUrl,
-      actionUrl: `/reviews/videos?videoId=${video.id}`,
-    },
-  };
-
-  notifications.push(newNotification);
-  writeNotifications(notifications);
-}
-
-// Helper function to extract YouTube thumbnail
+// Helper functions
 function extractYoutubeThumbnail(url: string): string {
-  const videoId = extractYoutubeVideoId(url);
-  return videoId ? `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg` : '';
+  if (!url) return '';
+  
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/,
+    /youtube\.com\/embed\/([^&\n?#]+)/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern);
+    if (match && match[1]) {
+      return `https://img.youtube.com/vi/${match[1]}/maxresdefault.jpg`;
+    }
+  }
+
+  return '';
 }
 
-function extractYoutubeVideoId(url: string): string | null {
-  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-  const match = url.match(regExp);
-  return (match && match[2].length === 11) ? match[2] : null;
+async function createVideoNotification(videoId: string, notificationData: any) {
+  try {
+    const notification = {
+      title: notificationData.title || 'วิดิโอใหม่',
+      message: notificationData.reason || 'มีวิดิโอใหม่',
+      type: notificationData.type || 'new_video',
+      link: `/videos/${videoId}`,
+      created_at: new Date().toISOString()
+    };
+
+    // Insert notification to database
+    await supabaseAdmin
+      .from('notifications')
+      .insert(notification);
+
+  } catch (error) {
+    console.error('Error creating notification:', error);
+  }
 }

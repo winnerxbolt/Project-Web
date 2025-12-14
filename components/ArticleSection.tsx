@@ -260,7 +260,7 @@ export default function ArticleSection() {
                   <div className="mt-8 pt-6 border-t border-gray-200">
                     <h3 className="text-sm font-semibold text-gray-700 mb-3">แท็ก:</h3>
                     <div className="flex flex-wrap gap-2">
-                      {selectedArticle.tags.map((tag, index) => (
+                      {selectedArticle.tags && selectedArticle.tags.length > 0 && selectedArticle.tags.map((tag, index) => (
                         <span
                           key={index}
                           className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium"

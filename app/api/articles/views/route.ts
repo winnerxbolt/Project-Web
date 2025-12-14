@@ -1,11 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { readJson, writeJson } from '@/lib/server/db'
-
-interface Article {
-  id: string
-  views: number
-  [key: string]: any
-}
+import { supabaseAdmin } from '@/lib/supabase'
 
 // POST - เพิ่ม view count
 export async function POST(request: NextRequest) {
@@ -16,17 +10,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Article ID required' }, { status: 400 })
     }
     
-    const articles = await readJson<Article[]>('data/articles.json') || []
-    const articleIndex = articles.findIndex(a => a.id === id)
+    // Get current article
+    const { data: article, error: fetchError } = await supabaseAdmin
+      .from('articles')
+      .select('views')
+      .eq('id', id)
+      .single()
     
-    if (articleIndex === -1) {
+    if (fetchError || !article) {
       return NextResponse.json({ error: 'Article not found' }, { status: 404 })
     }
     
-    articles[articleIndex].views = (articles[articleIndex].views || 0) + 1
-    await writeJson('data/articles.json', articles)
+    // Increment views
+    const newViews = (article.views || 0) + 1
     
-    return NextResponse.json({ success: true, views: articles[articleIndex].views })
+    const { error: updateError } = await supabaseAdmin
+      .from('articles')
+      .update({ views: newViews })
+      .eq('id', id)
+    
+    if (updateError) {
+      return NextResponse.json({ error: 'Failed to update views' }, { status: 500 })
+    }
+    
+    return NextResponse.json({ success: true, views: newViews })
   } catch (error) {
     return NextResponse.json({ error: 'Failed to update views' }, { status: 500 })
   }

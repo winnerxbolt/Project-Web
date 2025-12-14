@@ -1,6 +1,6 @@
 import crypto from 'crypto'
-import { readJson, writeJson } from './db'
 import { hashPassword as multiLayerHash, verifyPassword as multiLayerVerify } from '../security/encryption'
+import { supabaseAdmin } from '../supabase'
 
 export type User = {
   id: string
@@ -20,33 +20,58 @@ export type Session = {
   expiresAt: string
 }
 
-const USERS_PATH = 'data/users.json'
-const SESSIONS_PATH = 'data/sessions.json'
 const SESSION_TTL_SEC = 60 * 60 * 24 * 7 // 7 days
 
 export async function findUserByEmail(email: string) {
-  const arr = (await readJson<User[]>(USERS_PATH)) || []
-  return arr.find((u) => u.email.toLowerCase() === email.toLowerCase()) || null
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .select('*')
+    .ilike('email', email)
+    .single()
+  
+  if (error || !data) return null
+  
+  return {
+    id: data.id,
+    name: data.name,
+    email: data.email,
+    hash: data.hash,
+    salt: data.salt || undefined,
+    role: data.role as 'user' | 'admin',
+    createdAt: data.created_at,
+    lastLogin: data.last_login || undefined
+  } as User
 }
 
 export async function createUser(name: string, email: string, password: string) {
-  const arr = (await readJson<User[]>(USERS_PATH)) || []
-  
   // 🔒 ใช้ระบบ encryption หลายชั้น (3 ชั้น)
   const hash = await multiLayerHash(password)
   
-  const user: User = { 
-    id: crypto.randomUUID(), 
-    name, 
-    email: email.toLowerCase(), 
-    hash, // Multi-layer encrypted password
-    role: 'user',
-    createdAt: new Date().toISOString(),
-    lastLogin: new Date().toISOString()
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .insert({
+      name,
+      email: email.toLowerCase(),
+      hash,
+      role: 'user',
+      last_login: new Date().toISOString()
+    })
+    .select()
+    .single()
+  
+  if (error || !data) {
+    throw new Error('Failed to create user')
   }
-  arr.push(user)
-  await writeJson(USERS_PATH, arr)
-  return user
+  
+  return {
+    id: data.id,
+    name: data.name,
+    email: data.email,
+    hash: data.hash,
+    role: data.role as 'user' | 'admin',
+    createdAt: data.created_at,
+    lastLogin: data.last_login || undefined
+  } as User
 }
 
 export async function verifyUserPassword(user: User, password: string) {
@@ -63,16 +88,20 @@ export async function verifyUserPassword(user: User, password: string) {
         console.log('Password verified with old method - upgrading to new format...')
         try {
           const newHash = await multiLayerHash(password)
-          user.hash = newHash
-          delete user.salt // ลบ salt เพราะไม่ใช้แล้ว
           
-          // บันทึกลง database
-          const users = await readJson<User[]>(USERS_PATH) || []
-          const userIndex = users.findIndex(u => u.id === user.id)
-          if (userIndex !== -1) {
-            users[userIndex] = user
-            await writeJson(USERS_PATH, users)
+          // บันทึกลง Supabase
+          const { error } = await supabaseAdmin
+            .from('users')
+            .update({ 
+              hash: newHash,
+              salt: null // ลบ salt เพราะไม่ใช้แล้ว
+            })
+            .eq('id', user.id)
+          
+          if (!error) {
             console.log('Password upgraded to multi-layer encryption successfully')
+            user.hash = newHash
+            delete user.salt
           }
         } catch (upgradeError) {
           console.error('Failed to upgrade password:', upgradeError)
@@ -92,24 +121,37 @@ export async function verifyUserPassword(user: User, password: string) {
 }
 
 export async function createSession(userId: string) {
-  const arr = (await readJson<Session[]>(SESSIONS_PATH)) || []
   const token = crypto.randomBytes(32).toString('hex')
   const now = new Date()
-  const session: Session = {
-    token,
-    userId,
-    createdAt: now.toISOString(),
-    expiresAt: new Date(now.getTime() + SESSION_TTL_SEC * 1000).toISOString(),
+  const expiresAt = new Date(now.getTime() + SESSION_TTL_SEC * 1000).toISOString()
+  
+  const { data, error } = await supabaseAdmin
+    .from('sessions')
+    .insert({
+      token,
+      user_id: userId,
+      expires_at: expiresAt
+    })
+    .select()
+    .single()
+  
+  if (error || !data) {
+    throw new Error('Failed to create session')
   }
-  arr.push(session)
-  await writeJson(SESSIONS_PATH, arr)
-  return session
+  
+  return {
+    token: data.token,
+    userId: data.user_id,
+    createdAt: data.created_at,
+    expiresAt: data.expires_at
+  } as Session
 }
 
 export async function deleteSession(token: string) {
-  const arr = (await readJson<Session[]>(SESSIONS_PATH)) || []
-  const filtered = arr.filter((s) => s.token !== token)
-  await writeJson(SESSIONS_PATH, filtered)
+  await supabaseAdmin
+    .from('sessions')
+    .delete()
+    .eq('token', token)
 }
 
 export async function findSession(token: string) {

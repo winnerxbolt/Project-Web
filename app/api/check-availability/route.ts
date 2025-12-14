@@ -1,17 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { readJson } from '@/lib/server/db'
-
-interface CalendarDay {
-  roomId: number
-  date: string
-  status: 'available' | 'booked' | 'pending' | 'holiday' | 'maintenance'
-  hasSpecialDiscount?: boolean
-  discountAmount?: number
-  discountReason?: string
-  note?: string
-}
-
-const CALENDAR_FILE = 'data/bookingCalendar.json'
+import { supabase } from '@/lib/supabase'
 
 // GET - ตรวจสอบความพร้อมของห้องในช่วงวันที่
 export async function GET(request: NextRequest) {
@@ -28,9 +16,15 @@ export async function GET(request: NextRequest) {
       }, { status: 400 })
     }
 
-    const calendar = await readJson<CalendarDay[]>(CALENDAR_FILE) || []
+    // Check bookings in date range
+    const { data: bookings } = await supabase
+      .from('bookings')
+      .select('check_in, check_out, status')
+      .eq('room_id', roomId)
+      .in('status', ['confirmed', 'pending'])
+      .or(`check_in.lte.${endDate},check_out.gte.${startDate}`)
 
-    // สร้างรายการวันที่ทั้งหมดในช่วง
+    // Create date range
     const start = new Date(startDate)
     const end = new Date(endDate)
     const dates: string[] = []
@@ -39,33 +33,44 @@ export async function GET(request: NextRequest) {
       dates.push(d.toISOString().split('T')[0])
     }
 
-    // ตรวจสอบแต่ละวัน
+    // Check unavailable dates from bookings
     const unavailableDates: string[] = []
+    
+    if (bookings && bookings.length > 0) {
+      for (const booking of bookings) {
+        const bookingStart = new Date(booking.check_in)
+        const bookingEnd = new Date(booking.check_out)
+        
+        for (const date of dates) {
+          const currentDate = new Date(date)
+          if (currentDate >= bookingStart && currentDate < bookingEnd) {
+            unavailableDates.push(date)
+          }
+        }
+      }
+    }
+
+    // Check for special pricing/discounts
+    const { data: seasonalPricing } = await supabase
+      .from('seasonal_pricing')
+      .select('*')
+      .lte('start_date', endDate)
+      .gte('end_date', startDate)
+      .eq('is_active', true)
+
     const discounts: { date: string; amount: number; reason: string }[] = []
     let totalDiscount = 0
 
-    for (const date of dates) {
-      const dayStatus = calendar.find(
-        day => day.roomId === parseInt(roomId) && day.date === date
-      )
-
-      if (dayStatus) {
-        // ตรวจสอบว่าวันนี้จองได้หรือไม่
-        if (dayStatus.status === 'booked' || 
-            dayStatus.status === 'pending' || 
-            dayStatus.status === 'maintenance' || 
-            dayStatus.status === 'holiday') {
-          unavailableDates.push(date)
-        }
-
-        // เก็บข้อมูลส่วนลด
-        if (dayStatus.hasSpecialDiscount && dayStatus.discountAmount) {
+    if (seasonalPricing && seasonalPricing.length > 0) {
+      for (const pricing of seasonalPricing) {
+        const discount = pricing.base_adjustment || 0
+        if (discount < 0) {
           discounts.push({
-            date,
-            amount: dayStatus.discountAmount,
-            reason: dayStatus.discountReason || 'ไม่ระบุ'
+            date: pricing.start_date,
+            amount: Math.abs(discount),
+            reason: pricing.season_name || 'Special discount'
           })
-          totalDiscount += dayStatus.discountAmount
+          totalDiscount += Math.abs(discount)
         }
       }
     }
@@ -73,7 +78,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       available: unavailableDates.length === 0,
-      unavailableDates,
+      unavailableDates: [...new Set(unavailableDates)],
       discounts,
       totalDiscount,
       totalNights: dates.length

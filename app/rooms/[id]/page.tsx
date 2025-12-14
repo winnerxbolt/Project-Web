@@ -104,11 +104,18 @@ export default function RoomDetailPage({ params }: { params: Promise<{ id: strin
       try {
         const response = await fetch(`/api/reviews?roomId=${resolvedParams.id}`)
         const data = await response.json()
-        if (data.success) {
+        
+        // Handle both array response and object with reviews property
+        if (Array.isArray(data)) {
+          setReviews(data)
+        } else if (data.reviews && Array.isArray(data.reviews)) {
           setReviews(data.reviews)
+        } else {
+          setReviews([])
         }
       } catch (error) {
         console.error('Error fetching reviews:', error)
+        setReviews([])
       }
     }
     

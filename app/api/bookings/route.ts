@@ -1,38 +1,25 @@
 import { NextResponse } from 'next/server'
-import { readFile, writeFile } from 'fs/promises'
-import path from 'path'
 import { containsProfanity } from '@/lib/profanityFilter'
 import { sendBookingConfirmation } from '@/lib/server/emailService'
-
-const bookingsFilePath = path.join(process.cwd(), 'data', 'bookings.json')
-
-// Helper function to read bookings
-async function getBookings() {
-  try {
-    const data = await readFile(bookingsFilePath, 'utf-8')
-    return JSON.parse(data)
-  } catch (error) {
-    console.error('Error reading bookings:', error)
-    return []
-  }
-}
-
-// Helper function to write bookings
-async function saveBookings(bookings: any[]) {
-  try {
-    await writeFile(bookingsFilePath, JSON.stringify(bookings, null, 2), 'utf-8')
-    return true
-  } catch (error) {
-    console.error('Error saving bookings:', error)
-    return false
-  }
-}
+import { supabase, supabaseAdmin } from '@/lib/supabase'
 
 // GET - Fetch all bookings
 export async function GET() {
   try {
-    const bookings = await getBookings()
-    return NextResponse.json({ success: true, bookings })
+    const { data: bookings, error } = await supabase
+      .from('bookings')
+      .select('*')
+      .order('created_at', { ascending: false })
+    
+    if (error) {
+      console.error('Supabase error:', error)
+      return NextResponse.json(
+        { success: false, error: 'Failed to fetch bookings' },
+        { status: 500 }
+      )
+    }
+    
+    return NextResponse.json({ success: true, bookings: bookings || [] })
   } catch (error) {
     return NextResponse.json(
       { success: false, error: 'Failed to fetch bookings' },
@@ -69,80 +56,75 @@ export async function POST(request: Request) {
       )
     }
 
-    const bookings = await getBookings()
+    const { data: newBooking, error } = await supabaseAdmin
+      .from('bookings')
+      .insert({
+        room_id: roomId || null,
+        room_name: roomName,
+        guest_name: guestName,
+        check_in: checkIn,
+        check_out: checkOut,
+        guests: Number(guests),
+        status: status || 'pending',
+        total: Number(total),
+        slip_image: slipImage || null,
+        email: email || null,
+        phone: phone || null
+      })
+      .select()
+      .single()
     
-    // Generate new ID
-    const newId = bookings.length > 0 ? Math.max(...bookings.map((b: any) => b.id)) + 1 : 1
-
-    const newBooking = {
-      id: newId,
-      roomId: roomId || null,
-      roomName,
-      guestName,
-      checkIn,
-      checkOut,
-      guests: Number(guests),
-      status: status || 'pending',
-      total: Number(total),
-      slipImage: slipImage || null,
-      email: email || null,
-      phone: phone || null,
-      createdAt: new Date().toISOString()
-    }
-
-    bookings.push(newBooking)
-    const saved = await saveBookings(bookings)
-
-    if (saved) {
-      // อัปเดตสถานะปฏิทินเป็น pending เมื่อมีการจอง
-      if (roomId) {
-        try {
-          await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/calendar`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              roomId: roomId,
-              startDate: checkIn,
-              endDate: checkOut,
-              status: 'pending',
-              note: `จองโดย ${guestName} (รอยืนยัน)`
-            })
-          })
-        } catch (error) {
-          console.error('Error updating calendar:', error)
-        }
-      }
-
-      // Send booking confirmation email
-      if (email) {
-        try {
-          await sendBookingConfirmation(newBooking)
-          console.log('✅ Booking confirmation email sent to:', email)
-        } catch (emailError) {
-          console.error('❌ Failed to send booking confirmation email:', emailError)
-          // Don't fail the booking if email fails
-        }
-      }
-
-      // Send booking confirmation SMS
-      if (phone) {
-        try {
-          const { sendBookingConfirmationSMS } = await import('@/lib/server/smsService')
-          await sendBookingConfirmationSMS(newBooking)
-          console.log('✅ Booking confirmation SMS sent to:', phone)
-        } catch (smsError) {
-          console.error('❌ Failed to send booking confirmation SMS:', smsError)
-          // Don't fail the booking if SMS fails
-        }
-      }
-      
-      return NextResponse.json({ success: true, booking: newBooking })
-    } else {
+    if (error || !newBooking) {
+      console.error('Supabase error:', error)
       return NextResponse.json(
         { success: false, error: 'Failed to save booking' },
         { status: 500 }
       )
     }
+
+    // อัปเดตสถานะปฏิทินเป็น pending เมื่อมีการจอง
+    if (roomId) {
+      try {
+        await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/calendar`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            roomId: roomId,
+            startDate: checkIn,
+            endDate: checkOut,
+            status: 'pending',
+            note: `จองโดย ${guestName} (รอยืนยัน)`
+          })
+        })
+      } catch (error) {
+        console.error('Error updating calendar:', error)
+      }
+    }
+
+    // Send booking confirmation email
+    if (email) {
+      try {
+        await sendBookingConfirmation(newBooking)
+        console.log('✅ Booking confirmation email sent to:', email)
+      } catch (emailError) {
+        console.error('❌ Failed to send booking confirmation email:', emailError)
+        // Don't fail the booking if email fails
+      }
+    }
+
+    // Send booking confirmation SMS
+    if (phone) {
+      try {
+        const { sendBookingConfirmationSMS } = await import('@/lib/server/smsService')
+        await sendBookingConfirmationSMS(newBooking)
+        console.log('✅ Booking confirmation SMS sent to:', phone)
+      } catch (smsError) {
+        console.error('❌ Failed to send booking confirmation SMS:', smsError)
+        // Don't fail the booking if SMS fails
+      }
+    }
+    
+    return NextResponse.json({ success: true, booking: newBooking })
   } catch (error) {
     console.error('Error creating booking:', error)
     return NextResponse.json(
@@ -165,50 +147,54 @@ export async function PUT(request: Request) {
       )
     }
 
-    const bookings = await getBookings()
-    const bookingIndex = bookings.findIndex((b: any) => b.id === id)
+    const updates: any = {}
+    if (roomName !== undefined) updates.room_name = roomName
+    if (guestName !== undefined) updates.guest_name = guestName
+    if (checkIn !== undefined) updates.check_in = checkIn
+    if (checkOut !== undefined) updates.check_out = checkOut
+    if (guests !== undefined) updates.guests = Number(guests)
+    if (total !== undefined) updates.total = Number(total)
+    if (email !== undefined) updates.email = email
+    if (phone !== undefined) updates.phone = phone
+    if (slipImage !== undefined) updates.slip_image = slipImage
+    if (status !== undefined) updates.status = status
+    if (cancelReason !== undefined) updates.cancel_reason = cancelReason
+    if (refundAmount !== undefined) updates.refund_amount = Number(refundAmount)
+    updates.updated_at = new Date().toISOString()
 
-    if (bookingIndex === -1) {
+    const { data: updatedBooking, error } = await supabaseAdmin
+      .from('bookings')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('Supabase error:', error)
+      return NextResponse.json(
+        { success: false, error: 'Failed to update booking' },
+        { status: 500 }
+      )
+    }
+
+    if (!updatedBooking) {
       return NextResponse.json(
         { success: false, error: 'Booking not found' },
         { status: 404 }
       )
     }
-
-    // Update booking data
-    bookings[bookingIndex] = {
-      ...bookings[bookingIndex],
-      roomName: roomName || bookings[bookingIndex].roomName,
-      guestName: guestName || bookings[bookingIndex].guestName,
-      checkIn: checkIn || bookings[bookingIndex].checkIn,
-      checkOut: checkOut || bookings[bookingIndex].checkOut,
-      guests: guests !== undefined ? Number(guests) : bookings[bookingIndex].guests,
-      total: total !== undefined ? Number(total) : bookings[bookingIndex].total,
-      email: email !== undefined ? email : bookings[bookingIndex].email,
-      phone: phone !== undefined ? phone : bookings[bookingIndex].phone,
-      slipImage: slipImage !== undefined ? slipImage : bookings[bookingIndex].slipImage,
-      status: status || bookings[bookingIndex].status,
-      cancelReason: cancelReason !== undefined ? cancelReason : bookings[bookingIndex].cancelReason,
-      refundAmount: refundAmount !== undefined ? Number(refundAmount) : bookings[bookingIndex].refundAmount,
-      updatedAt: new Date().toISOString()
-    }
-
-    const saved = await saveBookings(bookings)
-
-    if (saved) {
       // อัปเดตสถานะปฏิทินเมื่อยืนยันการจอง
       if (status === 'confirmed') {
-        const booking = bookings[bookingIndex]
         try {
           await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/calendar`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              roomId: booking.roomId,
-              startDate: booking.checkIn,
-              endDate: booking.checkOut,
+              roomId: updatedBooking.room_id,
+              startDate: updatedBooking.check_in,
+              endDate: updatedBooking.check_out,
               status: 'booked',
-              note: `จองโดย ${booking.guestName}`
+              note: `จองโดย ${updatedBooking.guest_name}`
             })
           })
         } catch (error) {
@@ -216,10 +202,10 @@ export async function PUT(request: Request) {
         }
 
         // Send confirmation SMS
-        if (booking.phone) {
+        if (updatedBooking.phone) {
           try {
             const { sendBookingConfirmationSMS } = await import('@/lib/server/smsService')
-            await sendBookingConfirmationSMS(booking)
+            await sendBookingConfirmationSMS(updatedBooking)
             console.log('✅ Booking confirmation SMS sent')
           } catch (smsError) {
             console.error('❌ Failed to send confirmation SMS:', smsError)
@@ -228,23 +214,17 @@ export async function PUT(request: Request) {
       }
 
       // Send cancellation SMS
-      if (status === 'cancelled' && bookings[bookingIndex].phone) {
+      if (status === 'cancelled' && updatedBooking.phone) {
         try {
           const { sendBookingCancellationSMS } = await import('@/lib/server/smsService')
-          await sendBookingCancellationSMS(bookings[bookingIndex], cancelReason)
+          await sendBookingCancellationSMS(updatedBooking, cancelReason)
           console.log('✅ Cancellation SMS sent')
         } catch (smsError) {
           console.error('❌ Failed to send cancellation SMS:', smsError)
         }
       }
       
-      return NextResponse.json({ success: true, booking: bookings[bookingIndex] })
-    } else {
-      return NextResponse.json(
-        { success: false, error: 'Failed to update booking' },
-        { status: 500 }
-      )
-    }
+      return NextResponse.json({ success: true, booking: updatedBooking })
   } catch (error) {
     console.error('Error updating booking:', error)
     return NextResponse.json(
@@ -267,46 +247,44 @@ export async function DELETE(request: Request) {
       )
     }
 
-    const bookings = await getBookings()
+    // Get booking before deleting for calendar cleanup
+    const { data: bookingToDelete } = await supabaseAdmin
+      .from('bookings')
+      .select('*')
+      .eq('id', id)
+      .single()
     
-    // หา booking ที่จะลบ
-    const bookingToDelete = bookings.find((b: any) => b.id === Number(id))
-    
-    if (!bookingToDelete) {
-      return NextResponse.json(
-        { success: false, error: 'Booking not found' },
-        { status: 404 }
-      )
-    }
-    
-    const filteredBookings = bookings.filter((b: any) => b.id !== Number(id))
-    const saved = await saveBookings(filteredBookings)
+    const { error } = await supabaseAdmin
+      .from('bookings')
+      .delete()
+      .eq('id', id)
 
-    if (saved) {
-      // ลบสถานะออกจากปฏิทินด้วย
-      if (bookingToDelete.roomId && bookingToDelete.checkIn && bookingToDelete.checkOut) {
-        try {
-          await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/calendar`, {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              roomId: bookingToDelete.roomId,
-              startDate: bookingToDelete.checkIn,
-              endDate: bookingToDelete.checkOut
-            })
-          })
-        } catch (error) {
-          console.error('Error clearing calendar:', error)
-        }
-      }
-      
-      return NextResponse.json({ success: true, message: 'Booking deleted successfully' })
-    } else {
+    if (error) {
+      console.error('Supabase error:', error)
       return NextResponse.json(
         { success: false, error: 'Failed to delete booking' },
         { status: 500 }
       )
     }
+
+    // ลบสถานะออกจากปฏิทินด้วย
+    if (bookingToDelete?.room_id && bookingToDelete.check_in && bookingToDelete.check_out) {
+      try {
+        await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/calendar`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            roomId: bookingToDelete.room_id,
+            startDate: bookingToDelete.check_in,
+            endDate: bookingToDelete.check_out
+          })
+        })
+      } catch (error) {
+        console.error('Error clearing calendar:', error)
+      }
+    }
+    
+    return NextResponse.json({ success: true, message: 'Booking deleted successfully' })
   } catch (error) {
     console.error('Error deleting booking:', error)
     return NextResponse.json(

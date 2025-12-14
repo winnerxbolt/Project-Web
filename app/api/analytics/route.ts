@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { readJson } from '@/lib/server/db'
+import { supabase } from '@/lib/supabase'
 import type { AnalyticsReport, BookingStats, OccupancyRate, PopularRoom, CustomerStats, RevenueData, MonthlyRevenue, DailyRevenue } from '@/types/analytics'
-
-const BOOKINGS_FILE = 'data/bookings.json'
-const ROOMS_FILE = 'data/rooms.json'
-const REVIEWS_FILE = 'data/reviews.json'
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,23 +9,23 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('endDate')
     const roomId = searchParams.get('roomId')
 
-    // Read data
-    const bookings: any[] = (await readJson(BOOKINGS_FILE)) || []
-    const rooms: any[] = (await readJson(ROOMS_FILE)) || []
-    const reviews: any[] = (await readJson(REVIEWS_FILE)) || []
+    // Read data from Supabase
+    const { data: bookings } = await supabase.from('bookings').select('*')
+    const { data: rooms } = await supabase.from('rooms').select('*')
+    const { data: reviews } = await supabase.from('reviews').select('*')
 
     // Filter bookings by date range
-    let filteredBookings = bookings
+    let filteredBookings = bookings || []
     if (startDate && endDate) {
-      filteredBookings = bookings.filter((booking) => {
-        const bookingDate = new Date(booking.checkIn)
+      filteredBookings = filteredBookings.filter((booking: any) => {
+        const bookingDate = new Date(booking.check_in)
         return bookingDate >= new Date(startDate) && bookingDate <= new Date(endDate)
       })
     }
 
     // Filter by room if specified
     if (roomId) {
-      filteredBookings = filteredBookings.filter((b) => b.roomId === parseInt(roomId))
+      filteredBookings = filteredBookings.filter((b: any) => b.room_id === parseInt(roomId))
     }
 
     // Calculate Booking Stats
@@ -49,11 +45,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Calculate Occupancy Rates
-    const occupancyRates: OccupancyRate[] = rooms.map((room) => {
-      const roomBookings = filteredBookings.filter((b) => b.roomId === room.id && b.status !== 'cancelled')
-      const bookedDays = roomBookings.reduce((sum, b) => {
-        const checkIn = new Date(b.checkIn)
-        const checkOut = new Date(b.checkOut)
+    const occupancyRates: OccupancyRate[] = (rooms || []).map((room: any) => {
+      const roomBookings = filteredBookings.filter((b: any) => b.room_id === room.id && b.status !== 'cancelled')
+      const bookedDays = roomBookings.reduce((sum: number, b: any) => {
+        const checkIn = new Date(b.check_in)
+        const checkOut = new Date(b.check_out)
         const days = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24))
         return sum + days
       }, 0)
@@ -76,10 +72,10 @@ export async function GET(request: NextRequest) {
 
     // Calculate Popular Rooms
     const roomBookingCounts = new Map<number, { count: number; revenue: number }>()
-    filteredBookings.forEach((booking) => {
+    filteredBookings.forEach((booking: any) => {
       if (booking.status !== 'cancelled') {
-        const current = roomBookingCounts.get(booking.roomId) || { count: 0, revenue: 0 }
-        roomBookingCounts.set(booking.roomId, {
+        const current = roomBookingCounts.get(booking.room_id) || { count: 0, revenue: 0 }
+        roomBookingCounts.set(booking.room_id, {
           count: current.count + 1,
           revenue: current.revenue + (booking.total || 0),
         })
@@ -88,8 +84,8 @@ export async function GET(request: NextRequest) {
 
     const popularRooms: PopularRoom[] = Array.from(roomBookingCounts.entries())
       .map(([roomId, stats]) => {
-        const room = rooms.find((r) => r.id === roomId)
-        const roomReviews = reviews.filter((r) => r.roomId === roomId)
+        const room = (rooms || []).find((r: any) => r.id === roomId)
+        const roomReviews = (reviews || []).filter((r: any) => r.room_id === roomId)
         const avgRating = roomReviews.length > 0
           ? roomReviews.reduce((sum, r) => sum + r.rating, 0) / roomReviews.length
           : 0
@@ -107,8 +103,8 @@ export async function GET(request: NextRequest) {
       .slice(0, 10)
 
     // Calculate Customer Stats
-    const thaiCustomers = filteredBookings.filter((b) => {
-      const name = b.guestName?.toLowerCase() || ''
+    const thaiCustomers = filteredBookings.filter((b: any) => {
+      const name = b.guest_name?.toLowerCase() || ''
       const email = b.email?.toLowerCase() || ''
       // Simple detection - can be improved
       return !email.includes('gmail') || name.match(/[\u0E00-\u0E7F]/)
@@ -130,9 +126,9 @@ export async function GET(request: NextRequest) {
 
     // Calculate Revenue Data (Last 30 days or date range)
     const revenueByDate = new Map<string, { revenue: number; bookings: number }>()
-    filteredBookings.forEach((booking) => {
+    filteredBookings.forEach((booking: any) => {
       if (booking.status !== 'cancelled') {
-        const date = new Date(booking.checkIn).toISOString().split('T')[0]
+        const date = new Date(booking.check_in).toISOString().split('T')[0]
         const current = revenueByDate.get(date) || { revenue: 0, bookings: 0 }
         revenueByDate.set(date, {
           revenue: current.revenue + (booking.total || 0),
@@ -151,9 +147,9 @@ export async function GET(request: NextRequest) {
 
     // Calculate Monthly Revenue
     const revenueByMonth = new Map<string, { revenue: number; bookings: number; year: number }>()
-    filteredBookings.forEach((booking) => {
+    filteredBookings.forEach((booking: any) => {
       if (booking.status !== 'cancelled') {
-        const date = new Date(booking.checkIn)
+        const date = new Date(booking.check_in)
         const month = date.toLocaleString('th-TH', { month: 'long' })
         const year = date.getFullYear()
         const key = `${year}-${month}`
@@ -181,9 +177,9 @@ export async function GET(request: NextRequest) {
 
     // Calculate Daily Revenue
     const revenueByDay = new Map<string, { revenue: number; bookings: number; dayOfWeek: string }>()
-    filteredBookings.forEach((booking) => {
+    filteredBookings.forEach((booking: any) => {
       if (booking.status !== 'cancelled') {
-        const date = new Date(booking.checkIn)
+        const date = new Date(booking.check_in)
         const dayOfWeek = date.toLocaleString('th-TH', { weekday: 'long' })
         const current = revenueByDay.get(dayOfWeek) || { revenue: 0, bookings: 0, dayOfWeek }
         revenueByDay.set(dayOfWeek, {

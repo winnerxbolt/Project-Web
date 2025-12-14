@@ -1,84 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
-import path from 'path';
-
-const reviewsFilePath = path.join(process.cwd(), 'data', 'reviews.json');
-const bookingsFilePath = path.join(process.cwd(), 'data', 'bookings.json');
-
-// Review interface
-export interface Review {
-  id: string;
-  bookingId: string;
-  roomId: string;
-  roomName: string;
-  userId: string;
-  userName: string;
-  userEmail?: string;
-  ratings: {
-    overall: number;
-    cleanliness: number;
-    staff: number;
-    amenities: number;
-    location: number;
-  };
-  comment: string;
-  images?: string[]; // Array of image URLs
-  createdAt: string;
-  helpful: number; // Number of helpful votes
-  adminReply?: {
-    message: string;
-    repliedAt: string;
-    repliedBy: string;
-  };
-  reports?: {
-    userId: string;
-    reason: string;
-    reportedAt: string;
-  }[];
-  isHidden: boolean; // Admin can hide inappropriate reviews
-  isVerifiedBooking: boolean; // Verified if user actually stayed
-}
-
-// Read reviews from file
-async function readReviews(): Promise<Review[]> {
-  try {
-    const data = await fs.readFile(reviewsFilePath, 'utf-8');
-    return JSON.parse(data);
-  } catch (error) {
-    return [];
-  }
-}
-
-// Write reviews to file
-async function writeReviews(reviews: Review[]): Promise<void> {
-  await fs.writeFile(reviewsFilePath, JSON.stringify(reviews, null, 2));
-}
-
-// Read bookings from file
-async function readBookings(): Promise<any[]> {
-  try {
-    const data = await fs.readFile(bookingsFilePath, 'utf-8');
-    const parsed = JSON.parse(data);
-    return parsed.bookings || [];
-  } catch (error) {
-    return [];
-  }
-}
-
-// Verify if user has completed booking
-async function verifyBooking(bookingId: string, userId: string): Promise<boolean> {
-  const bookings = await readBookings();
-  const booking = bookings.find(
-    (b: any) => b.id.toString() === bookingId && b.status === 'completed'
-  );
-  return !!booking;
-}
-
-// Calculate average rating from ratings object
-function calculateAverageRating(ratings: Review['ratings']): number {
-  const { overall, cleanliness, staff, amenities, location } = ratings;
-  return (overall + cleanliness + staff + amenities + location) / 5;
-}
+import { supabase, supabaseAdmin } from '@/lib/supabase';
 
 // GET - Fetch reviews
 export async function GET(request: NextRequest) {
@@ -89,34 +10,39 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId');
     const includeHidden = searchParams.get('includeHidden') === 'true';
 
-    let reviews = await readReviews();
+    let query = supabase.from('reviews').select('*')
 
     // Filter by room
     if (roomId) {
-      reviews = reviews.filter(r => r.roomId === roomId);
+      query = query.eq('room_id', roomId)
     }
 
     // Filter by booking
     if (bookingId) {
-      reviews = reviews.filter(r => r.bookingId === bookingId);
+      query = query.eq('booking_id', bookingId)
     }
 
     // Filter by user
     if (userId) {
-      reviews = reviews.filter(r => r.userId === userId);
+      query = query.eq('user_id', userId)
     }
 
     // Hide inappropriate reviews (unless admin requesting)
     if (!includeHidden) {
-      reviews = reviews.filter(r => !r.isHidden);
+      query = query.eq('is_hidden', false)
     }
 
     // Sort by most recent
-    reviews.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+    query = query.order('created_at', { ascending: false })
 
-    return NextResponse.json(reviews);
+    const { data: reviews, error } = await query
+
+    if (error) {
+      console.error('Supabase error:', error)
+      return NextResponse.json({ error: 'Failed to fetch reviews' }, { status: 500 })
+    }
+
+    return NextResponse.json(reviews || []);
   } catch (error) {
     console.error('Error fetching reviews:', error);
     return NextResponse.json(
@@ -151,20 +77,28 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify booking exists and is completed
-    const isVerified = await verifyBooking(bookingId, userId);
-    if (!isVerified) {
+    const { data: booking } = await supabaseAdmin
+      .from('bookings')
+      .select('*')
+      .eq('id', bookingId)
+      .eq('status', 'completed')
+      .single()
+
+    if (!booking) {
       return NextResponse.json(
         { error: 'คุณสามารถรีวิวได้เฉพาะการจองที่เสร็จสิ้นแล้วเท่านั้น' },
         { status: 403 }
       );
     }
 
-    const reviews = await readReviews();
-
     // Check if user already reviewed this booking
-    const existingReview = reviews.find(
-      r => r.bookingId === bookingId && r.userId === userId
-    );
+    const { data: existingReview } = await supabaseAdmin
+      .from('reviews')
+      .select('*')
+      .eq('booking_id', bookingId)
+      .eq('user_id', userId)
+      .single()
+
     if (existingReview) {
       return NextResponse.json(
         { error: 'คุณรีวิวการจองนี้ไปแล้ว' },
@@ -173,32 +107,36 @@ export async function POST(request: NextRequest) {
     }
 
     // Create new review
-    const newReview: Review = {
-      id: Date.now().toString(),
-      bookingId,
-      roomId,
-      roomName,
-      userId,
-      userName,
-      userEmail,
-      ratings: {
-        overall: ratings.overall || 5,
-        cleanliness: ratings.cleanliness || 5,
-        staff: ratings.staff || 5,
-        amenities: ratings.amenities || 5,
-        location: ratings.location || 5,
-      },
-      comment,
-      images: images || [],
-      createdAt: new Date().toISOString(),
-      helpful: 0,
-      reports: [],
-      isHidden: false,
-      isVerifiedBooking: true,
-    };
+    const { data: newReview, error } = await supabaseAdmin
+      .from('reviews')
+      .insert({
+        booking_id: bookingId,
+        room_id: roomId,
+        room_name: roomName,
+        user_id: userId,
+        user_name: userName,
+        user_email: userEmail || null,
+        rating_overall: ratings.overall || 5,
+        rating_cleanliness: ratings.cleanliness || 5,
+        rating_staff: ratings.staff || 5,
+        rating_amenities: ratings.amenities || 5,
+        rating_location: ratings.location || 5,
+        comment,
+        images: images || [],
+        helpful: 0,
+        is_hidden: false,
+        is_verified_booking: true
+      })
+      .select()
+      .single()
 
-    reviews.push(newReview);
-    await writeReviews(reviews);
+    if (error || !newReview) {
+      console.error('Supabase error:', error)
+      return NextResponse.json(
+        { error: 'Failed to create review' },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json(newReview, { status: 201 });
   } catch (error) {
@@ -223,10 +161,14 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const reviews = await readReviews();
-    const reviewIndex = reviews.findIndex(r => r.id === reviewId);
+    // Get current review
+    const { data: review, error: fetchError } = await supabaseAdmin
+      .from('reviews')
+      .select('*')
+      .eq('id', reviewId)
+      .single()
 
-    if (reviewIndex === -1) {
+    if (fetchError || !review) {
       return NextResponse.json(
         { error: 'Review not found' },
         { status: 404 }
@@ -234,6 +176,8 @@ export async function PUT(request: NextRequest) {
     }
 
     // Handle different actions
+    let updates: any = {}
+
     switch (action) {
       case 'adminReply':
         const { message, repliedBy } = body;
@@ -243,7 +187,7 @@ export async function PUT(request: NextRequest) {
             { status: 400 }
           );
         }
-        reviews[reviewIndex].adminReply = {
+        updates.admin_reply = {
           message,
           repliedAt: new Date().toISOString(),
           repliedBy,
@@ -251,15 +195,15 @@ export async function PUT(request: NextRequest) {
         break;
 
       case 'incrementHelpful':
-        reviews[reviewIndex].helpful += 1;
+        updates.helpful = (review.helpful || 0) + 1;
         break;
 
       case 'hide':
-        reviews[reviewIndex].isHidden = true;
+        updates.is_hidden = true;
         break;
 
       case 'unhide':
-        reviews[reviewIndex].isHidden = false;
+        updates.is_hidden = false;
         break;
 
       case 'report':
@@ -270,14 +214,13 @@ export async function PUT(request: NextRequest) {
             { status: 400 }
           );
         }
-        if (!reviews[reviewIndex].reports) {
-          reviews[reviewIndex].reports = [];
-        }
-        reviews[reviewIndex].reports!.push({
+        const currentReports = review.reports || [];
+        currentReports.push({
           userId,
           reason,
           reportedAt: new Date().toISOString(),
         });
+        updates.reports = currentReports;
         break;
 
       default:
@@ -287,9 +230,22 @@ export async function PUT(request: NextRequest) {
         );
     }
 
-    await writeReviews(reviews);
+    const { data: updatedReview, error: updateError } = await supabaseAdmin
+      .from('reviews')
+      .update(updates)
+      .eq('id', reviewId)
+      .select()
+      .single()
 
-    return NextResponse.json(reviews[reviewIndex]);
+    if (updateError) {
+      console.error('Supabase error:', updateError)
+      return NextResponse.json(
+        { error: 'Failed to update review' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(updatedReview);
   } catch (error) {
     console.error('Error updating review:', error);
     return NextResponse.json(
@@ -312,17 +268,18 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const reviews = await readReviews();
-    const filteredReviews = reviews.filter(r => r.id !== reviewId);
+    const { error } = await supabaseAdmin
+      .from('reviews')
+      .delete()
+      .eq('id', reviewId)
 
-    if (filteredReviews.length === reviews.length) {
+    if (error) {
+      console.error('Supabase error:', error)
       return NextResponse.json(
-        { error: 'Review not found' },
-        { status: 404 }
+        { error: 'Failed to delete review' },
+        { status: 500 }
       );
     }
-
-    await writeReviews(filteredReviews);
 
     return NextResponse.json({ message: 'Review deleted successfully' });
   } catch (error) {

@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server'
-import { readJson, writeJson } from '@/lib/server/db'
-import type { SocialShare, SocialStats } from '@/types/social'
-
-const SHARES_FILE = 'data/social-shares.json'
+import { supabase, supabaseAdmin } from '@/lib/supabase'
+import type { SocialStats } from '@/types/social'
 
 // GET - Get share statistics
 export async function GET(request: Request) {
@@ -10,29 +8,36 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const roomId = searchParams.get('roomId')
     
-    const shares = await readJson<SocialShare[]>(SHARES_FILE) || []
+    let query = supabase.from('social_shares').select('*').order('created_at', { ascending: false })
+    
+    if (roomId) {
+      query = query.eq('room_id', roomId)
+    }
+
+    const { data: shares, error } = await query
+
+    if (error) throw error
     
     if (roomId) {
       // Get shares for specific room
-      const roomShares = shares.filter(s => s.roomId === roomId)
       return NextResponse.json({
         success: true,
-        shares: roomShares,
-        count: roomShares.length
+        shares: shares || [],
+        count: shares?.length || 0
       })
     }
 
     // Get overall statistics
     const stats: SocialStats = {
-      totalShares: shares.length,
+      totalShares: shares?.length || 0,
       sharesByPlatform: [],
       topSharedRooms: [],
-      recentShares: shares.slice(-10).reverse()
+      recentShares: (shares || []).slice(0, 10)
     }
 
     // Count shares by platform
     const platformCounts = new Map<string, number>()
-    shares.forEach(share => {
+    shares?.forEach(share => {
       platformCounts.set(share.platform, (platformCounts.get(share.platform) || 0) + 1)
     })
     stats.sharesByPlatform = Array.from(platformCounts.entries()).map(([platform, count]) => ({
@@ -42,9 +47,9 @@ export async function GET(request: Request) {
 
     // Get top shared rooms
     const roomCounts = new Map<string, { count: number, name: string }>()
-    shares.forEach(share => {
-      const current = roomCounts.get(share.roomId) || { count: 0, name: share.roomId }
-      roomCounts.set(share.roomId, { ...current, count: current.count + 1 })
+    shares?.forEach(share => {
+      const current = roomCounts.get(share.room_id) || { count: 0, name: share.room_id }
+      roomCounts.set(share.room_id, { ...current, count: current.count + 1 })
     })
     
     stats.topSharedRooms = Array.from(roomCounts.entries())
@@ -79,24 +84,25 @@ export async function POST(request: Request) {
         { status: 400 }
       )
     }
-
-    const shares = await readJson<SocialShare[]>(SHARES_FILE) || []
     
-    const newShare: SocialShare = {
-      id: `share_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      roomId,
+    const newShare = {
+      room_id: roomId,
       platform,
-      timestamp: new Date().toISOString(),
-      userId,
+      user_id: userId || null,
       url
     }
 
-    shares.push(newShare)
-    await writeJson(SHARES_FILE, shares)
+    const { data: share, error } = await supabaseAdmin
+      .from('social_shares')
+      .insert(newShare)
+      .select()
+      .single()
+
+    if (error) throw error
 
     return NextResponse.json({
       success: true,
-      share: newShare,
+      share,
       message: 'Share tracked successfully'
     })
 

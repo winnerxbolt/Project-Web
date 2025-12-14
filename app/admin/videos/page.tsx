@@ -94,9 +94,10 @@ export default function AdminVideosPage() {
       const url = '/api/videos';
       const method = editingVideo ? 'PUT' : 'POST';
 
+      // Always send both isActive and active for compatibility
       const payload = editingVideo
-        ? { ...formData, videoId: editingVideo.id, notifyUsers: formData.notification.enabled }
-        : formData;
+        ? { ...formData, id: editingVideo.id, notifyUsers: formData.notification.enabled, active: formData.isActive }
+        : { ...formData, isActive: true, active: true };
 
       const response = await fetch(url, {
         method,
@@ -144,7 +145,7 @@ export default function AdminVideosPage() {
     if (!confirm('ยืนยันการลบวิดีโอ?')) return;
 
     try {
-      const response = await fetch(`/api/videos?videoId=${id}`, {
+      const response = await fetch(`/api/videos?id=${id}`, {
         method: 'DELETE',
       });
 
@@ -339,9 +340,9 @@ export default function AdminVideosPage() {
               >
                 {/* Thumbnail */}
                 <div className="relative aspect-video bg-gray-200">
-                  {video.thumbnailUrl ? (
+                  {video.thumbnailUrl || video.thumbnail_url || (video.youtubeUrl && `https://img.youtube.com/vi/${(video.youtubeUrl.split('v=')[1] || '').split('&')[0]}/maxresdefault.jpg`) ? (
                     <Image
-                      src={video.thumbnailUrl}
+                      src={video.thumbnailUrl || video.thumbnail_url || `https://img.youtube.com/vi/${(video.youtubeUrl?.split('v=')[1] || '').split('&')[0]}/maxresdefault.jpg`}
                       alt={video.title}
                       fill
                       className="object-cover"
@@ -376,7 +377,7 @@ export default function AdminVideosPage() {
 
                   {/* Tags */}
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {video.tags.slice(0, 3).map((tag) => (
+                    {(Array.isArray(video.tags) ? video.tags.slice(0, 3) : []).map((tag) => (
                       <span
                         key={tag}
                         className="px-2 py-1 bg-blue-100 text-blue-600 rounded-lg text-xs font-semibold"
@@ -410,7 +411,7 @@ export default function AdminVideosPage() {
                   <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
                     <div className="flex items-center gap-1">
                       <FaEye />
-                      <span>{video.viewCount.toLocaleString()} ครั้ง</span>
+                      <span>{typeof video.viewCount === 'number' ? video.viewCount.toLocaleString() : '0'} ครั้ง</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <FaTag />
@@ -488,7 +489,7 @@ export default function AdminVideosPage() {
                 </label>
                 <input
                   type="url"
-                  value={formData.youtubeUrl}
+                  value={formData.youtubeUrl ?? ''}
                   onChange={(e) => setFormData({ ...formData, youtubeUrl: e.target.value })}
                   placeholder="https://www.youtube.com/watch?v=..."
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 text-gray-900"
@@ -503,7 +504,7 @@ export default function AdminVideosPage() {
                     หมวดหมู่ <span className="text-red-500">*</span>
                   </label>
                   <select
-                    value={formData.category}
+                    value={formData.category ?? ''}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value as any })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 text-gray-900"
                   >
@@ -559,7 +560,7 @@ export default function AdminVideosPage() {
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {formData.tags.map((tag) => (
+                  {(Array.isArray(formData.tags) ? formData.tags : []).map((tag) => (
                     <span
                       key={tag}
                       className="px-3 py-1 bg-blue-100 text-blue-600 rounded-lg text-sm font-semibold flex items-center gap-2"
@@ -612,7 +613,7 @@ export default function AdminVideosPage() {
                         ประเภทการแจ้งเตือน
                       </label>
                       <select
-                        value={formData.notification.type}
+                        value={formData.notification.type ?? ''}
                         onChange={(e) =>
                           setFormData({
                             ...formData,

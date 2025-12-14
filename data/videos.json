@@ -1,1 +1,24 @@
-[]
+[
+  {
+    "id": "video_1765721437397_1juvv9ui1",
+    "title": "Test",
+    "description": "Test",
+    "youtubeUrl": "https://www.youtube.com/watch?v=R5p7bCb4dlM&t=148s",
+    "thumbnailUrl": "https://img.youtube.com/vi/R5p7bCb4dlM/maxresdefault.jpg",
+    "category": "poolvilla",
+    "tags": [],
+    "isActive": true,
+    "viewCount": 0,
+    "createdAt": "2025-12-14T14:10:37.397Z",
+    "notification": {
+      "enabled": false,
+      "type": "new_video",
+      "reason": "",
+      "couponCode": "",
+      "discount": "",
+      "channels": [
+        "web"
+      ]
+    }
+  }
+]

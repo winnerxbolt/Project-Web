@@ -69,13 +69,19 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
       const res = await fetch('/api/bookings')
       const data = await res.json()
       
-      if (data.success) {
-        const found = data.bookings.find((b: Booking) => b.id === Number(resolvedParams.id))
-        if (found) {
-          setBooking(found)
-        } else {
-          setMessage({ type: 'error', text: 'ไม่พบรายการจอง' })
-        }
+      // Validate array
+      let bookingsArray: Booking[] = [];
+      if (Array.isArray(data)) {
+        bookingsArray = data;
+      } else if (data.success && Array.isArray(data.bookings)) {
+        bookingsArray = data.bookings;
+      }
+      
+      const found = bookingsArray.find((b: Booking) => b.id === Number(resolvedParams.id));
+      if (found) {
+        setBooking(found)
+      } else {
+        setMessage({ type: 'error', text: 'ไม่พบรายการจอง' })
       }
     } catch (error) {
       console.error('Error:', error)

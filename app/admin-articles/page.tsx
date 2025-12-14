@@ -54,7 +54,15 @@ function ArticlesAdminContent() {
     try {
       const res = await fetch('/api/articles')
       const data = await res.json()
-      setArticles(data.articles || [])
+      
+      // Validate array
+      if (Array.isArray(data)) {
+        setArticles(data);
+      } else if (data.articles && Array.isArray(data.articles)) {
+        setArticles(data.articles);
+      } else {
+        setArticles([]);
+      }
     } catch (error) {
       console.error('Failed to fetch articles:', error)
     } finally {

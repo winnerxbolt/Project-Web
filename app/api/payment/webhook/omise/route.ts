@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyOmisePayment } from '@/lib/server/paymentGateway'
-import { readJson, writeJson } from '@/lib/server/db'
+import { supabaseAdmin } from '@/lib/supabase'
 import { sendPaymentReceipt } from '@/lib/server/emailService'
-
-const PAYMENT_INTENTS_FILE = 'data/payment-intents.json'
-const BOOKINGS_FILE = 'data/bookings.json'
-const PAYMENTS_FILE = 'data/payments.json'
 
 /**
  * POST /api/payment/webhook/omise
@@ -32,12 +28,9 @@ export async function POST(request: NextRequest) {
       }
 
       // อัพเดท Payment Intent
-      const paymentIntents = (await readJson<any[]>(PAYMENT_INTENTS_FILE)) || []
-      const index = paymentIntents.findIndex(p => p.id === paymentIntent.id)
-      if (index !== -1) {
-        paymentIntents[index] = paymentIntent
-        await writeJson(PAYMENT_INTENTS_FILE, paymentIntents)
-      }
+      await supabaseAdmin
+        .from('payment_intents')
+        .upsert(paymentIntent)
 
       // ถ้าชำระเงินสำเร็จ → Auto-confirm booking
       if (paymentIntent.status === 'succeeded') {
@@ -62,51 +55,56 @@ export async function POST(request: NextRequest) {
  */
 async function confirmBooking(bookingId: number, paymentIntent: any) {
   try {
-    const bookings = (await readJson<any[]>(BOOKINGS_FILE)) || []
-    const bookingIndex = bookings.findIndex(b => b.id === bookingId)
+    const { data: booking, error: fetchError } = await supabaseAdmin
+      .from('bookings')
+      .select('*')
+      .eq('id', bookingId)
+      .single()
 
-    if (bookingIndex === -1) {
+    if (fetchError || !booking) {
       console.error('❌ Booking not found:', bookingId)
       return
     }
 
-    const booking = bookings[bookingIndex]
-
     // อัพเดท booking status
-    booking.status = 'confirmed'
-    booking.confirmedAt = new Date().toISOString()
-    booking.paymentMethod = 'online_payment'
-    booking.paymentProvider = paymentIntent.provider
-    booking.paymentIntentId = paymentIntent.id
-    booking.paidAmount = paymentIntent.amount
-    booking.updatedAt = new Date().toISOString()
-
-    await writeJson(BOOKINGS_FILE, bookings)
+    await supabaseAdmin
+      .from('bookings')
+      .update({
+        status: 'confirmed',
+        confirmed_at: new Date().toISOString(),
+        payment_method: 'online_payment',
+        payment_provider: paymentIntent.provider,
+        payment_intent_id: paymentIntent.id,
+        paid_amount: paymentIntent.amount,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', bookingId)
 
     // บันทึกลง payments
-    const payments = (await readJson<any[]>(PAYMENTS_FILE)) || []
     const payment = {
-      id: payments.length > 0 ? Math.max(...payments.map((p: any) => p.id)) + 1 : 1,
-      bookingId,
+      booking_id: bookingId,
       method: paymentIntent.paymentMethod,
       provider: paymentIntent.provider,
       amount: paymentIntent.amount,
       currency: paymentIntent.currency,
       status: 'confirmed',
-      transactionId: paymentIntent.chargeId,
-      receiptUrl: paymentIntent.receiptUrl,
-      createdAt: new Date().toISOString(),
-      confirmedAt: new Date().toISOString(),
+      transaction_id: paymentIntent.chargeId,
+      receipt_url: paymentIntent.receiptUrl,
+      confirmed_at: new Date().toISOString(),
     }
-    payments.push(payment)
-    await writeJson(PAYMENTS_FILE, payments)
+    
+    const { data: insertedPayment } = await supabaseAdmin
+      .from('payments')
+      .insert(payment)
+      .select()
+      .single()
 
     console.log(`✅ Booking #${bookingId} auto-confirmed! Payment: ${paymentIntent.amount} ${paymentIntent.currency}`)
 
     // Send payment receipt email
     if (booking.email) {
       try {
-        await sendPaymentReceipt(payment, booking)
+        await sendPaymentReceipt(insertedPayment, booking)
         console.log('✅ Payment receipt email sent to:', booking.email)
       } catch (emailError) {
         console.error('❌ Failed to send payment receipt email:', emailError)
@@ -126,18 +124,14 @@ async function confirmBooking(bookingId: number, paymentIntent: any) {
  */
 async function failBooking(bookingId: number, errorMessage?: string) {
   try {
-    const bookings = (await readJson<any[]>(BOOKINGS_FILE)) || []
-    const bookingIndex = bookings.findIndex(b => b.id === bookingId)
-
-    if (bookingIndex === -1) {
-      return
-    }
-
-    bookings[bookingIndex].status = 'pending'
-    bookings[bookingIndex].paymentError = errorMessage
-    bookings[bookingIndex].updatedAt = new Date().toISOString()
-
-    await writeJson(BOOKINGS_FILE, bookings)
+    await supabaseAdmin
+      .from('bookings')
+      .update({
+        status: 'pending',
+        payment_error: errorMessage,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', bookingId)
 
     console.log(`❌ Booking #${bookingId} payment failed: ${errorMessage}`)
   } catch (error) {

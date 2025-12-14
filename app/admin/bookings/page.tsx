@@ -53,12 +53,20 @@ export default function BookingManagementPage() {
       const res = await fetch('/api/bookings')
       const data = await res.json()
       
-      if (data.success) {
+      // Validate array
+      let bookingsArray: Booking[] = [];
+      if (Array.isArray(data)) {
+        bookingsArray = data;
+      } else if (data.success && Array.isArray(data.bookings)) {
+        bookingsArray = data.bookings;
+      }
+      
+      if (bookingsArray.length > 0) {
         const now = new Date()
         
         let updated = false
         const updatedBookings = await Promise.all(
-          data.bookings.map(async (booking: Booking) => {
+          bookingsArray.map(async (booking: Booking) => {
             // ถ้าสถานะเป็น confirmed และถึงวันเช็คเอาท์ + เวลา 12:00 น. แล้ว
             if (booking.status === 'confirmed') {
               const checkOutDate = new Date(booking.checkOut)
@@ -105,11 +113,17 @@ export default function BookingManagementPage() {
       const res = await fetch('/api/bookings')
       const data = await res.json()
       
-      if (data.success) {
-        setBookings(data.bookings || [])
-        // เรียกใช้ฟังก์ชันตรวจสอบทันทีเมื่อโหลดข้อมูล
-        setTimeout(() => autoUpdateExpiredBookings(), 1000)
+      // Validate array
+      let bookingsArray: Booking[] = [];
+      if (Array.isArray(data)) {
+        bookingsArray = data;
+      } else if (data.success && Array.isArray(data.bookings)) {
+        bookingsArray = data.bookings;
       }
+      
+      setBookings(bookingsArray);
+      // เรียกใช้ฟังก์ชันตรวจสอบทันทีเมื่อโหลดข้อมูล
+      setTimeout(() => autoUpdateExpiredBookings(), 1000);
     } catch (error) {
       console.error('Error loading bookings:', error)
       showMessage('error', 'ไม่สามารถโหลดข้อมูลการจองได้')

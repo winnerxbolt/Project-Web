@@ -15,17 +15,5 @@
     "hash": "7fc9926eb2815a7d946e60c64eb8625251688b8954884a568aa416ff7d619471",
     "role": "user",
     "createdAt": "2025-12-03T06:49:29.321Z"
-  },
-  {
-    "id": "user_1765272319152_fjfo77io0",
-    "email": "user@facebook.com",
-    "name": "Facebook User",
-    "role": "user",
-    "picture": "https://via.placeholder.com/100",
-    "socialProvider": {
-      "provider": "facebook",
-      "providerId": "fb_1765272318999"
-    },
-    "createdAt": "2025-12-09T09:25:19.152Z"
   }
 ]

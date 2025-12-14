@@ -41,10 +41,16 @@ export default function PaymentSuccessPage({ params }: { params: Promise<{ id: s
       const res = await fetch('/api/bookings')
       const data = await res.json()
       
-      if (data.success) {
-        const found = data.bookings.find((b: Booking) => b.id === Number(resolvedParams.id))
-        setBooking(found || null)
+      // Validate array
+      let bookingsArray: Booking[] = [];
+      if (Array.isArray(data)) {
+        bookingsArray = data;
+      } else if (data.success && Array.isArray(data.bookings)) {
+        bookingsArray = data.bookings;
       }
+      
+      const found = bookingsArray.find((b: Booking) => b.id === Number(resolvedParams.id));
+      setBooking(found || null);
     } catch (error) {
       console.error('Error:', error)
     }

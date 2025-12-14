@@ -1,38 +1,28 @@
 import { NextResponse } from 'next/server'
-import { readFile, writeFile } from 'fs/promises'
-import path from 'path'
+import { supabase, supabaseAdmin } from '@/lib/supabase'
 import { containsProfanity } from '@/lib/profanityFilter'
-
-const roomsFilePath = path.join(process.cwd(), 'data', 'rooms.json')
-
-// Helper function to read rooms
-async function getRooms() {
-  try {
-    const data = await readFile(roomsFilePath, 'utf-8')
-    return JSON.parse(data)
-  } catch (error) {
-    console.error('Error reading rooms:', error)
-    return []
-  }
-}
-
-// Helper function to write rooms
-async function saveRooms(rooms: any[]) {
-  try {
-    await writeFile(roomsFilePath, JSON.stringify(rooms, null, 2), 'utf-8')
-    return true
-  } catch (error) {
-    console.error('Error saving rooms:', error)
-    return false
-  }
-}
+import { verifySecureToken } from '@/lib/security/jwt'
+import { cookies } from 'next/headers'
 
 // GET - Fetch all rooms
 export async function GET() {
   try {
-    const rooms = await getRooms()
+    const { data: rooms, error } = await supabase
+      .from('rooms')
+      .select('*')
+      .order('rating', { ascending: false })
+
+    if (error) {
+      console.error('Supabase error:', error)
+      return NextResponse.json(
+        { success: false, error: 'Failed to fetch rooms' },
+        { status: 500 }
+      )
+    }
+
     return NextResponse.json({ success: true, rooms })
   } catch (error) {
+    console.error('Error:', error)
     return NextResponse.json(
       { success: false, error: 'Failed to fetch rooms' },
       { status: 500 }
@@ -40,9 +30,28 @@ export async function GET() {
   }
 }
 
-// POST - Create a new room
+// POST - Create a new room (Admin only)
 export async function POST(request: Request) {
   try {
+    // Verify admin authentication
+    const cookieStore = await cookies()
+    const token = cookieStore.get('auth_token')?.value
+
+    if (!token) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const decoded = verifySecureToken(token)
+    if (!decoded || decoded.role !== 'admin') {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized - Admin only' },
+        { status: 403 }
+      )
+    }
+
     const body = await request.json()
     const { name, price, description, guests, beds, size, image, amenities, location } = body
 
@@ -74,38 +83,39 @@ export async function POST(request: Request) {
       )
     }
 
-    const rooms = await getRooms()
-    
-    // Generate new ID
-    const newId = rooms.length > 0 ? Math.max(...rooms.map((r: any) => r.id)) + 1 : 1
+    const { data: newRoom, error } = await supabaseAdmin
+      .from('rooms')
+      .insert({
+        name,
+        price: Number(price),
+        description,
+        guests: Number(guests),
+        beds: beds ? Number(beds) : 1,
+        bedrooms: beds ? Number(beds) : 1,
+        bathrooms: 1,
+        size: size ? Number(size) : 30,
+        image: image || 'https://images.unsplash.com/photo-1590490360182-c33d57733427?q=80&w=2074',
+        images: image ? [image] : ['https://images.unsplash.com/photo-1590490360182-c33d57733427?q=80&w=2074'],
+        rating: 0,
+        reviews: 0,
+        amenities: amenities || ['WiFi', 'TV', 'แอร์'],
+        location: location || 'กรุงเทพ',
+        available: true,
+        wifi: true,
+        air_conditioning: true
+      })
+      .select()
+      .single()
 
-    const newRoom = {
-      id: newId,
-      name,
-      price: Number(price),
-      description,
-      guests: Number(guests),
-      beds: beds ? Number(beds) : 1,
-      size: size ? Number(size) : 30,
-      image: image || 'https://images.unsplash.com/photo-1590490360182-c33d57733427?q=80&w=2074',
-      rating: 0,
-      reviews: 0,
-      amenities: amenities || ['WiFi', 'TV', 'แอร์'],
-      location: location || 'กรุงเทพ',
-      available: true
-    }
-
-    rooms.push(newRoom)
-    const saved = await saveRooms(rooms)
-
-    if (saved) {
-      return NextResponse.json({ success: true, room: newRoom })
-    } else {
+    if (error) {
+      console.error('Supabase error:', error)
       return NextResponse.json(
-        { success: false, error: 'Failed to save room' },
+        { success: false, error: 'Failed to create room' },
         { status: 500 }
       )
     }
+
+    return NextResponse.json({ success: true, room: newRoom })
   } catch (error) {
     console.error('Error creating room:', error)
     return NextResponse.json(
@@ -115,9 +125,28 @@ export async function POST(request: Request) {
   }
 }
 
-// PUT - Update an existing room
+// PUT - Update an existing room (Admin only)
 export async function PUT(request: Request) {
   try {
+    // Verify admin authentication
+    const cookieStore = await cookies()
+    const token = cookieStore.get('auth_token')?.value
+
+    if (!token) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const decoded = verifySecureToken(token)
+    if (!decoded || decoded.role !== 'admin') {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized - Admin only' },
+        { status: 403 }
+      )
+    }
+
     const body = await request.json()
     const { id, name, price, description, guests, beds, size, image, amenities, location, available } = body
 
@@ -148,41 +177,45 @@ export async function PUT(request: Request) {
       )
     }
 
-    const rooms = await getRooms()
-    const roomIndex = rooms.findIndex((r: any) => r.id === id)
+    // Build update object
+    const updates: any = {}
+    if (name !== undefined) updates.name = name
+    if (price !== undefined) updates.price = Number(price)
+    if (description !== undefined) updates.description = description
+    if (guests !== undefined) updates.guests = Number(guests)
+    if (beds !== undefined) {
+      updates.beds = Number(beds)
+      updates.bedrooms = Number(beds)
+    }
+    if (size !== undefined) updates.size = Number(size)
+    if (image !== undefined) updates.image = image
+    if (amenities !== undefined) updates.amenities = amenities
+    if (location !== undefined) updates.location = location
+    if (available !== undefined) updates.available = available
 
-    if (roomIndex === -1) {
+    const { data: updatedRoom, error } = await supabaseAdmin
+      .from('rooms')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Supabase error:', error)
+      return NextResponse.json(
+        { success: false, error: 'Failed to update room' },
+        { status: 500 }
+      )
+    }
+
+    if (!updatedRoom) {
       return NextResponse.json(
         { success: false, error: 'Room not found' },
         { status: 404 }
       )
     }
 
-    // Update room data
-    rooms[roomIndex] = {
-      ...rooms[roomIndex],
-      name: name || rooms[roomIndex].name,
-      price: price !== undefined ? Number(price) : rooms[roomIndex].price,
-      description: description || rooms[roomIndex].description,
-      guests: guests !== undefined ? Number(guests) : rooms[roomIndex].guests,
-      beds: beds !== undefined ? Number(beds) : rooms[roomIndex].beds,
-      size: size !== undefined ? Number(size) : rooms[roomIndex].size,
-      image: image || rooms[roomIndex].image,
-      amenities: amenities || rooms[roomIndex].amenities,
-      location: location || rooms[roomIndex].location,
-      available: available !== undefined ? available : rooms[roomIndex].available
-    }
-
-    const saved = await saveRooms(rooms)
-
-    if (saved) {
-      return NextResponse.json({ success: true, room: rooms[roomIndex] })
-    } else {
-      return NextResponse.json(
-        { success: false, error: 'Failed to update room' },
-        { status: 500 }
-      )
-    }
+    return NextResponse.json({ success: true, room: updatedRoom })
   } catch (error) {
     console.error('Error updating room:', error)
     return NextResponse.json(
@@ -192,9 +225,28 @@ export async function PUT(request: Request) {
   }
 }
 
-// DELETE - Delete a room
+// DELETE - Delete a room (Admin only)
 export async function DELETE(request: Request) {
   try {
+    // Verify admin authentication
+    const cookieStore = await cookies()
+    const token = cookieStore.get('auth_token')?.value
+
+    if (!token) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const decoded = verifySecureToken(token)
+    if (!decoded || decoded.role !== 'admin') {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized - Admin only' },
+        { status: 403 }
+      )
+    }
+
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
 
@@ -205,26 +257,20 @@ export async function DELETE(request: Request) {
       )
     }
 
-    const rooms = await getRooms()
-    const filteredRooms = rooms.filter((r: any) => r.id !== Number(id))
+    const { error } = await supabaseAdmin
+      .from('rooms')
+      .delete()
+      .eq('id', id)
 
-    if (filteredRooms.length === rooms.length) {
-      return NextResponse.json(
-        { success: false, error: 'Room not found' },
-        { status: 404 }
-      )
-    }
-
-    const saved = await saveRooms(filteredRooms)
-
-    if (saved) {
-      return NextResponse.json({ success: true, message: 'Room deleted successfully' })
-    } else {
+    if (error) {
+      console.error('Supabase error:', error)
       return NextResponse.json(
         { success: false, error: 'Failed to delete room' },
         { status: 500 }
       )
     }
+
+    return NextResponse.json({ success: true, message: 'Room deleted successfully' })
   } catch (error) {
     console.error('Error deleting room:', error)
     return NextResponse.json(

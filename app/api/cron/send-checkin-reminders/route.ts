@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { readJson } from '@/lib/server/db'
+import { supabase } from '@/lib/supabase'
 import { sendCheckInReminder } from '@/lib/server/emailService'
-
-const BOOKINGS_FILE = 'data/bookings.json'
 
 /**
  * GET /api/cron/send-checkin-reminders
@@ -34,17 +32,16 @@ export async function GET(request: NextRequest) {
 
     console.log(`🔍 Checking bookings for check-in on ${tomorrowStr}...`)
 
-    // ดึง bookings ที่ confirmed และ check-in พรุ่งนี้
-    const bookings = (await readJson<any[]>(BOOKINGS_FILE)) || []
-    const tomorrowBookings = bookings.filter(booking => {
-      if (booking.status !== 'confirmed') return false
-      if (!booking.email) return false
-
-      const checkInDate = new Date(booking.checkIn)
-      checkInDate.setHours(0, 0, 0, 0)
-
-      return checkInDate.getTime() === tomorrow.getTime()
-    })
+    // ดึง bookings ที่ confirmed และ check-in พรุ่งนี้ จาก Supabase
+    const { data: bookings } = await supabase
+      .from('bookings')
+      .select('*')
+      .eq('status', 'confirmed')
+      .gte('check_in', tomorrowStr)
+      .lt('check_in', `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate() + 1).padStart(2, '0')}`)
+      .not('email', 'is', null)
+    
+    const tomorrowBookings = bookings || []
 
     console.log(`📧 Found ${tomorrowBookings.length} bookings for tomorrow`)
 

@@ -1,38 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
-import fs from 'fs'
-import path from 'path'
+import { supabase, supabaseAdmin } from '@/lib/supabase'
 
-const locationsFilePath = path.join(process.cwd(), 'data', 'locations.json')
-
-// Helper to read locations
-function getLocations() {
-  try {
-    const data = fs.readFileSync(locationsFilePath, 'utf-8')
-    return JSON.parse(data)
-  } catch (error) {
-    return []
-  }
-}
-
-// Helper to write locations
-function saveLocations(locations: any[]) {
-  fs.writeFileSync(locationsFilePath, JSON.stringify(locations, null, 2))
-}
-
-// GET - Fetch all locations or by roomId
+// GET - Fetch all locations
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const roomId = searchParams.get('roomId')
+    const province = searchParams.get('province')
+    const region = searchParams.get('region')
 
-    const locations = getLocations()
+    let query = supabase.from('locations').select('*');
 
-    if (roomId) {
-      const location = locations.find((loc: any) => loc.roomId === parseInt(roomId))
-      return NextResponse.json(location || null)
+    if (province) {
+      query = query.eq('province', province);
     }
 
-    return NextResponse.json(locations)
+    if (region) {
+      query = query.eq('region', region);
+    }
+
+    query = query.order('name', { ascending: true });
+
+    const { data: locations, error } = await query;
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: 'Failed to fetch locations' }, { status: 500 });
+    }
+
+    return NextResponse.json(locations || []);
   } catch (error) {
     return NextResponse.json(
       { success: false, error: 'Failed to fetch locations' },
@@ -41,64 +36,80 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Create or update location
+// POST - Create location
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const {
-      roomId,
-      latitude,
-      longitude,
-      address,
-      nearbyPlaces,
-      directions,
-      mapSettings,
-    } = body
-
-    if (!roomId || !latitude || !longitude) {
-      return NextResponse.json(
-        { success: false, error: 'Missing required fields' },
-        { status: 400 }
-      )
-    }
-
-    const locations = getLocations()
-    const existingIndex = locations.findIndex((loc: any) => loc.roomId === roomId)
 
     const locationData = {
-      id: existingIndex >= 0 ? locations[existingIndex].id : Date.now(),
-      roomId,
-      latitude,
-      longitude,
-      address,
-      nearbyPlaces: nearbyPlaces || [],
-      directions: directions || {
-        from: 'Bangkok',
-        to: address || 'Pattaya',
-        steps: [],
-      },
-      mapSettings: mapSettings || {
-        zoom: 15,
-        showStreetView: true,
-      },
-      updatedAt: new Date().toISOString(),
+      name: body.name,
+      name_en: body.nameEn || body.name_en,
+      province: body.province,
+      region: body.region,
+      country: body.country || 'Thailand',
+      latitude: body.latitude,
+      longitude: body.longitude,
+      description: body.description || null
+    };
+
+    const { data: newLocation, error } = await supabaseAdmin
+      .from('locations')
+      .insert(locationData)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: 'Failed to create location' }, { status: 500 });
     }
 
-    if (existingIndex >= 0) {
-      locations[existingIndex] = locationData
-    } else {
-      locations.push(locationData)
-    }
-
-    saveLocations(locations)
-
-    return NextResponse.json({
-      success: true,
-      location: locationData,
-    })
+    return NextResponse.json(newLocation, { status: 201 });
   } catch (error) {
     return NextResponse.json(
-      { success: false, error: 'Failed to save location' },
+      { success: false, error: 'Failed to create location' },
+      { status: 500 }
+    )
+  }
+}
+
+// PUT - Update location
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { id, ...updates } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: 'Location ID required' }, { status: 400 });
+    }
+
+    const locationUpdates: any = {};
+    if (updates.name !== undefined) locationUpdates.name = updates.name;
+    if (updates.nameEn !== undefined || updates.name_en !== undefined) {
+      locationUpdates.name_en = updates.name_en || updates.nameEn;
+    }
+    if (updates.province !== undefined) locationUpdates.province = updates.province;
+    if (updates.region !== undefined) locationUpdates.region = updates.region;
+    if (updates.country !== undefined) locationUpdates.country = updates.country;
+    if (updates.latitude !== undefined) locationUpdates.latitude = updates.latitude;
+    if (updates.longitude !== undefined) locationUpdates.longitude = updates.longitude;
+    if (updates.description !== undefined) locationUpdates.description = updates.description;
+
+    const { data: updatedLocation, error } = await supabaseAdmin
+      .from('locations')
+      .update(locationUpdates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: 'Failed to update location' }, { status: 500 });
+    }
+
+    return NextResponse.json(updatedLocation);
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: 'Failed to update location' },
       { status: 500 }
     )
   }
@@ -109,28 +120,22 @@ export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const id = searchParams.get('id')
-    const roomId = searchParams.get('roomId')
 
-    if (!id && !roomId) {
-      return NextResponse.json(
-        { success: false, error: 'Location ID or Room ID required' },
-        { status: 400 }
-      )
+    if (!id) {
+      return NextResponse.json({ error: 'Location ID required' }, { status: 400 });
     }
 
-    const locations = getLocations()
-    const filteredLocations = locations.filter((loc: any) => {
-      if (id) return loc.id !== parseInt(id)
-      if (roomId) return loc.roomId !== parseInt(roomId)
-      return true
-    })
+    const { error } = await supabaseAdmin
+      .from('locations')
+      .delete()
+      .eq('id', id);
 
-    saveLocations(filteredLocations)
+    if (error) {
+      console.error('Supabase error:', error);
+      return NextResponse.json({ error: 'Failed to delete location' }, { status: 500 });
+    }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Location deleted successfully',
-    })
+    return NextResponse.json({ success: true, message: 'Location deleted' });
   } catch (error) {
     return NextResponse.json(
       { success: false, error: 'Failed to delete location' },

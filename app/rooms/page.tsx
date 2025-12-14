@@ -11,7 +11,6 @@ import {
   FaSearch,
   FaTimes,
   FaSortAmountDown,
-  FaMapMarkerAlt,
   FaMoneyBillWave,
   FaUsers,
   FaWifi,
@@ -73,8 +72,14 @@ export default function RoomsPage() {
     try {
       const response = await fetch('/api/rooms')
       const data = await response.json()
-      if (data.success) {
-        setAllRooms(data.rooms)
+      
+      // Validate array
+      if (Array.isArray(data)) {
+        setAllRooms(data);
+      } else if (data.success && Array.isArray(data.rooms)) {
+        setAllRooms(data.rooms);
+      } else {
+        setAllRooms([]);
       }
     } catch (error) {
       console.error('Error fetching rooms:', error)

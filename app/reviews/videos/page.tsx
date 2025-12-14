@@ -61,8 +61,9 @@ export default function VideoReviewsPage() {
 
   const extractYoutubeVideoId = (url: string): string | null => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/
-    const match = url.match(regExp)
-    return match && match[2].length === 11 ? match[2] : null
+    if (typeof url !== 'string' || !url) return null;
+    const match = url.match(regExp);
+    return match && match[2].length === 11 ? match[2] : null;
   }
 
   const getYoutubeEmbedUrl = (url: string): string => {
@@ -263,7 +264,7 @@ export default function VideoReviewsPage() {
                     <div className="flex items-center gap-4 text-white/60 text-sm">
                       <div className="flex items-center gap-1">
                         <FaEye />
-                        <span>{video.viewCount.toLocaleString()} ครั้ง</span>
+                        <span>{typeof video.viewCount === 'number' ? video.viewCount.toLocaleString() : '0'} ครั้ง</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <FaTag />
