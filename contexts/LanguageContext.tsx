@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 
 type Language = 'th' | 'en' | 'cn' | 'ru' | 'kr'
 type Currency = 'THB' | 'USD' | 'CNY' | 'RUB' | 'KRW'

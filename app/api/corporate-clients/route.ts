@@ -1,23 +1,6 @@
 import { NextResponse } from 'next/server'
-import fs from 'fs'
-import path from 'path'
+import { supabase, supabaseAdmin } from '@/lib/supabase'
 import type { CorporateClient } from '@/types/groupBooking'
-
-const filePath = path.join(process.cwd(), 'data', 'corporate-clients.json')
-
-// Helper to read data
-function readClients(): CorporateClient[] {
-  if (!fs.existsSync(filePath)) {
-    return []
-  }
-  const data = fs.readFileSync(filePath, 'utf-8')
-  return JSON.parse(data)
-}
-
-// Helper to write data
-function writeClients(clients: CorporateClient[]) {
-  fs.writeFileSync(filePath, JSON.stringify(clients, null, 2))
-}
 
 // GET - Get all corporate clients
 export async function GET(request: Request) {
@@ -25,16 +8,20 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status')
     
-    let clients = readClients()
+    let query = supabase.from('corporate_clients').select('*')
     
     if (status) {
-      clients = clients.filter(c => c.status === status)
+      query = query.eq('status', status)
     }
     
-    // Sort by company name
-    clients.sort((a, b) => a.companyName.localeCompare(b.companyName))
+    const { data: clients, error } = await query.order('company_name', { ascending: true })
     
-    return NextResponse.json(clients)
+    if (error) {
+      console.error('Error fetching corporate clients:', error)
+      return NextResponse.json({ error: 'Failed to fetch clients' }, { status: 500 })
+    }
+    
+    return NextResponse.json(clients || [])
   } catch (error) {
     console.error('Error fetching corporate clients:', error)
     return NextResponse.json({ error: 'Failed to fetch clients' }, { status: 500 })
@@ -45,29 +32,38 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const clients = readClients()
     
-    const newClient: CorporateClient = {
+    const newClient = {
       id: `CC${Date.now()}`,
-      companyName: body.companyName,
-      taxId: body.taxId,
+      company_name: body.companyName,
+      tax_id: body.taxId,
       industry: body.industry,
-      primaryContact: body.primaryContact,
-      alternativeContacts: body.alternativeContacts || [],
-      billingAddress: body.billingAddress,
+      primary_contact: body.primaryContact,
+      alternative_contacts: body.alternativeContacts || [],
+      billing_address: body.billingAddress,
       contract: body.contract,
-      totalBookings: 0,
-      totalRevenue: 0,
-      totalRoomNights: 0,
+      total_bookings: 0,
+      total_revenue: 0,
+      total_room_nights: 0,
       preferences: body.preferences || {},
       status: body.status || 'active',
-      notes: body.notes || ''
+      notes: body.notes || '',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     }
     
-    clients.push(newClient)
-    writeClients(clients)
+    const { data, error } = await supabaseAdmin
+      .from('corporate_clients')
+      .insert(newClient)
+      .select()
+      .single()
     
-    return NextResponse.json(newClient, { status: 201 })
+    if (error) {
+      console.error('Error creating corporate client:', error)
+      return NextResponse.json({ error: 'Failed to create client' }, { status: 500 })
+    }
+    
+    return NextResponse.json(data, { status: 201 })
   } catch (error) {
     console.error('Error creating corporate client:', error)
     return NextResponse.json({ error: 'Failed to create client' }, { status: 500 })
@@ -78,17 +74,35 @@ export async function POST(request: Request) {
 export async function PUT(request: Request) {
   try {
     const body = await request.json()
-    const clients = readClients()
     
-    const index = clients.findIndex(c => c.id === body.id)
-    if (index === -1) {
+    const { data: existing, error: fetchError } = await supabase
+      .from('corporate_clients')
+      .select('id')
+      .eq('id', body.id)
+      .single()
+    
+    if (fetchError || !existing) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })
     }
     
-    clients[index] = { ...clients[index], ...body }
-    writeClients(clients)
+    const updates = {
+      ...body,
+      updated_at: new Date().toISOString()
+    }
     
-    return NextResponse.json(clients[index])
+    const { data, error } = await supabaseAdmin
+      .from('corporate_clients')
+      .update(updates)
+      .eq('id', body.id)
+      .select()
+      .single()
+    
+    if (error) {
+      console.error('Error updating corporate client:', error)
+      return NextResponse.json({ error: 'Failed to update client' }, { status: 500 })
+    }
+    
+    return NextResponse.json(data)
   } catch (error) {
     console.error('Error updating corporate client:', error)
     return NextResponse.json({ error: 'Failed to update client' }, { status: 500 })
@@ -105,10 +119,15 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'ID is required' }, { status: 400 })
     }
     
-    let clients = readClients()
-    clients = clients.filter(c => c.id !== id)
+    const { error } = await supabaseAdmin
+      .from('corporate_clients')
+      .delete()
+      .eq('id', id)
     
-    writeClients(clients)
+    if (error) {
+      console.error('Error deleting corporate client:', error)
+      return NextResponse.json({ error: 'Failed to delete client' }, { status: 500 })
+    }
     
     return NextResponse.json({ success: true })
   } catch (error) {

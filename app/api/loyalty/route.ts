@@ -1,12 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import fs from 'fs/promises'
-import path from 'path'
+import { supabase, supabaseAdmin } from '@/lib/supabase'
 import type { LoyaltyMember, LoyaltyTierConfig, PointsTransaction } from '@/types/loyalty'
-
-const DATA_DIR = path.join(process.cwd(), 'data')
-const MEMBERS_FILE = path.join(DATA_DIR, 'loyalty-members.json')
-const TIERS_FILE = path.join(DATA_DIR, 'loyalty-tiers.json')
-const TRANSACTIONS_FILE = path.join(DATA_DIR, 'points-transactions.json')
 
 // GET - ดึงข้อมูลสมาชิก
 export async function GET(request: NextRequest) {
@@ -15,41 +9,67 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId')
     const tier = searchParams.get('tier')
 
-    const data = await fs.readFile(MEMBERS_FILE, 'utf-8')
-    let members: LoyaltyMember[] = JSON.parse(data)
-
     if (userId) {
-      const member = members.find(m => m.userId === userId)
-      if (!member) {
+      // ค้นหาสมาชิกจาก database
+      const { data: member, error } = await supabase
+        .from('loyalty_members')
+        .select('*')
+        .eq('user_id', userId)
+        .single()
+
+      if (error || !member) {
         // สร้างสมาชิกใหม่
-        const newMember: LoyaltyMember = {
-          id: `member-${Date.now()}`,
-          userId,
+        const newMember = {
+          user_id: userId,
           points: 0,
           tier: 'bronze',
-          tierProgress: 0,
-          lifetimePoints: 0,
-          joinedAt: new Date().toISOString(),
-          lastActivity: new Date().toISOString(),
-          benefits: []
+          tier_progress: 0,
+          lifetime_points: 0,
+          joined_at: new Date().toISOString(),
+          last_activity: new Date().toISOString()
         }
-        members.push(newMember)
-        await fs.writeFile(MEMBERS_FILE, JSON.stringify(members, null, 2))
-        
+
+        const { data: created, error: createError } = await supabaseAdmin
+          .from('loyalty_members')
+          .insert(newMember)
+          .select()
+          .single()
+
+        if (createError) {
+          console.error('Error creating member:', createError)
+          return NextResponse.json({
+            success: false,
+            error: 'Failed to create member'
+          }, { status: 500 })
+        }
+
         return NextResponse.json({
           success: true,
-          member: newMember
+          member: created
         })
       }
-      
+
       return NextResponse.json({
         success: true,
         member
       })
     }
 
+    // ดึงสมาชิกทั้งหมด (กรองตาม tier ถ้ามี)
+    let query = supabase.from('loyalty_members').select('*')
+    
     if (tier) {
-      members = members.filter(m => m.tier === tier)
+      query = query.eq('tier', tier)
+    }
+
+    const { data: members, error } = await query
+
+    if (error) {
+      console.error('Error fetching members:', error)
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to fetch members'
+      }, { status: 500 })
     }
 
     return NextResponse.json({
@@ -71,59 +91,122 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { userId, points, description, referenceId } = body
 
-    // Load data
-    const membersData = await fs.readFile(MEMBERS_FILE, 'utf-8')
-    const members: LoyaltyMember[] = JSON.parse(membersData)
-    
-    const tiersData = await fs.readFile(TIERS_FILE, 'utf-8')
-    const tiers: LoyaltyTierConfig[] = JSON.parse(tiersData)
+    // Load member
+    const { data: member, error: memberError } = await supabase
+      .from('loyalty_members')
+      .select('*')
+      .eq('user_id', userId)
+      .single()
 
-    // Find member
-    const memberIndex = members.findIndex(m => m.userId === userId)
-    if (memberIndex === -1) {
+    if (memberError || !member) {
       return NextResponse.json({
         success: false,
         error: 'Member not found'
       }, { status: 404 })
     }
 
-    const member = members[memberIndex]
-    
+    // Load tiers config
+    const { data: tiers, error: tiersError } = await supabase
+      .from('loyalty_tiers')
+      .select('*')
+      .order('min_points', { ascending: true })
+
+    if (tiersError) {
+      console.error('Error loading tiers:', tiersError)
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to load tiers'
+      }, { status: 500 })
+    }
+
     // Calculate points with tier multiplier
-    const currentTierConfig = tiers.find(t => t.tier === member.tier)
-    const earnRate = currentTierConfig?.earnRate || 1
+    const currentTierConfig = tiers?.find((t: any) => t.tier === member.tier)
+    const earnRate = currentTierConfig?.earn_rate || 1
     const earnedPoints = Math.floor(points * earnRate)
 
     // Update points
-    member.points += earnedPoints
-    member.lifetimePoints += earnedPoints
-    member.lastActivity = new Date().toISOString()
+    const newPoints = (member.points || 0) + earnedPoints
+    const newLifetimePoints = (member.lifetime_points || 0) + earnedPoints
 
     // Check tier upgrade
-    const sortedTiers = [...tiers].sort((a, b) => b.minPoints - a.minPoints)
+    const sortedTiers = tiers ? [...tiers].sort((a: any, b: any) => b.min_points - a.min_points) : []
+    let newTier = member.tier
     for (const tier of sortedTiers) {
-      if (member.lifetimePoints >= tier.minPoints) {
-        member.tier = tier.tier
-        member.benefits = tier.benefits.map(b => b.title)
+      if (newLifetimePoints >= tier.min_points) {
+        newTier = tier.tier
         break
       }
     }
 
     // Calculate progress to next tier
-    const nextTierConfig = sortedTiers.find(t => t.minPoints > member.lifetimePoints)
+    let tierProgress = 100
+    const nextTierConfig = sortedTiers.find((t: any) => t.min_points > newLifetimePoints)
     if (nextTierConfig) {
-      const currentTierMin = currentTierConfig?.minPoints || 0
-      const nextTierMin = nextTierConfig.minPoints
-      const progress = ((member.lifetimePoints - currentTierMin) / (nextTierMin - currentTierMin)) * 100
-      member.tierProgress = Math.min(100, Math.max(0, progress))
-    } else {
-      member.tierProgress = 100 // Max tier
+      const currentTierMin = currentTierConfig?.min_points || 0
+      const nextTierMin = nextTierConfig.min_points
+      const progress = ((newLifetimePoints - currentTierMin) / (nextTierMin - currentTierMin)) * 100
+      tierProgress = Math.min(100, Math.max(0, progress))
     }
 
-    members[memberIndex] = member
-    await fs.writeFile(MEMBERS_FILE, JSON.stringify(members, null, 2))
+    // Update member in database
+    const { error: updateError } = await supabaseAdmin
+      .from('loyalty_members')
+      .update({
+        points: newPoints,
+        lifetime_points: newLifetimePoints,
+        tier: newTier,
+        tier_progress: tierProgress,
+        last_activity: new Date().toISOString()
+      })
+      .eq('user_id', userId)
 
-    // Log transaction
+    if (updateError) {
+      console.error('Error updating member:', updateError)
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to update points'
+      }, { status: 500 })
+    }
+
+    // Log transaction in database
+    const transaction = {
+      user_id: userId,
+      type: 'earn',
+      points: earnedPoints,
+      description: description || 'Points earned',
+      reference_id: referenceId || null,
+      created_at: new Date().toISOString()
+    }
+
+    const { error: txError } = await supabaseAdmin
+      .from('points_transactions')
+      .insert(transaction)
+
+    if (txError) {
+      console.error('Error logging transaction:', txError)
+    }
+
+    // Get updated member
+    const { data: updatedMember } = await supabase
+      .from('loyalty_members')
+      .select('*')
+      .eq('user_id', userId)
+      .single()
+
+    return NextResponse.json({
+      success: true,
+      member: updatedMember,
+      earnedPoints,
+      tierUpgraded: newTier !== member.tier
+    })
+  } catch (error) {
+    console.error('Error adding points:', error)
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to add points'
+    }, { status: 500 })
+  }
+}
     const transaction: PointsTransaction = {
       id: `txn-${Date.now()}`,
       userId,

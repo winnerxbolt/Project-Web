@@ -36,10 +36,12 @@ export default function LoyaltyPage() {
         setMember(memberData.member)
       }
 
-      // Load tiers
-      const tiersRes = await fetch('/data/loyalty-tiers.json')
+      // Load tiers from API
+      const tiersRes = await fetch('/api/loyalty/tiers')
       const tiersData = await tiersRes.json()
-      setTiers(tiersData)
+      if (tiersData.success) {
+        setTiers(tiersData.tiers)
+      }
 
       // Load catalog
       const catalogRes = await fetch(`/api/loyalty/redeem?userId=${user.email}`)
@@ -48,13 +50,12 @@ export default function LoyaltyPage() {
         setCatalog(catalogData.items)
       }
 
-      // Load transactions
-      const txnRes = await fetch('/data/points-transactions.json')
+      // Load transactions from API
+      const txnRes = await fetch(`/api/loyalty/transactions?userId=${user.email}&limit=10`)
       const txnData = await txnRes.json()
-      const userTxns = txnData.filter((t: PointsTransaction) => t.userId === user.email)
-      setTransactions(userTxns.sort((a: PointsTransaction, b: PointsTransaction) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      ).slice(0, 10))
+      if (txnData.success) {
+        setTransactions(txnData.transactions)
+      }
     } catch (error) {
       console.error('Error loading loyalty data:', error)
     } finally {

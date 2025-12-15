@@ -120,8 +120,7 @@ export async function verifyUserPassword(user: User, password: string) {
   }
 }
 
-export async function createSession(userId: string) {
-  const token = crypto.randomBytes(32).toString('hex')
+export async function createSession(userId: string, token: string, ipAddress?: string, userAgent?: string) {
   const now = new Date()
   const expiresAt = new Date(now.getTime() + SESSION_TTL_SEC * 1000).toISOString()
   
@@ -130,14 +129,23 @@ export async function createSession(userId: string) {
     .insert({
       token,
       user_id: userId,
-      expires_at: expiresAt
+      expires_at: expiresAt,
+      ip_address: ipAddress || null,
+      user_agent: userAgent || null
     })
     .select()
     .single()
   
   if (error || !data) {
+    console.error('Failed to create session:', error)
     throw new Error('Failed to create session')
   }
+  
+  // อัปเดต last_login ของ user
+  await supabaseAdmin
+    .from('users')
+    .update({ last_login: now.toISOString() })
+    .eq('id', userId)
   
   return {
     token: data.token,
@@ -155,27 +163,67 @@ export async function deleteSession(token: string) {
 }
 
 export async function findSession(token: string) {
-  const arr = (await readJson<Session[]>(SESSIONS_PATH)) || []
-  const s = arr.find((it) => it.token === token) || null
-  if (!s) return null
-  if (new Date(s.expiresAt) < new Date()) {
-    await deleteSession(s.token)
+  const { data, error } = await supabaseAdmin
+    .from('sessions')
+    .select('*')
+    .eq('token', token)
+    .single()
+  
+  if (error || !data) return null
+  
+  // ตรวจสอบว่า session หมดอายุหรือไม่
+  if (new Date(data.expires_at) < new Date()) {
+    await deleteSession(token)
     return null
   }
-  return s
+  
+  return {
+    token: data.token,
+    userId: data.user_id,
+    createdAt: data.created_at,
+    expiresAt: data.expires_at
+  } as Session
 }
 
 export async function updateUserRole(userId: string, role: 'user' | 'admin') {
-  const arr = (await readJson<User[]>(USERS_PATH)) || []
-  const user = arr.find((u) => u.id === userId)
-  if (!user) return null
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .update({ role })
+    .eq('id', userId)
+    .select()
+    .single()
   
-  user.role = role
-  await writeJson(USERS_PATH, arr)
-  return user
+  if (error || !data) return null
+  
+  return {
+    id: data.id,
+    name: data.name,
+    email: data.email,
+    hash: data.hash,
+    salt: data.salt || undefined,
+    role: data.role as 'user' | 'admin',
+    createdAt: data.created_at,
+    lastLogin: data.last_login || undefined
+  } as User
 }
 
 export async function findUserById(userId: string) {
-  const arr = (await readJson<User[]>(USERS_PATH)) || []
-  return arr.find((u) => u.id === userId) || null
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .select('*')
+    .eq('id', userId)
+    .single()
+  
+  if (error || !data) return null
+  
+  return {
+    id: data.id,
+    name: data.name,
+    email: data.email,
+    hash: data.hash,
+    salt: data.salt || undefined,
+    role: data.role as 'user' | 'admin',
+    createdAt: data.created_at,
+    lastLogin: data.last_login || undefined
+  } as User
 }

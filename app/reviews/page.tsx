@@ -74,8 +74,15 @@ export default function ReviewsPage() {
 
   const fetchReviews = async () => {
     try {
+      setLoading(true);
       const response = await fetch('/api/reviews');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch reviews');
+      }
+      
       const data = await response.json();
+      console.log('Fetched reviews:', data); // Debug log
       
       // Handle both array response and object with reviews property
       if (Array.isArray(data)) {
@@ -83,10 +90,12 @@ export default function ReviewsPage() {
       } else if (data.reviews && Array.isArray(data.reviews)) {
         setReviews(data.reviews);
       } else {
+        console.warn('Unexpected data format:', data);
         setReviews([]);
       }
     } catch (error) {
       console.error('Error fetching reviews:', error);
+      showError('ไม่สามารถโหลดรีวิวได้');
       setReviews([]);
     } finally {
       setLoading(false);
@@ -257,72 +266,82 @@ export default function ReviewsPage() {
           {/* Left Column - Stats */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl p-8 shadow-xl sticky top-4">
-              <div className="text-center mb-8">
-                <div className="text-6xl font-bold text-gray-800 mb-2">{averageOverall}</div>
-                <div className="flex justify-center mb-2">
-                  <StarDisplay rating={Math.round(parseFloat(averageOverall))} />
+              {reviews.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="text-6xl mb-4">📝</div>
+                  <p className="text-xl font-bold text-gray-800 mb-2">ยังไม่มีรีวิว</p>
+                  <p className="text-gray-600">เป็นคนแรกที่รีวิวที่พักของเรา</p>
                 </div>
-                <p className="text-gray-600">{reviews.length} รีวิว</p>
-              </div>
-
-              {/* Rating Distribution */}
-              <div className="space-y-3 mb-8">
-                {ratingCounts.map(({ rating, count, percentage }) => (
-                  <button
-                    key={rating}
-                    onClick={() => setFilterRating(filterRating === rating ? 0 : rating)}
-                    className={`w-full flex items-center gap-3 p-2 rounded-lg transition-all ${
-                      filterRating === rating ? 'bg-blue-50 border-2 border-blue-500' : 'hover:bg-gray-50'
-                    }`}
-                  >
-                    <span className="text-sm font-semibold w-8">{rating} ⭐</span>
-                    <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-yellow-400"
-                        style={{ width: `${percentage}%` }}
-                      ></div>
+              ) : (
+                <>
+                  <div className="text-center mb-8">
+                    <div className="text-6xl font-bold text-gray-800 mb-2">{averageOverall}</div>
+                    <div className="flex justify-center mb-2">
+                      <StarDisplay rating={Math.round(parseFloat(averageOverall))} />
                     </div>
-                    <span className="text-sm text-gray-600 w-12 text-right">{count}</span>
-                  </button>
-                ))}
-              </div>
-
-              {/* Category Averages */}
-              <div className="border-t pt-6 space-y-4">
-                <h3 className="font-bold text-gray-800 mb-4">คะแนนเฉลี่ยแต่ละด้าน</h3>
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FaBroom className="text-blue-600" />
-                    <span className="text-sm font-semibold text-gray-700">ความสะอาด</span>
+                    <p className="text-gray-600">{reviews.length} รีวิว</p>
                   </div>
-                  <span className="font-bold text-gray-800">{averageCleanliness}</span>
-                </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FaUserTie className="text-green-600" />
-                    <span className="text-sm font-semibold text-gray-700">พนักงาน</span>
+                  {/* Rating Distribution */}
+                  <div className="space-y-3 mb-8">
+                    {ratingCounts.map(({ rating, count, percentage }) => (
+                      <button
+                        key={rating}
+                        onClick={() => setFilterRating(filterRating === rating ? 0 : rating)}
+                        className={`w-full flex items-center gap-3 p-2 rounded-lg transition-all ${
+                          filterRating === rating ? 'bg-blue-50 border-2 border-blue-500' : 'hover:bg-gray-50'
+                        }`}
+                      >
+                        <span className="text-sm font-semibold w-8">{rating} ⭐</span>
+                        <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-yellow-400"
+                            style={{ width: `${percentage}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-sm text-gray-600 w-12 text-right">{count}</span>
+                      </button>
+                    ))}
                   </div>
-                  <span className="font-bold text-gray-800">{averageStaff}</span>
-                </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FaWifi className="text-purple-600" />
-                    <span className="text-sm font-semibold text-gray-700">สิ่งอำนวยความสะดวก</span>
-                  </div>
-                  <span className="font-bold text-gray-800">{averageAmenities}</span>
-                </div>
+                  {/* Category Averages */}
+                  <div className="border-t pt-6 space-y-4">
+                    <h3 className="font-bold text-gray-800 mb-4">คะแนนเฉลี่ยแต่ละด้าน</h3>
+                    
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FaBroom className="text-blue-600" />
+                        <span className="text-sm font-semibold text-gray-700">ความสะอาด</span>
+                      </div>
+                      <span className="font-bold text-gray-800">{averageCleanliness}</span>
+                    </div>
 
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <FaMapMarkerAlt className="text-red-600" />
-                    <span className="text-sm font-semibold text-gray-700">ทำเล/สถานที่</span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FaUserTie className="text-green-600" />
+                        <span className="text-sm font-semibold text-gray-700">พนักงาน</span>
+                      </div>
+                      <span className="font-bold text-gray-800">{averageStaff}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FaWifi className="text-purple-600" />
+                        <span className="text-sm font-semibold text-gray-700">สิ่งอำนวยความสะดวก</span>
+                      </div>
+                      <span className="font-bold text-gray-800">{averageAmenities}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FaMapMarkerAlt className="text-red-600" />
+                        <span className="text-sm font-semibold text-gray-700">ทำเล/สถานที่</span>
+                      </div>
+                      <span className="font-bold text-gray-800">{averageLocation}</span>
+                    </div>
                   </div>
-                  <span className="font-bold text-gray-800">{averageLocation}</span>
-                </div>
-              </div>
+                </>
+              )}
             </div>
           </div>
 

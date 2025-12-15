@@ -42,7 +42,33 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch reviews' }, { status: 500 })
     }
 
-    return NextResponse.json(reviews || []);
+    // Map database columns to frontend format
+    const mappedReviews = (reviews || []).map(review => ({
+      id: review.id,
+      bookingId: review.booking_id,
+      roomId: review.room_id,
+      roomName: review.room_name,
+      userId: review.user_id,
+      userName: review.user_name,
+      userEmail: review.user_email,
+      ratings: {
+        overall: review.rating_overall || 0,
+        cleanliness: review.rating_cleanliness || 0,
+        staff: review.rating_staff || 0,
+        amenities: review.rating_amenities || 0,
+        location: review.rating_location || 0
+      },
+      comment: review.comment,
+      images: review.images || [],
+      createdAt: review.created_at,
+      helpful: review.helpful || 0,
+      adminReply: review.admin_reply,
+      reports: review.reports || [],
+      isHidden: review.is_hidden || false,
+      isVerifiedBooking: review.is_verified_booking || false
+    }));
+
+    return NextResponse.json(mappedReviews);
   } catch (error) {
     console.error('Error fetching reviews:', error);
     return NextResponse.json(
@@ -138,7 +164,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json(newReview, { status: 201 });
+    // Map to frontend format
+    const mappedReview = {
+      id: newReview.id,
+      bookingId: newReview.booking_id,
+      roomId: newReview.room_id,
+      roomName: newReview.room_name,
+      userId: newReview.user_id,
+      userName: newReview.user_name,
+      userEmail: newReview.user_email,
+      ratings: {
+        overall: newReview.rating_overall || 0,
+        cleanliness: newReview.rating_cleanliness || 0,
+        staff: newReview.rating_staff || 0,
+        amenities: newReview.rating_amenities || 0,
+        location: newReview.rating_location || 0
+      },
+      comment: newReview.comment,
+      images: newReview.images || [],
+      createdAt: newReview.created_at,
+      helpful: newReview.helpful || 0,
+      adminReply: newReview.admin_reply,
+      reports: newReview.reports || [],
+      isHidden: newReview.is_hidden || false,
+      isVerifiedBooking: newReview.is_verified_booking || false
+    };
+
+    return NextResponse.json(mappedReview, { status: 201 });
   } catch (error) {
     console.error('Error creating review:', error);
     return NextResponse.json(

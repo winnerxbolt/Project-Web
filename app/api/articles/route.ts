@@ -38,7 +38,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Failed to fetch articles' }, { status: 500 })
     }
     
-    return NextResponse.json({ success: true, articles: articles || [], total: articles?.length || 0 })
+    // Map database columns to frontend format
+    const mappedArticles = (articles || []).map(article => ({
+      id: article.id,
+      title: article.title,
+      content: article.content,
+      excerpt: article.excerpt,
+      author: article.author,
+      authorId: article.author_id,
+      coverImage: article.cover_image,
+      category: article.category,
+      tags: article.tags || [],
+      published: article.published,
+      createdAt: article.created_at,
+      updatedAt: article.updated_at,
+      views: article.views || 0
+    }))
+    
+    return NextResponse.json({ success: true, articles: mappedArticles, total: mappedArticles.length })
   } catch (error) {
     console.error('Get articles error:', error)
     return NextResponse.json({ error: 'Failed to fetch articles' }, { status: 500 })
@@ -65,6 +82,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { title, content, excerpt, coverImage, category, tags, published } = body
     
+    console.log('📝 Creating article:', { title, category, published })
+    
     if (!title || !content) {
       return NextResponse.json({ error: 'Title and content are required' }, { status: 400 })
     }
@@ -87,10 +106,11 @@ export async function POST(request: NextRequest) {
       .single()
     
     if (error) {
-      console.error('Supabase error:', error)
-      return NextResponse.json({ error: 'Failed to create article' }, { status: 500 })
+      console.error('❌ Supabase error:', JSON.stringify(error, null, 2))
+      return NextResponse.json({ error: error.message || 'Failed to create article', details: error }, { status: 500 })
     }
     
+    console.log('✅ Article created successfully:', newArticle.id)
     return NextResponse.json({ success: true, article: newArticle })
   } catch (error) {
     console.error('Create article error:', error)

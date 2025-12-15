@@ -1,10 +1,4 @@
-import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
-
-/**
- * Middleware for authentication and security headers
- * Using recommended approach instead of deprecated middleware file
- */
+import { NextRequest, NextResponse } from 'next/server'
 
 // Protected paths that require authentication
 const protectedPaths = ['/admin', '/api/admin']
@@ -24,26 +18,16 @@ export function middleware(request: NextRequest) {
   if (!session && (isProtectedPath || isAuthPath)) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
-    url.searchParams.set('redirect', pathname)
+    url.searchParams.set('from', pathname)
     return NextResponse.redirect(url)
   }
-  
-  // Add security and performance headers
+
+  // Add security headers
   const response = NextResponse.next()
+  
   response.headers.set('X-Frame-Options', 'DENY')
   response.headers.set('X-Content-Type-Options', 'nosniff')
-  response.headers.set('X-XSS-Protection', '1; mode=block')
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-  
-  // Add cache headers for static resources
-  if (pathname.match(/\.(jpg|jpeg|png|gif|webp|svg|ico|css|js|woff|woff2|ttf)$/)) {
-    response.headers.set('Cache-Control', 'public, max-age=31536000, immutable')
-  }
-  
-  // Add cache headers for API routes
-  if (pathname.startsWith('/api/')) {
-    response.headers.set('Cache-Control', 'no-store, must-revalidate')
-  }
   
   return response
 }

@@ -1,10 +1,10 @@
 import fs from 'fs/promises'
 import path from 'path'
 import { updateVercelCron, cronToReadable } from './updateCron'
+import { supabaseAdmin } from '@/lib/supabase'
 
 const DATA_DIR = path.join(process.cwd(), 'data')
 const BACKUP_DIR = path.join(process.cwd(), 'backups')
-const CONFIG_FILE = path.join(process.cwd(), 'data', 'backup-config.json')
 
 // ไฟล์ข้อมูลที่สามารถสำรองได้ทั้งหมด
 export const AVAILABLE_FILES = [
@@ -69,24 +69,62 @@ const DEFAULT_CONFIG: BackupConfig = {
 }
 
 /**
- * โหลดการตั้งค่า backup
+ * โหลดการตั้งค่า backup จาก database
  */
 export async function loadBackupConfig(): Promise<BackupConfig> {
   try {
-    const data = await fs.readFile(CONFIG_FILE, 'utf-8')
-    return { ...DEFAULT_CONFIG, ...JSON.parse(data) }
-  } catch {
+    const { data, error } = await supabaseAdmin
+      .from('backup_config')
+      .select('*')
+      .single()
+    
+    if (error || !data) {
+      // ถ้าไม่มีข้อมูล ให้สร้างค่าเริ่มต้น
+      await supabaseAdmin
+        .from('backup_config')
+        .insert([DEFAULT_CONFIG])
+      return DEFAULT_CONFIG
+    }
+    
+    return {
+      ...DEFAULT_CONFIG,
+      ...data,
+      selectedFiles: data.selected_files || DEFAULT_CONFIG.selectedFiles,
+      backupTime: data.backup_time || DEFAULT_CONFIG.backupTime,
+      customDays: data.custom_days || DEFAULT_CONFIG.customDays,
+      autoDelete: data.auto_delete ?? DEFAULT_CONFIG.autoDelete,
+      lastBackup: data.last_backup || undefined,
+      backupHistory: []
+    }
+  } catch (err) {
+    console.error('Error loading backup config:', err)
     return DEFAULT_CONFIG
   }
 }
 
 /**
- * บันทึกการตั้งค่า backup และอัพเดต vercel.json
+ * บันทึกการตั้งค่า backup ลง database และอัพเดต vercel.json
  */
 export async function saveBackupConfig(config: BackupConfig): Promise<{ success: boolean; message: string; cronExpression?: string }> {
   try {
-    // บันทึกการตั้งค่าลง config file
-    await fs.writeFile(CONFIG_FILE, JSON.stringify(config, null, 2))
+    // บันทึกลง database
+    const { error } = await supabaseAdmin
+      .from('backup_config')
+      .upsert({
+        enabled: config.enabled,
+        schedule: config.schedule,
+        custom_days: config.customDays,
+        backup_time: config.backupTime,
+        selected_files: config.selectedFiles,
+        auto_delete: config.autoDelete,
+        last_backup: config.lastBackup,
+        updated_at: new Date().toISOString()
+      })
+    
+    if (error) {
+      console.error('Error saving backup config:', error)
+      return { success: false, message: '❌ ไม่สามารถบันทึกการตั้งค่าได้' }
+    }
     
     // อัพเดต vercel.json ด้วย cron schedule ใหม่
     const cronResult = await updateVercelCron(
@@ -203,29 +241,48 @@ export async function createBackup(options?: { selectedFiles?: string[], autoDel
       JSON.stringify(metadata, null, 2)
     )
 
-    // บันทึกประวัติ backup ลง config
+    // บันทึกประวัติ backup ลง database
     const year = now.getFullYear()
     const month = String(now.getMonth() + 1).padStart(2, '0')
     const backupName = `backup-day${day}_${time}`
     const monthStr = `${year}-${month}`
     
-    const backupRecord: BackupRecord = {
-      name: backupName,
-      month: monthStr,
-      date: now.toISOString(),
-      files: backedUpFileNames,
-      exists: true
-    }
+    // บันทึกลง database
+    console.log('📝 Saving backup to database...', {
+      backup_name: backupName,
+      backup_month: monthStr,
+      files_count: backedUpFileNames.length
+    })
     
-    // เพิ่มประวัติใหม่ลงใน config
-    if (!config.backupHistory) {
-      config.backupHistory = []
+    const { data: insertData, error: insertError } = await supabaseAdmin
+      .from('backup_history')
+      .insert({
+        backup_name: backupName,
+        backup_month: monthStr,
+        backup_date: now.toISOString(),
+        files_backed_up: backedUpFileNames,
+        size_bytes: backedUpFiles, // จำนวนไฟล์ที่สำรอง
+        status: 'completed'
+      })
+      .select()
+    
+    if (insertError) {
+      console.error('❌ Error saving backup history:', JSON.stringify(insertError, null, 2))
+    } else {
+      console.log('✅ Backup saved to database successfully!', insertData)
     }
-    config.backupHistory.unshift(backupRecord) // เพิ่มที่หัวลิสต์ (ใหม่สุด)
     
     // อัปเดต lastBackup ใน config
-    config.lastBackup = now.toISOString()
-    await saveBackupConfig(config)
+    const { error: updateError } = await supabaseAdmin
+      .from('backup_config')
+      .update({ last_backup: now.toISOString(), updated_at: now.toISOString() })
+      .eq('id', 1)
+    
+    if (updateError) {
+      console.error('❌ Error updating backup config:', JSON.stringify(updateError, null, 2))
+    } else {
+      console.log('✅ Backup config updated successfully!')
+    }
 
     return {
       success: true,
@@ -245,9 +302,6 @@ export async function createBackup(options?: { selectedFiles?: string[], autoDel
 
 /**
  * ลบ backup เก่าทั้งหมด
- */
-/**
- * ลบ backup ทั้งหมด (ทั้งไฟล์และประวัติใน config)
  */
 export async function deleteOldBackups(): Promise<void> {
   try {
@@ -274,10 +328,15 @@ export async function deleteOldBackups(): Promise<void> {
       }
     }
     
-    // ล้างประวัติ backup ใน config
-    const config = await loadBackupConfig()
-    config.backupHistory = []
-    await saveBackupConfig(config)
+    // ล้างประวัติ backup ใน database
+    const { error } = await supabaseAdmin
+      .from('backup_history')
+      .delete()
+      .neq('id', 0) // ลบทั้งหมด
+    
+    if (error) {
+      console.error('Error clearing backup history:', error)
+    }
     
     console.log('✅ ลบ backup ทั้งหมดและล้างประวัติเรียบร้อย')
   } catch (error) {
@@ -307,12 +366,16 @@ export async function deleteBackup(backupName: string, month: string): Promise<{
     await fs.rm(backupPath, { recursive: true, force: true })
     console.log(`🗑️ ลบ backup: ${month}/${backupName}`)
     
-    // อัพเดตประวัติใน config (ลบรายการนี้ออก)
-    const config = await loadBackupConfig()
-    config.backupHistory = config.backupHistory.filter(
-      (record) => !(record.name === backupName && record.month === month)
-    )
-    await saveBackupConfig(config)
+    // ลบประวัติจาก database
+    const { error } = await supabaseAdmin
+      .from('backup_history')
+      .delete()
+      .eq('backup_name', backupName)
+      .eq('backup_month', month)
+    
+    if (error) {
+      console.error('Error deleting backup history:', error)
+    }
     
     return {
       success: true,
@@ -348,12 +411,15 @@ export async function deleteBackupMonth(month: string): Promise<{ success: boole
     await fs.rm(monthPath, { recursive: true, force: true })
     console.log(`🗑️ ลบ backup เดือน: ${month}`)
     
-    // อัพเดตประวัติใน config (ลบรายการเดือนนี้ทั้งหมด)
-    const config = await loadBackupConfig()
-    config.backupHistory = config.backupHistory.filter(
-      (record) => record.month !== month
-    )
-    await saveBackupConfig(config)
+    // ลบประวัติเดือนนี้ทั้งหมดจาก database
+    const { error } = await supabaseAdmin
+      .from('backup_history')
+      .delete()
+      .eq('backup_month', month)
+    
+    if (error) {
+      console.error('Error deleting backup month history:', error)
+    }
     
     return {
       success: true,
@@ -369,7 +435,7 @@ export async function deleteBackupMonth(month: string): Promise<{ success: boole
 }
 
 /**
- * แสดงรายการ backup ทั้งหมด (อ่านจาก config แล้วตรวจสอบว่าไฟล์ยังมีอยู่)
+ * แสดงรายการ backup ทั้งหมด (อ่านจาก database และตรวจสอบว่าไฟล์ยังมีอยู่)
  */
 export async function listBackups(): Promise<Array<{
   name: string
@@ -382,22 +448,30 @@ export async function listBackups(): Promise<Array<{
   try {
     await ensureBackupDir()
     
-    // โหลดประวัติ backup จาก config
-    const config = await loadBackupConfig()
+    // โหลดประวัติ backup จาก database
+    const { data: backupRecords, error } = await supabaseAdmin
+      .from('backup_history')
+      .select('*')
+      .order('backup_date', { ascending: false })
     
-    if (!config.backupHistory || config.backupHistory.length === 0) {
-      console.log('No backup history in config')
+    if (error) {
+      console.error('Error loading backup history:', error)
+      return []
+    }
+    
+    if (!backupRecords || backupRecords.length === 0) {
+      console.log('No backup history in database')
       return []
     }
 
     // แปลง backup records เป็น format ที่ต้องการ และตรวจสอบว่าไฟล์ยังมีอยู่
     const backups = await Promise.all(
-      config.backupHistory.map(async (record) => {
-        const backupPath = path.join(BACKUP_DIR, record.month, record.name)
+      backupRecords.map(async (record) => {
+        const backupPath = path.join(BACKUP_DIR, record.backup_month, record.backup_name)
         
         // ตรวจสอบว่า backup folder ยังมีอยู่จริงหรือไม่
         let exists = false
-        let size: number | undefined
+        let size: number | undefined = record.size
         try {
           const stats = await fs.stat(backupPath)
           if (stats.isDirectory()) {
@@ -416,11 +490,11 @@ export async function listBackups(): Promise<Array<{
         }
         
         return {
-          name: record.name,
-          month: record.month,
-          date: new Date(record.date),
+          name: record.backup_name,
+          month: record.backup_month,
+          date: new Date(record.backup_date),
           path: backupPath,
-          size,
+          size: record.size_bytes,
           exists
         }
       })

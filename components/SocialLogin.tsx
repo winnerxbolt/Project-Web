@@ -94,9 +94,21 @@ export default function SocialLogin({ mode = 'login', onSuccess, className = '' 
           })
           
           // Wait for init to complete before marking as loaded
-          window.FB.getLoginStatus(() => {
+          // Check if page is HTTPS (required for FB.getLoginStatus)
+          if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+            try {
+              window.FB.getLoginStatus(() => {
+                setScriptsLoaded(prev => ({ ...prev, facebook: true }))
+              })
+            } catch (error) {
+              console.warn('FB.getLoginStatus error:', error)
+              setScriptsLoaded(prev => ({ ...prev, facebook: true }))
+            }
+          } else {
+            // For HTTP/localhost, just mark as loaded
+            console.log('Skipping FB.getLoginStatus (HTTPS required)')
             setScriptsLoaded(prev => ({ ...prev, facebook: true }))
-          })
+          }
         }
       }
 

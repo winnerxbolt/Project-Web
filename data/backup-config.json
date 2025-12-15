@@ -31,9 +31,9 @@
   "autoDelete": false,
   "backupHistory": [
     {
-      "name": "backup-day12_13-43",
+      "name": "backup-day15_12-13",
       "month": "2025-12",
-      "date": "2025-12-12T06:43:52.176Z",
+      "date": "2025-12-15T05:13:43.924Z",
       "files": [
         "users.json",
         "sessions.json",
@@ -61,5 +61,5 @@
       "exists": true
     }
   ],
-  "lastBackup": "2025-12-12T06:43:52.176Z"
+  "lastBackup": "2025-12-15T05:13:43.924Z"
 }

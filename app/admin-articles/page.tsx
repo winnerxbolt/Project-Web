@@ -109,6 +109,8 @@ function ArticlesAdminContent() {
       ...(editingArticle && { id: editingArticle.id })
     }
 
+    console.log('📤 Submitting article:', body)
+
     try {
       const method = editingArticle ? 'PUT' : 'POST'
       const res = await fetch('/api/articles', {
@@ -118,15 +120,20 @@ function ArticlesAdminContent() {
         credentials: 'include'
       })
 
+      const data = await res.json()
+      console.log('📥 Response:', data)
+
       if (res.ok) {
+        alert('✅ บันทึกบทความสำเร็จ')
         setShowModal(false)
         fetchArticles()
       } else {
-        alert('Failed to save article')
+        console.error('❌ Error response:', data)
+        alert(`Failed to save article: ${data.error || 'Unknown error'}`)
       }
     } catch (error) {
-      console.error('Save error:', error)
-      alert('Failed to save article')
+      console.error('❌ Save error:', error)
+      alert('Failed to save article: Network error')
     }
   }
 

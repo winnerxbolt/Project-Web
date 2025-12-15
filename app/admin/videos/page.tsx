@@ -25,15 +25,21 @@ import { useToast } from '@/hooks/useToast';
 
 interface Video {
   id: string;
+  room_id?: number;
+  video_url: string;
+  thumbnail_url?: string;
   title: string;
-  description: string;
-  youtubeUrl: string;
-  thumbnailUrl?: string;
-  category: 'poolvilla' | 'room_tour' | 'amenities' | 'promotion' | 'other';
-  tags: string[];
-  isActive: boolean;
-  viewCount: number;
-  createdAt: string;
+  description?: string;
+  duration?: number;
+  order_index?: number;
+  active: boolean;
+  created_at: string;
+  // Legacy fields for compatibility
+  youtubeUrl?: string;
+  category?: 'poolvilla' | 'room_tour' | 'amenities' | 'promotion' | 'other';
+  tags?: string[];
+  isActive?: boolean;
+  viewCount?: number;
   notification?: {
     enabled: boolean;
     type: 'promotion' | 'discount' | 'special_event' | 'new_video';
@@ -77,14 +83,43 @@ export default function AdminVideosPage() {
 
   const fetchVideos = async () => {
     try {
+      setLoading(true);
       const response = await fetch('/api/videos');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch videos');
+      }
+      
       const data = await response.json();
-      setVideos(data);
+      
+      // Transform data for display
+      const transformedVideos = data.map((video: any) => ({
+        ...video,
+        youtubeUrl: video.video_url || video.youtubeUrl,
+        thumbnailUrl: video.thumbnail_url || video.thumbnailUrl,
+        isActive: video.active !== undefined ? video.active : video.isActive,
+        category: getCategoryFromUrl(video.video_url || video.youtubeUrl) || 'other',
+        tags: video.tags || [],
+        viewCount: 0,
+      }));
+      
+      setVideos(transformedVideos);
     } catch (error) {
       console.error('Error fetching videos:', error);
+      showError('ไม่สามารถโหลดข้อมูลวิดีโอได้');
     } finally {
       setLoading(false);
     }
+  };
+
+  const getCategoryFromUrl = (url: string): string => {
+    if (!url) return 'other';
+    const lowerUrl = url.toLowerCase();
+    if (lowerUrl.includes('poolvilla') || lowerUrl.includes('pool')) return 'poolvilla';
+    if (lowerUrl.includes('room') || lowerUrl.includes('tour')) return 'room_tour';
+    if (lowerUrl.includes('promo') || lowerUrl.includes('discount')) return 'promotion';
+    if (lowerUrl.includes('amenities') || lowerUrl.includes('facility')) return 'amenities';
+    return 'other';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -94,10 +129,18 @@ export default function AdminVideosPage() {
       const url = '/api/videos';
       const method = editingVideo ? 'PUT' : 'POST';
 
-      // Always send both isActive and active for compatibility
-      const payload = editingVideo
-        ? { ...formData, id: editingVideo.id, notifyUsers: formData.notification.enabled, active: formData.isActive }
-        : { ...formData, isActive: true, active: true };
+      // Prepare payload for Supabase
+      const payload = {
+        ...(editingVideo && { id: editingVideo.id }),
+        video_url: formData.youtubeUrl,
+        title: formData.title,
+        description: formData.description,
+        active: formData.isActive,
+        order_index: editingVideo?.order_index || 0,
+        tags: formData.tags,
+        category: formData.category,
+        notification: formData.notification.enabled ? formData.notification : null,
+      };
 
       const response = await fetch(url, {
         method,
@@ -111,24 +154,25 @@ export default function AdminVideosPage() {
         resetForm();
         fetchVideos();
       } else {
-        showError('เกิดข้อผิดพลาด');
+        const errorData = await response.json();
+        showError(errorData.error || 'เกิดข้อผิดพลาด');
       }
     } catch (error) {
       console.error('Error saving video:', error);
-      showError('เกิดข้อผิดพลาด');
+      showError('เกิดข้อผิดพลาดในการบันทึกข้อมูล');
     }
   };
 
   const handleEdit = (video: Video) => {
     setEditingVideo(video);
     setFormData({
-      title: video.title,
-      description: video.description,
-      youtubeUrl: video.youtubeUrl,
-      category: video.category,
-      tags: video.tags,
+      title: video.title || '',
+      description: video.description || '',
+      youtubeUrl: video.youtubeUrl || video.video_url || '',
+      category: video.category || 'poolvilla',
+      tags: video.tags || [],
       tagInput: '',
-      isActive: video.isActive,
+      isActive: video.isActive !== undefined ? video.isActive : video.active,
       notification: {
         enabled: video.notification?.enabled || false,
         type: video.notification?.type || 'new_video',
@@ -142,20 +186,28 @@ export default function AdminVideosPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('ยืนยันการลบวิดีโอ?')) return;
+    if (!confirm('คุณแน่ใจหรือไม่ที่จะลบวิดีโอนี้?\n\nการลบจะลบข้อมูลออกจาก Database ถาวร')) return;
 
     try {
+      setLoading(true);
       const response = await fetch(`/api/videos?id=${id}`, {
         method: 'DELETE',
       });
 
       if (response.ok) {
         success('ลบวิดีโอสำเร็จ!');
-        fetchVideos();
+        // Remove from local state immediately
+        setVideos(videos.filter(v => v.id !== id));
+        await fetchVideos(); // Refresh from database
+      } else {
+        const errorData = await response.json();
+        showError(errorData.error || 'เกิดข้อผิดพลาดในการลบวิดีโอ');
       }
     } catch (error) {
       console.error('Error deleting video:', error);
       showError('เกิดข้อผิดพลาดในการลบวิดีโอ');
+    } finally {
+      setLoading(false);
     }
   };
 

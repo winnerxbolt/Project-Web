@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { findUserByEmail, verifyUserPassword } from '../../../../lib/server/auth'
+import { findUserByEmail, verifyUserPassword, createSession } from '../../../../lib/server/auth'
 import { checkLoginRateLimit, getClientIdentifier } from '../../../../lib/security/rateLimit'
 import { isValidEmail, sanitizeString } from '../../../../lib/security/validation'
 import { addSecurityHeaders, getRateLimitHeaders } from '../../../../lib/security/headers'
@@ -68,6 +68,13 @@ export async function POST(req: Request) {
       name: sanitizeString(user.name),
       role: user.role || 'user'
     })
+
+    // 💾 บันทึก session ลง database
+    const userAgent = req.headers.get('user-agent') || 'Unknown'
+    const forwarded = req.headers.get('x-forwarded-for')
+    const ipAddress = forwarded ? forwarded.split(',')[0] : req.headers.get('x-real-ip') || 'Unknown'
+    
+    await createSession(user.id, token, ipAddress, userAgent)
 
     const userData = { 
       id: user.id, 
