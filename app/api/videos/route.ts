@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category');
     const activeOnly = searchParams.get('activeOnly') === 'true';
     const roomId = searchParams.get('roomId');
+    const published = searchParams.get('published');
 
     let query = supabase.from('videos').select('*');
 
@@ -34,8 +35,12 @@ export async function GET(request: NextRequest) {
       query = query.eq('room_id', parseInt(roomId));
     }
 
-    if (activeOnly) {
+    if (activeOnly || published === 'true') {
       query = query.eq('active', true);
+    }
+
+    if (category && category !== 'all') {
+      query = query.eq('category', category);
     }
 
     // Sort by order_index and created date
@@ -65,10 +70,11 @@ export async function POST(request: NextRequest) {
     const videoData = {
       room_id: body.roomId || body.room_id || null,
       video_url: body.youtubeUrl || body.videoUrl || body.video_url,
-      thumbnail_url: body.thumbnailUrl || body.thumbnail_url || extractYoutubeThumbnail(body.youtubeUrl || body.video_url),
+      thumbnail_url: body.thumbnailUrl || body.thumbnail_url || extractYoutubeThumbnail(body.youtubeUrl || body.videoUrl || body.video_url),
       title: body.title,
       description: body.description || null,
       duration: body.duration || null,
+      category: body.category || 'general',
       order_index: body.orderIndex || body.order_index || 0,
       active: body.isActive !== undefined ? body.isActive : (body.active !== undefined ? body.active : true)
     };
@@ -111,8 +117,8 @@ export async function PUT(request: NextRequest) {
     if (updates.room_id !== undefined || updates.roomId !== undefined) {
       videoUpdates.room_id = updates.room_id || updates.roomId;
     }
-    if (updates.video_url !== undefined || updates.youtubeUrl !== undefined) {
-      videoUpdates.video_url = updates.video_url || updates.youtubeUrl;
+    if (updates.video_url !== undefined || updates.youtubeUrl !== undefined || updates.videoUrl !== undefined) {
+      videoUpdates.video_url = updates.video_url || updates.videoUrl || updates.youtubeUrl;
     }
     if (updates.thumbnail_url !== undefined || updates.thumbnailUrl !== undefined) {
       videoUpdates.thumbnail_url = updates.thumbnail_url || updates.thumbnailUrl;
@@ -120,6 +126,7 @@ export async function PUT(request: NextRequest) {
     if (updates.title !== undefined) videoUpdates.title = updates.title;
     if (updates.description !== undefined) videoUpdates.description = updates.description;
     if (updates.duration !== undefined) videoUpdates.duration = updates.duration;
+    if (updates.category !== undefined) videoUpdates.category = updates.category;
     if (updates.order_index !== undefined || updates.orderIndex !== undefined) {
       videoUpdates.order_index = updates.order_index !== undefined ? updates.order_index : updates.orderIndex;
     }

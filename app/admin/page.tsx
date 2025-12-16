@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import RoomCalendar from '@/components/RoomCalendar'
 import { useAuth } from '@/contexts/AuthContext'
-import { FaHotel, FaCalendarCheck, FaDollarSign, FaUsers, FaPlus, FaEdit, FaUserShield, FaSearch, FaTimes, FaCalendarAlt, FaFire, FaCrown, FaChartLine, FaDatabase, FaComments, FaQuestionCircle, FaRobot, FaMapMarkedAlt, FaImages, FaEnvelope, FaShieldAlt, FaBan, FaMobileAlt, FaUndo } from 'react-icons/fa'
+import { FaHotel, FaCalendarCheck, FaDollarSign, FaUsers, FaPlus, FaEdit, FaUserShield, FaSearch, FaTimes, FaCalendarAlt, FaFire, FaCrown, FaChartLine, FaDatabase, FaComments, FaQuestionCircle, FaRobot, FaMapMarkedAlt, FaImages, FaEnvelope, FaShieldAlt, FaBan, FaMobileAlt, FaUndo, FaCheckCircle, FaStar } from 'react-icons/fa'
 import { containsProfanity } from '@/lib/profanityFilter'
 import AdminStats from '@/components/AdminStats'
 import AdminButton from '@/components/AdminButton'
@@ -70,9 +71,32 @@ interface RoomFormData {
   cancellationPolicy?: string
 }
 
+interface User {
+  id: string | number
+  name?: string
+  email: string
+  role: string
+  phone?: string
+  picture?: string
+  isVerified: boolean
+  createdAt: string
+  updatedAt?: string
+}
+
+interface SystemSetting {
+  id: string
+  systemKey: string
+  systemName: string
+  description?: string
+  isEnabled: boolean
+  createdAt: string
+  updatedAt: string
+}
+
 export default function AdminPage() {
+  const router = useRouter()
   const { promoteToAdmin, demoteFromAdmin } = useAuth()
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'rooms' | 'calendar' | 'users'>('dashboard')
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'rooms' | 'calendar' | 'users' | 'settings' | 'bookings' | 'payments' | 'promotions' | 'reports' | 'notifications' | 'reviews' | 'articles' | 'videos'>('dashboard')
   const [searchEmail, setSearchEmail] = useState('')
   const [demoteEmail, setDemoteEmail] = useState('')
   const [message, setMessage] = useState('')
@@ -127,6 +151,23 @@ export default function AdminPage() {
   const [note, setNote] = useState('')
   const [calendarMessage, setCalendarMessage] = useState('')
   const [calendarKey, setCalendarKey] = useState(0) // สำหรับ force refresh calendar
+
+  // Users management states
+  const [users, setUsers] = useState<User[]>([])
+  const [userSearch, setUserSearch] = useState('')
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([])
+
+  // System settings states
+  const [systemSettings, setSystemSettings] = useState<SystemSetting[]>([])
+  const [settingsLoading, setSettingsLoading] = useState(false)
+
+  // Stats
+  const [stats, setStats] = useState({
+    totalRooms: 0,
+    availableRooms: 0,
+    totalBookings: 0,
+    totalRevenue: 0
+  })
 
   // Image upload handlers
   const convertToBase64 = (file: File): Promise<string> => {
@@ -237,9 +278,117 @@ export default function AdminPage() {
       
       // แล้วค่อยโหลดข้อมูล
       fetchRooms()
+      fetchUsers()
+      fetchSystemSettings()
     }
     initializeAdmin()
   }, [])
+
+  // Filter users based on search
+  useEffect(() => {
+    if (userSearch.trim() === '') {
+      setFilteredUsers(users)
+    } else {
+      const search = userSearch.toLowerCase()
+      setFilteredUsers(
+        users.filter(user => 
+          user.name?.toLowerCase().includes(search) ||
+          user.email?.toLowerCase().includes(search)
+        )
+      )
+    }
+  }, [userSearch, users])
+
+  const fetchUsers = async () => {
+    try {
+      console.log('🔄 Fetching users from API...')
+      const response = await fetch('/api/users')
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log('✅ Users fetched:', data.count || 0, 'users')
+        console.log('📊 Users data:', data.users)
+        setUsers(data.users || [])
+        
+        if (data.users && data.users.length === 0) {
+          console.log('⚠️ No users found in database')
+        }
+      } else {
+        const errorData = await response.json()
+        console.error('❌ Failed to fetch users:', errorData)
+        setError('ไม่สามารถดึงข้อมูลผู้ใช้ได้')
+      }
+    } catch (error) {
+      console.error('❌ Error fetching users:', error)
+      setError('เกิดข้อผิดพลาดในการเชื่อมต่อ')
+    }
+  }
+
+  const fetchSystemSettings = async () => {
+    try {
+      console.log('🔄 Fetching system settings from API...')
+      const response = await fetch('/api/admin/system-settings')
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log('✅ System settings fetched:', data.settings?.length || 0, 'settings')
+        setSystemSettings(data.settings || [])
+      } else {
+        console.error('❌ Failed to fetch system settings')
+      }
+    } catch (error) {
+      console.error('❌ Error fetching system settings:', error)
+    }
+  }
+
+  const toggleSystemSetting = async (systemKey: string, currentStatus: boolean) => {
+    try {
+      setSettingsLoading(true)
+      console.log('🔄 Toggling system setting:', systemKey, '→', !currentStatus)
+
+      const response = await fetch('/api/admin/system-settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemKey,
+          isEnabled: !currentStatus
+        })
+      })
+
+      if (response.ok) {
+        console.log('✅ System setting updated')
+        setMessage(`อัพเดทการตั้งค่า ${systemKey} สำเร็จ`)
+        setTimeout(() => setMessage(''), 3000)
+        // Refresh settings
+        await fetchSystemSettings()
+      } else {
+        const errorData = await response.json()
+        console.error('❌ Failed to update system setting:', errorData)
+        setError('ไม่สามารถอัพเดทการตั้งค่าได้')
+        setTimeout(() => setError(''), 3000)
+      }
+    } catch (error) {
+      console.error('❌ Error toggling system setting:', error)
+      setError('เกิดข้อผิดพลาดในการเชื่อมต่อ')
+      setTimeout(() => setError(''), 3000)
+    } finally {
+      setSettingsLoading(false)
+    }
+  }
+
+  const calculateStats = () => {
+    setStats({
+      totalRooms: rooms.length,
+      availableRooms: rooms.filter(r => r.available).length,
+      totalBookings: 0,
+      totalRevenue: 0
+    })
+  }
+
+  // Update stats when rooms change
+  useEffect(() => {
+    calculateStats()
+  }, [rooms])
 
   const fetchRooms = async () => {
     try {
@@ -257,11 +406,6 @@ export default function AdminPage() {
     } catch (error) {
       console.error('Error fetching rooms:', error)
     }
-  }
-
-  const stats = {
-    totalRooms: rooms.length,
-    availableRooms: rooms.filter((r) => r.available).length,
   }
 
   const handlePromoteUser = async (e: React.FormEvent) => {
@@ -676,6 +820,56 @@ export default function AdminPage() {
     }
   }, [rooms])
 
+  const handlePromoteToAdmin = async (userId: number) => {
+    if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการให้สิทธิ์ Admin แก่ผู้ใช้นี้?')) {
+      return
+    }
+
+    try {
+      const response = await fetch('/api/users/promote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId })
+      })
+
+      if (response.ok) {
+        setMessage('✅ ให้สิทธิ์ Admin สำเร็จ')
+        fetchUsers()
+        setTimeout(() => setMessage(''), 3000)
+      } else {
+        setError('❌ เกิดข้อผิดพลาดในการให้สิทธิ์')
+      }
+    } catch (error) {
+      setError('❌ เกิดข้อผิดพลาด')
+      console.error('Error promoting user:', error)
+    }
+  }
+
+  const handleDemoteFromAdmin = async (userId: number) => {
+    if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการถอดสิทธิ์ Admin ของผู้ใช้นี้?')) {
+      return
+    }
+
+    try {
+      const response = await fetch('/api/users/demote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId })
+      })
+
+      if (response.ok) {
+        setMessage('✅ ถอดสิทธิ์ Admin สำเร็จ')
+        fetchUsers()
+        setTimeout(() => setMessage(''), 3000)
+      } else {
+        setError('❌ เกิดข้อผิดพลาดในการถอดสิทธิ์')
+      }
+    } catch (error) {
+      setError('❌ เกิดข้อผิดพลาด')
+      console.error('Error demoting user:', error)
+    }
+  }
+
   return (
     <main className="min-h-screen bg-gradient-to-br from-pool-light via-white to-tropical-mint/20">
       <Navbar />
@@ -702,266 +896,251 @@ export default function AdminPage() {
 
           {/* Main Navigation Tabs */}
           <div className="flex flex-wrap justify-center gap-3 mb-8">
-            <button
-              onClick={() => setActiveTab('dashboard')}
-              className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 flex items-center gap-2 ${
-                activeTab === 'dashboard'
-                  ? 'bg-gradient-to-r from-pool-blue to-pool-dark text-white shadow-pool scale-105'
-                  : 'bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200 hover:border-pool-blue hover:text-pool-blue'
-              }`}
-            >
-              <FaChartLine className="text-xl" />
-              <span>ภาพรวม</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('rooms')}
-              className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 flex items-center gap-2 ${
-                activeTab === 'rooms'
-                  ? 'bg-gradient-to-r from-tropical-orange to-luxury-gold text-white shadow-sunset scale-105'
-                  : 'bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200 hover:border-tropical-orange hover:text-tropical-orange'
-              }`}
-            >
-              <FaHotel className="text-xl" />
-              <span>จัดการบ้านพัก</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('calendar')}
-              className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 flex items-center gap-2 ${
-                activeTab === 'calendar'
-                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg scale-105'
-                  : 'bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200 hover:border-blue-500 hover:text-blue-500'
-              }`}
-            >
-              <FaCalendarAlt className="text-xl" />
-              <span>ปฏิทิน</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('users')}
-              className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 flex items-center gap-2 ${
-                activeTab === 'users'
-                  ? 'bg-gradient-to-r from-luxury-gold to-luxury-bronze text-white shadow-luxury scale-105'
-                  : 'bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200 hover:border-luxury-gold hover:text-luxury-gold'
-              }`}
-            >
-              <FaUserShield className="text-xl" />
-              <span>สิทธิ์ผู้ใช้</span>
-            </button>
-          </div>
-
-          {/* Admin Management Grid - จัดเป็นหมวดหมู่ */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            {/* จัดการจองและการชำระเงิน */}
-            <button
-              onClick={() => window.location.href = '/admin/bookings'}
-              className="px-5 py-4 font-semibold rounded-xl transition-all duration-300 flex items-center gap-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:shadow-xl hover:scale-105"
-            >
-              <FaCalendarCheck className="text-2xl" />
-              <span>จัดการจอง</span>
-            </button>
+            {/* Dashboard - อ่านสถานะจาก database */}
+            {systemSettings.find(s => s.systemKey === 'dashboard')?.isEnabled !== false && (
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 ${
+                  activeTab === 'dashboard'
+                    ? 'bg-gradient-to-r from-pool-blue to-pool-dark text-white shadow-xl scale-105'
+                    : 'bg-white text-gray-600 border-2 border-gray-200 hover:border-pool-blue hover:text-pool-blue'
+                }`}
+              >
+                <FaChartLine className="text-xl inline mr-2" />
+                <span>ภาพรวม</span>
+              </button>
+            )}
             
+            {/* System Settings - แสดงเสมอ */}
             <button
-              onClick={() => window.location.href = '/admin/payments'}
-              className="px-5 py-4 font-semibold rounded-xl transition-all duration-300 flex items-center gap-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white hover:shadow-xl hover:scale-105"
+              onClick={() => setActiveTab('settings')}
+              className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 ${
+                activeTab === 'settings'
+                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-xl scale-105'
+                  : 'bg-white text-gray-600 border-2 border-gray-200 hover:border-purple-600 hover:text-purple-600'
+              }`}
             >
-              <FaDollarSign className="text-2xl" />
-              <span>จัดการการชำระเงิน</span>
+              <FaDatabase className="text-xl inline mr-2" />
+              <span>ตั้งค่าระบบ</span>
             </button>
 
-            <button
-              onClick={() => window.location.href = '/admin/refunds'}
-              className="px-5 py-4 font-semibold rounded-xl transition-all duration-300 flex items-center gap-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-xl hover:scale-105"
-            >
-              <FaUndo className="text-2xl" />
-              <span>💰 จัดการคืนเงิน</span>
-            </button>
+            {/* Rooms - อ่านสถานะจาก database */}
+            {systemSettings.find(s => s.systemKey === 'rooms')?.isEnabled ? (
+              <button
+                onClick={() => setActiveTab('rooms')}
+                className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 ${
+                  activeTab === 'rooms'
+                    ? 'bg-gradient-to-r from-pool-blue to-pool-dark text-white shadow-xl scale-105'
+                    : 'bg-white text-gray-600 border-2 border-gray-200 hover:border-pool-blue hover:text-pool-blue'
+                }`}
+              >
+                <FaHotel className="text-xl inline mr-2" />
+                <span>จัดการบ้านพัก</span>
+              </button>
+            ) : (
+              <button
+                className="px-6 py-3 font-bold rounded-xl bg-white text-gray-400 border-2 border-gray-200 cursor-not-allowed opacity-50"
+                disabled
+              >
+                <FaHotel className="text-xl inline mr-2" />
+                <span>จัดการบ้านพัก (ปิดชั่วคราว)</span>
+              </button>
+            )}
 
-            <button
-              onClick={() => window.location.href = '/admin/coupons'}
-              className="px-5 py-4 font-semibold rounded-xl transition-all duration-300 flex items-center gap-3 bg-gradient-to-r from-orange-500 to-pink-600 text-white hover:shadow-xl hover:scale-105"
-            >
-              <FaFire className="text-2xl" />
-              <span>จัดการคูปอง</span>
-            </button>
+            {/* Calendar - อ่านสถานะจาก database */}
+            {systemSettings.find(s => s.systemKey === 'calendar')?.isEnabled ? (
+              <button
+                onClick={() => setActiveTab('calendar')}
+                className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 ${
+                  activeTab === 'calendar'
+                    ? 'bg-gradient-to-r from-pool-blue to-pool-dark text-white shadow-xl scale-105'
+                    : 'bg-white text-gray-600 border-2 border-gray-200 hover:border-pool-blue hover:text-pool-blue'
+                }`}
+              >
+                <FaCalendarAlt className="text-xl inline mr-2" />
+                <span>ปฏิทิน</span>
+              </button>
+            ) : (
+              <button
+                className="px-6 py-3 font-bold rounded-xl bg-white text-gray-400 border-2 border-gray-200 cursor-not-allowed opacity-50"
+                disabled
+              >
+                <FaCalendarAlt className="text-xl inline mr-2" />
+                <span>ปฏิทิน (ปิดชั่วคราว)</span>
+              </button>
+            )}
 
-            {/* ระบบการจองขั้นสูง */}
-            <button
-              onClick={() => window.location.href = '/admin/dynamic-pricing'}
-              className="px-5 py-4 font-semibold rounded-xl transition-all duration-300 flex items-center gap-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-xl hover:scale-105"
-            >
-              <FaChartLine className="text-2xl" />
-              <span>💰 ปรับราคาอัตโนมัติ</span>
-            </button>
+            {/* Users - อ่านสถานะจาก database */}
+            {systemSettings.find(s => s.systemKey === 'users')?.isEnabled !== false && (
+              <button
+                onClick={() => setActiveTab('users')}
+                className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 ${
+                  activeTab === 'users'
+                    ? 'bg-gradient-to-r from-luxury-gold to-luxury-bronze text-gray-900 shadow-xl scale-105'
+                    : 'bg-white text-gray-600 border-2 border-gray-200 hover:border-luxury-gold hover:text-luxury-gold'
+                }`}
+              >
+                <FaUserShield className="text-xl inline mr-2" />
+                <span>สิทธิ์ผู้ใช้</span>
+              </button>
+            )}
 
-            <button
-              onClick={() => window.location.href = '/admin/blackout-dates'}
-              className="px-5 py-4 font-semibold rounded-xl transition-all duration-300 flex items-center gap-3 bg-gradient-to-r from-red-600 to-orange-600 text-white hover:shadow-xl hover:scale-105"
-            >
-              <FaBan className="text-2xl" />
-              <span>📅 วันหยุด & ราคาตามฤดู</span>
-            </button>
+            {/* Bookings */}
+            {systemSettings.find(s => s.systemKey === 'bookings')?.isEnabled && (
+              <button
+                onClick={() => setActiveTab('bookings')}
+                className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 ${
+                  activeTab === 'bookings'
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xl scale-105'
+                    : 'bg-white text-gray-600 border-2 border-gray-200 hover:border-blue-600 hover:text-blue-600'
+                }`}
+              >
+                <FaCalendarCheck className="text-xl inline mr-2" />
+                <span>จัดการจอง</span>
+              </button>
+            )}
 
-            {/* ปิดระบบจองหมู่คณะชั่วคราว */}
-            {/* <button
-              onClick={() => window.location.href = '/admin/group-bookings'}
-              className="px-5 py-4 font-semibold rounded-xl transition-all duration-300 flex items-center gap-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:shadow-xl hover:scale-105"
-            >
-              <FaUsers className="text-2xl" />
-              <span>👨‍👩‍👧‍👦 จองหมู่คณะ</span>
-            </button> */}
+            {/* Payments */}
+            {systemSettings.find(s => s.systemKey === 'payments')?.isEnabled && (
+              <button
+                onClick={() => setActiveTab('payments')}
+                className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 ${
+                  activeTab === 'payments'
+                    ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white shadow-xl scale-105'
+                    : 'bg-white text-gray-600 border-2 border-gray-200 hover:border-green-600 hover:text-green-600'
+                }`}
+              >
+                <FaDollarSign className="text-xl inline mr-2" />
+                <span>การชำระเงิน</span>
+              </button>
+            )}
 
-            <button
-              onClick={() => window.location.href = '/admin/insurance'}
-              className="px-5 py-4 font-semibold rounded-xl transition-all duration-300 flex items-center gap-3 bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:shadow-xl hover:scale-105"
-            >
-              <FaShieldAlt className="text-2xl" />
-              <span>🛡️ ประกันการจอง</span>
-            </button>
+            {/* Promotions */}
+            {systemSettings.find(s => s.systemKey === 'promotions')?.isEnabled && (
+              <button
+                onClick={() => setActiveTab('promotions')}
+                className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 ${
+                  activeTab === 'promotions'
+                    ? 'bg-gradient-to-r from-orange-600 to-red-600 text-white shadow-xl scale-105'
+                    : 'bg-white text-gray-600 border-2 border-gray-200 hover:border-orange-600 hover:text-orange-600'
+                }`}
+              >
+                <FaFire className="text-xl inline mr-2" />
+                <span>โปรโมชั่น</span>
+              </button>
+            )}
 
-            {/* ระบบสื่อสารและการตลาด */}
-            <button
-              onClick={() => window.location.href = '/admin/email'}
-              className="px-5 py-4 font-semibold rounded-xl transition-all duration-300 flex items-center gap-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white hover:shadow-xl hover:scale-105"
-            >
-              <FaEnvelope className="text-2xl" />
-              <span>📧 Email System</span>
-            </button>
+            {/* Reports */}
+            {systemSettings.find(s => s.systemKey === 'reports')?.isEnabled && (
+              <button
+                onClick={() => setActiveTab('reports')}
+                className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 ${
+                  activeTab === 'reports'
+                    ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-xl scale-105'
+                    : 'bg-white text-gray-600 border-2 border-gray-200 hover:border-purple-600 hover:text-purple-600'
+                }`}
+              >
+                <FaChartLine className="text-xl inline mr-2" />
+                <span>รายงาน</span>
+              </button>
+            )}
 
-            <button
-              onClick={() => window.location.href = '/admin/email-marketing'}
-              className="px-5 py-4 font-semibold rounded-xl transition-all duration-300 flex items-center gap-3 bg-gradient-to-r from-pink-600 to-purple-600 text-white hover:shadow-xl hover:scale-105"
-            >
-              <FaEnvelope className="text-2xl" />
-              <span>Email Marketing</span>
-            </button>
+            {/* Notifications */}
+            {systemSettings.find(s => s.systemKey === 'notifications')?.isEnabled && (
+              <button
+                onClick={() => setActiveTab('notifications')}
+                className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 ${
+                  activeTab === 'notifications'
+                    ? 'bg-gradient-to-r from-yellow-600 to-orange-600 text-white shadow-xl scale-105'
+                    : 'bg-white text-gray-600 border-2 border-gray-200 hover:border-yellow-600 hover:text-yellow-600'
+                }`}
+              >
+                <FaEnvelope className="text-xl inline mr-2" />
+                <span>แจ้งเตือน</span>
+              </button>
+            )}
 
-            <button
-              onClick={() => window.location.href = '/admin/sms'}
-              className="px-5 py-4 font-semibold rounded-xl transition-all duration-300 flex items-center gap-3 bg-gradient-to-r from-purple-600 to-rose-600 text-white hover:shadow-xl hover:scale-105"
-            >
-              <FaMobileAlt className="text-2xl" />
-              <span>📱 SMS Notification</span>
-            </button>
+            {/* Reviews */}
+            {systemSettings.find(s => s.systemKey === 'reviews')?.isEnabled !== false && (
+              <button
+                onClick={() => setActiveTab('reviews')}
+                className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 ${
+                  activeTab === 'reviews'
+                    ? 'bg-gradient-to-r from-purple-600 to-purple-800 text-white shadow-xl scale-105'
+                    : 'bg-white text-gray-600 border-2 border-gray-200 hover:border-purple-600 hover:text-purple-600'
+                }`}
+              >
+                <FaCrown className="text-xl inline mr-2" />
+                <span>รีวิว</span>
+              </button>
+            )}
 
-            <button
-              onClick={() => window.location.href = '/admin-articles'}
-              className="px-5 py-4 font-semibold rounded-xl transition-all duration-300 flex items-center gap-3 bg-gradient-to-r from-teal-500 to-blue-600 text-white hover:shadow-xl hover:scale-105"
-            >
-              <FaDatabase className="text-2xl" />
-              <span>📝 จัดการบทความ</span>
-            </button>
+            {/* Articles */}
+            {systemSettings.find(s => s.systemKey === 'articles')?.isEnabled !== false && (
+              <button
+                onClick={() => setActiveTab('articles')}
+                className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 ${
+                  activeTab === 'articles'
+                    ? 'bg-gradient-to-r from-teal-600 to-blue-700 text-white shadow-xl scale-105'
+                    : 'bg-white text-gray-600 border-2 border-gray-200 hover:border-teal-600 hover:text-teal-600'
+                }`}
+              >
+                <FaDatabase className="text-xl inline mr-2" />
+                <span>บทความ</span>
+              </button>
+            )}
 
-            <button
-              onClick={() => window.location.href = '/admin/line'}
-              className="px-5 py-4 font-semibold rounded-xl transition-all duration-300 flex items-center gap-3 bg-gradient-to-r from-green-500 to-green-600 text-white hover:shadow-xl hover:scale-105"
-            >
-              <FaEnvelope className="text-2xl" />
-              <span>💬 LINE Notification</span>
-            </button>
-
-            <button
-              onClick={() => window.location.href = '/deville'}
-              className="px-5 py-4 font-semibold rounded-xl transition-all duration-300 flex items-center gap-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:shadow-xl hover:scale-105"
-            >
-              <FaDatabase className="text-2xl" />
-              <span>🏡 Deville Central API</span>
-            </button>
-
-            <button
-              onClick={() => window.location.href = '/admin/notifications'}
-              className="px-5 py-4 font-semibold rounded-xl transition-all duration-300 flex items-center gap-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white hover:shadow-xl hover:scale-105"
-            >
-              <FaDatabase className="text-2xl" />
-              <span>ระบบแจ้งเตือน</span>
-            </button>
-
-            {/* ระบบลูกค้าสัมพันธ์ */}
-            <button
-              onClick={() => window.location.href = '/admin/chat'}
-              className="px-5 py-4 font-semibold rounded-xl transition-all duration-300 flex items-center gap-3 bg-gradient-to-r from-blue-500 to-cyan-600 text-white hover:shadow-xl hover:scale-105"
-            >
-              <FaComments className="text-2xl" />
-              <span>แชท Live Chat</span>
-            </button>
-
-            <button
-              onClick={() => window.location.href = '/admin/reviews'}
-              className="px-5 py-4 font-semibold rounded-xl transition-all duration-300 flex items-center gap-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:shadow-xl hover:scale-105"
-            >
-              <FaCrown className="text-2xl" />
-              <span>จัดการรีวิว</span>
-            </button>
-
-            <button
-              onClick={() => window.location.href = '/admin/faq'}
-              className="px-5 py-4 font-semibold rounded-xl transition-all duration-300 flex items-center gap-3 bg-gradient-to-r from-green-500 to-teal-600 text-white hover:shadow-xl hover:scale-105"
-            >
-              <FaQuestionCircle className="text-2xl" />
-              <span>จัดการ FAQ</span>
-            </button>
-
-            <button
-              onClick={() => window.location.href = '/admin/auto-replies'}
-              className="px-5 py-4 font-semibold rounded-xl transition-all duration-300 flex items-center gap-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white hover:shadow-xl hover:scale-105"
-            >
-              <FaRobot className="text-2xl" />
-              <span>ตอบกลับอัตโนมัติ</span>
-            </button>
-
-            {/* ระบบคอนเทนต์และโซเชียล */}
-            <button
-              onClick={() => window.location.href = '/admin/gallery'}
-              className="px-5 py-4 font-semibold rounded-xl transition-all duration-300 flex items-center gap-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white hover:shadow-xl hover:scale-105"
-            >
-              <FaImages className="text-2xl" />
-              <span>จัดการแกลเลอรี่</span>
-            </button>
-
-            <button
-              onClick={() => window.location.href = '/admin/videos'}
-              className="px-5 py-4 font-semibold rounded-xl transition-all duration-300 flex items-center gap-3 bg-gradient-to-r from-red-500 to-pink-600 text-white hover:shadow-xl hover:scale-105"
-            >
-              <FaChartLine className="text-2xl" />
-              <span>จัดการวิดีโอ</span>
-            </button>
-
-            <button
-              onClick={() => window.location.href = '/admin/locations'}
-              className="px-5 py-4 font-semibold rounded-xl transition-all duration-300 flex items-center gap-3 bg-gradient-to-r from-red-500 to-orange-600 text-white hover:shadow-xl hover:scale-105"
-            >
-              <FaMapMarkedAlt className="text-2xl" />
-              <span>จัดการแผนที่</span>
-            </button>
-
-            <button
-              onClick={() => window.location.href = '/admin/social'}
-              className="px-5 py-4 font-semibold rounded-xl transition-all duration-300 flex items-center gap-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white hover:shadow-xl hover:scale-105"
-            >
-              <FaUsers className="text-2xl" />
-              <span>Social Media</span>
-            </button>
-
-            {/* ระบบข้อมูลและรายงาน */}
-            <button
-              onClick={() => window.location.href = '/admin/stats'}
-              className="px-5 py-4 font-semibold rounded-xl transition-all duration-300 flex items-center gap-3 bg-gradient-to-r from-cyan-500 to-blue-600 text-white hover:shadow-xl hover:scale-105"
-            >
-              <FaChartLine className="text-2xl" />
-              <span>รายงานและสถิติ</span>
-            </button>
-
-            <button
-              onClick={() => window.location.href = '/admin/backup'}
-              className="px-5 py-4 font-semibold rounded-xl transition-all duration-300 flex items-center gap-3 bg-gradient-to-r from-gray-600 to-gray-700 text-white hover:shadow-xl hover:scale-105"
-            >
-              <FaDatabase className="text-2xl" />
-              <span>Backup</span>
-            </button>
+            {/* Videos */}
+            {systemSettings.find(s => s.systemKey === 'videos')?.isEnabled && (
+              <button
+                onClick={() => setActiveTab('videos')}
+                className={`px-6 py-3 font-bold rounded-xl transition-all duration-300 ${
+                  activeTab === 'videos'
+                    ? 'bg-gradient-to-r from-red-600 to-pink-600 text-white shadow-xl scale-105'
+                    : 'bg-white text-gray-600 border-2 border-gray-200 hover:border-red-600 hover:text-red-600'
+                }`}
+              >
+                <FaChartLine className="text-xl inline mr-2" />
+                <span>วิดีโอ</span>
+              </button>
+            )}
           </div>
+
+          {/* ข้อความแจ้งเตือน */}
+          <div className="bg-blue-50 border-2 border-blue-400 rounded-xl p-6 text-center max-w-2xl mx-auto">
+            <div className="flex items-center justify-center gap-3 mb-2">
+              <FaCheckCircle className="text-blue-600 text-2xl" />
+              <h3 className="text-xl font-bold text-blue-800">ระบบที่เปิดใช้งาน</h3>
+            </div>
+            <p className="text-blue-700">
+              {systemSettings.filter(s => s.isEnabled).map(s => s.systemName).join(', ') || 'กำลังโหลด...'}
+            </p>
+          </div>
+
+          {/* ระบบอื่นๆ ที่ปิดไว้ชั่วคราว - แสดงเป็นสีเทา */}
+          {systemSettings.filter(s => !s.isEnabled && s.systemKey !== 'settings').length > 0 && (
+            <div className="mt-8">
+              <h3 className="text-xl font-bold text-gray-500 mb-4 text-center">
+                ระบบที่ปิดชั่วคราว ({systemSettings.filter(s => !s.isEnabled && s.systemKey !== 'settings').length} ระบบ)
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {systemSettings.filter(s => !s.isEnabled && s.systemKey !== 'settings').map(setting => (
+                  <div 
+                    key={setting.id}
+                    className="px-4 py-3 rounded-xl bg-gray-200 text-gray-600 flex items-center gap-2 cursor-not-allowed opacity-50"
+                  >
+                    <FaDatabase className="text-lg" />
+                    <span className="text-sm">{setting.systemName}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Dashboard Tab */}
           {activeTab === 'dashboard' && (
             <div>
-              {/* Stats Grid with new components */}
+              {/* Stats Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
                 <AdminStats
                   icon={<FaHotel />}
@@ -975,527 +1154,591 @@ export default function AdminPage() {
                   value={stats.availableRooms}
                   gradient="from-tropical-green to-tropical-lime"
                 />
+                <AdminStats
+                  icon={<FaUsers />}
+                  label="สมาชิกทั้งหมด"
+                  value={users.length}
+                  gradient="from-luxury-gold to-luxury-bronze"
+                />
+                <AdminStats
+                  icon={<FaStar />}
+                  label="รีวิวทั้งหมด"
+                  value={0}
+                  gradient="from-sunset-orange to-sunset-red"
+                />
               </div>
             </div>
-          )}
-
-          {/* Rooms Tab */}
-          {activeTab === 'rooms' && (
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">จัดการบ้านพัก</h2>
-                <button 
-                  onClick={openAddRoomModal}
-                  className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition"
-                >
-                  <FaPlus />
-                  <span>เพิ่มบ้านพักใหม่</span>
-                </button>
-              </div>
-
-              {message && (
-                <div className="mb-4 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
-                  {message}
-                </div>
-              )}
-
-              {error && (
-                <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-                  {error}
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {rooms.map((room) => (
-                  <div
-                    key={room.id}
-                    className="border border-gray-200 rounded-xl p-6 hover:shadow-lg transition"
-                  >
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-1">{room.name}</h3>
-                        <p className="text-2xl font-bold text-primary-600">
-                          ฿{room.price.toLocaleString()}
-                          <span className="text-sm text-gray-500 font-normal">/คืน</span>
-                        </p>
-                      </div>
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          room.available
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}
-                      >
-                        {room.available ? 'ว่าง' : 'ไม่ว่าง'}
-                      </span>
-                    </div>
-
-                    <div className="space-y-2 text-sm text-gray-600 mb-4">
-                      <p className="line-clamp-2">{room.description}</p>
-                      {room.beds && <p>เตียง: {room.beds}</p>}
-                      <p>รองรับผู้เข้าพัก: {room.guests} คน</p>
-                      {room.location && <p>สถานที่: {room.location}</p>}
-                    </div>
-
-                    <div className="flex space-x-2">
-                      <button 
-                        onClick={() => openEditRoomModal(room)}
-                        className="flex-1 py-2 border border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition"
-                      >
-                        แก้ไข
-                      </button>
-                      <button 
-                        onClick={() => handleDeleteRoom(room.id)}
-                        className="flex-1 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-                      >
-                        ลบ
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {rooms.length === 0 && (
-                <div className="text-center py-12 text-gray-500">
-                  <FaHotel className="mx-auto text-6xl mb-4 text-gray-300" />
-                  <p className="text-xl">ยังไม่มีบ้านพักในระบบ</p>
-                  <p className="text-sm mt-2">คลิกปุ่ม "เพิ่มบ้านพักใหม่" เพื่อเริ่มต้น</p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Calendar Management Tab */}
-          {activeTab === 'calendar' && (
-            <AdminCard variant="glass" hover={false}>
-              <div className="mb-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl">
-                    <FaCalendarAlt className="text-3xl text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-3xl font-bold text-gray-800">จัดการปฏิทินจองห้องพัก</h2>
-                    <p className="text-gray-700 text-lg font-medium">อัปเดตสถานะและจัดการปฏิทินการจองทุกห้องพัก</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Calendar Control Panel */}
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-md p-8 mb-8 border-2 border-blue-200">
-                <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                  <FaEdit className="text-blue-600" />
-                  ตั้งค่าสถานะปฏิทิน
-                </h3>
-
-                {/* Room Selection */}
-                <div className="mb-6">
-                  <label className="block text-gray-800 font-bold mb-3 text-lg">
-                    🏠 เลือกห้องพัก
-                  </label>
-                  <select
-                    value={selectedRoom || ''}
-                    onChange={(e) => setSelectedRoom(Number(e.target.value))}
-                    className="w-full px-4 py-3 border-2 border-ocean-300 rounded-lg focus:ring-2 focus:ring-ocean-500 focus:border-ocean-500 text-black font-medium bg-white"
-                  >
-                    {rooms.map(room => (
-                      <option key={room.id} value={room.id} className="text-black">
-                        {room.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Date and Status Grid */}
-                <div className="grid md:grid-cols-2 gap-6 mb-6">
-                  <div>
-                    <label className="block text-gray-800 font-bold mb-3 text-lg">
-                      📅 วันที่เดียว
-                    </label>
-                    <input
-                      type="date"
-                      value={selectedDate}
-                      onChange={(e) => setSelectedDate(e.target.value)}
-                      className="w-full px-4 py-3 border-2 border-blue-400 rounded-xl focus:ring-4 focus:ring-blue-300 focus:border-blue-600 text-gray-900 font-semibold bg-white shadow-md"
-                      style={{ colorScheme: 'light' }}
-                    />
-                    <p className="text-sm text-gray-800 mt-2 font-bold bg-blue-50 px-3 py-2 rounded-lg">
-                      💡 สำหรับอัปเดตวันเดียว
-                    </p>
-                  </div>
-
-                  <div>
-                    <label className="block text-gray-800 font-bold mb-3 text-lg">
-                      🎯 สถานะ
-                    </label>
-                    <select
-                      value={selectedStatus}
-                      onChange={(e) => setSelectedStatus(e.target.value as any)}
-                      className="w-full px-4 py-3 border-2 border-blue-400 rounded-xl focus:ring-4 focus:ring-blue-300 focus:border-blue-600 text-gray-900 font-bold bg-white shadow-md"
-                    >
-                      <option value="available" className="text-gray-900 font-semibold">⚪ ว่าง (Available)</option>
-                      <option value="booked" className="text-gray-900 font-semibold">🔴 ติดจองแล้ว (Booked)</option>
-                      <option value="pending" className="text-gray-900 font-semibold">🟡 จองแล้ว-ยังไม่โอน (Pending)</option>
-                      <option value="holiday" className="text-gray-900 font-semibold">🟢 วันหยุดยาว-นักขัตฤกษ์ (Holiday)</option>
-                      <option value="maintenance" className="text-gray-900 font-semibold">🟠 ปรับปรุง-ซ่อมแซม (Maintenance)</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Date Range for Bulk Update */}
-                <div className="bg-gradient-to-br from-indigo-50 to-purple-50 border-2 border-indigo-300 rounded-xl p-6 mb-6">
-                  <h4 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <FaCalendarAlt className="text-indigo-600" />
-                    📆 ช่วงวันที่ (สำหรับอัปเดตหลายวัน)
-                  </h4>
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-gray-800 font-bold mb-2">
-                        🟢 วันที่เริ่มต้น
-                      </label>
-                      <input
-                        type="date"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        className="w-full px-4 py-3 border-2 border-indigo-300 rounded-xl focus:ring-4 focus:ring-indigo-200 focus:border-indigo-500 text-gray-900 font-medium bg-white"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-gray-800 font-bold mb-2">
-                        🔴 วันที่สิ้นสุด
-                      </label>
-                      <input
-                        type="date"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        className="w-full px-4 py-3 border-2 border-indigo-300 rounded-xl focus:ring-4 focus:ring-indigo-200 focus:border-indigo-500 text-gray-900 font-medium bg-white"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Note Field */}
-                <div className="mb-6">
-                  <label className="block text-gray-800 font-bold mb-3 text-lg">
-                    📝 หมายเหตุ
-                  </label>
-                  <input
-                    type="text"
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    placeholder="ระบุรายละเอียดเพิ่มเติม (ถ้ามี)"
-                    className="w-full px-4 py-3 border-2 border-blue-300 rounded-xl focus:ring-4 focus:ring-blue-200 focus:border-blue-500 text-gray-900 font-medium placeholder-gray-500 bg-white"
-                  />
-                </div>
-
-                {/* Special Discount Section */}
-                <div className="mb-6">
-                  <div className="bg-gradient-to-r from-orange-50 to-yellow-50 border-2 border-orange-300 rounded-xl p-5 shadow-md">
-                    <label className="flex items-center gap-3 cursor-pointer mb-4">
-                      <input
-                        type="checkbox"
-                        checked={hasDiscount}
-                        onChange={(e) => {
-                          setHasDiscount(e.target.checked)
-                          if (!e.target.checked) {
-                            setDiscountAmount('')
-                            setDiscountReason('')
-                          }
-                        }}
-                        className="w-6 h-6 text-orange-600 rounded focus:ring-orange-500 cursor-pointer"
-                      />
-                      <FaFire className="text-orange-600 text-2xl animate-pulse" />
-                      <span className="text-xl font-bold text-gray-900">
-                        ติดสติ๊กเกอร์ราคาพิเศษ 🔥
-                      </span>
-                    </label>
-
-                    {hasDiscount && (
-                      <div className="mt-4 space-y-4 bg-white p-4 rounded-lg border-2 border-orange-200">
-                        <div>
-                          <label className="block text-gray-900 font-semibold mb-2">
-                            💰 จำนวนเงินที่ลด (บาท) <span className="text-red-500">*</span>
-                          </label>
-                          <input
-                            type="number"
-                            value={discountAmount}
-                            onChange={(e) => setDiscountAmount(e.target.value)}
-                            placeholder="เช่น 500"
-                            min="0"
-                            className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-black font-medium placeholder-gray-400"
-                            required={hasDiscount}
-                          />
-                          <p className="text-sm text-gray-600 mt-1">ระบุจำนวนเงินที่ลดต่อคืน</p>
-                        </div>
-
-                        <div>
-                          <label className="block text-gray-900 font-semibold mb-2">
-                            📝 เหตุผลการลดราคา <span className="text-red-500">*</span>
-                          </label>
-                          <textarea
-                            value={discountReason}
-                            onChange={(e) => setDiscountReason(e.target.value)}
-                            placeholder="เช่น โปรโมชั่นวันหยุดยาว, ช่วงโลว์ซีซัน, ลูกค้าประจำ"
-                            rows={3}
-                            className="w-full px-4 py-3 border-2 border-orange-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-black font-medium placeholder-gray-400"
-                            required={hasDiscount}
-                          />
-                          <p className="text-sm text-gray-600 mt-1">อธิบายเหตุผลที่ลดราคาเพื่อความชัดเจน</p>
-                        </div>
-
-                        <div className="bg-orange-50 border-l-4 border-orange-500 p-3 rounded">
-                          <p className="text-sm text-gray-800 font-medium">
-                            💡 <strong>หมายเหตุ:</strong> ส่วนลดจะถูกนำไปคำนวณอัตโนมัติเมื่อลูกค้าจองวันที่มีสติ๊กเกอร์นี้
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                  <button
-                    onClick={handleUpdateDay}
-                    className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-4 rounded-xl hover:from-blue-600 hover:to-blue-700 hover:scale-105 transition-all duration-300 font-bold text-lg shadow-xl hover:shadow-2xl flex items-center justify-center gap-2 border-2 border-blue-400"
-                  >
-                    <FaCalendarCheck className="text-xl" />
-                    <span>อัปเดตวันเดียว</span>
-                  </button>
-                  <button
-                    onClick={handleBulkUpdate}
-                    className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-4 rounded-xl hover:from-indigo-600 hover:to-purple-700 hover:scale-105 transition-all duration-300 font-bold text-lg shadow-xl hover:shadow-2xl flex items-center justify-center gap-2 border-2 border-indigo-400"
-                  >
-                    <FaCalendarAlt className="text-xl" />
-                    <span>อัปเดตหลายวัน</span>
-                  </button>
-                  <button
-                    onClick={handleRemoveDiscount}
-                    className="bg-gradient-to-r from-gray-600 to-gray-700 text-white px-6 py-4 rounded-xl hover:from-gray-700 hover:to-gray-800 hover:scale-105 transition-all duration-300 font-bold text-lg shadow-xl hover:shadow-2xl flex items-center justify-center gap-2 border-2 border-gray-500"
-                  >
-                    <FaTimes className="text-xl" />
-                    <span>ลบสติ๊กเกอร์</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSelectedDate('')
-                      setStartDate('')
-                      setEndDate('')
-                      setNote('')
-                      setHasDiscount(false)
-                      setDiscountAmount('')
-                      setDiscountReason('')
-                      setSelectedStatus('available')
-                    }}
-                    className="bg-gradient-to-r from-red-500 to-red-600 text-white px-6 py-4 rounded-xl hover:from-red-600 hover:to-red-700 hover:scale-105 transition-all duration-300 font-bold text-lg shadow-xl hover:shadow-2xl flex items-center justify-center gap-2 border-2 border-red-400"
-                  >
-                    <FaTimes className="text-xl" />
-                    <span>ล้างข้อมูล</span>
-                  </button>
-                </div>
-
-                {/* Message Display */}
-                {calendarMessage && (
-                  <div className={`p-4 rounded-lg font-semibold text-lg ${calendarMessage.includes('✅') ? 'bg-green-100 text-green-900 border-2 border-green-400' : 'bg-red-100 text-red-900 border-2 border-red-400'}`}>
-                    {calendarMessage}
-                  </div>
-                )}
-              </div>
-
-              {/* Calendar Display */}
-              {selectedRoom && (
-                <div className="bg-white rounded-xl shadow-lg p-6">
-                  <RoomCalendar
-                    key={calendarKey}
-                    roomId={selectedRoom}
-                    roomName={rooms.find(r => r.id === selectedRoom)?.name || ''}
-                  />
-                </div>
-              )}
-
-              {/* Quick Guide */}
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-lg p-8 mt-8 border border-blue-200">
-                <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                  <FaCalendarAlt className="text-blue-600" />
-                  📚 คำแนะนำการใช้งาน
-                </h3>
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="flex items-start gap-3 bg-white p-4 rounded-lg shadow">
-                    <FaCalendarCheck className="text-blue-600 mt-1 text-xl flex-shrink-0" />
-                    <div>
-                      <strong className="text-lg block mb-1 text-gray-800">อัปเดตวันเดียว:</strong>
-                      <span className="text-gray-700 font-medium">ใส่วันที่ในรูปแบบ 2024-12-25</span>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 bg-white p-4 rounded-lg shadow">
-                    <FaCalendarAlt className="text-indigo-600 mt-1 text-xl flex-shrink-0" />
-                    <div>
-                      <strong className="text-lg block mb-1 text-gray-800">อัปเดตหลายวัน:</strong>
-                      <span className="text-gray-700 font-medium">ใส่ช่วงวันที่ 2024-12-25 to 2024-12-31</span>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 bg-white p-4 rounded-lg shadow">
-                    <FaFire className="text-orange-600 mt-1 text-xl flex-shrink-0" />
-                    <div>
-                      <strong className="text-lg block mb-1 text-gray-800">สติ๊กเกอร์ลดราคา:</strong>
-                      <span className="text-gray-700 font-medium">ติ๊กช่องเพื่อแสดงไอคอนไฟ 🔥 บนปฏิทิน</span>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3 bg-white p-4 rounded-lg shadow">
-                    <FaCalendarCheck className="text-green-600 mt-1 text-xl flex-shrink-0" />
-                    <div>
-                      <strong className="text-lg block mb-1 text-gray-800">Auto Update:</strong>
-                      <span className="text-gray-700 font-medium">ระบบอัปเดตอัตโนมัติเมื่อยืนยันการจอง</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </AdminCard>
           )}
 
           {/* Users Management Tab */}
           {activeTab === 'users' && (
             <div>
-              <AdminCard variant="glass" hover={false} className="mb-6">
+              <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-2 border-gray-200">
                 <div className="flex items-center gap-3 mb-2">
                   <div className="p-3 bg-gradient-to-br from-luxury-gold to-luxury-bronze rounded-xl">
                     <FaUserShield className="text-3xl text-white" />
                   </div>
                   <div>
-                    <h2 className="text-3xl font-bold text-gray-800">จัดการสิทธิ์ Admin</h2>
-                    <p className="text-gray-700 text-lg font-medium">เพิ่มหรือถอดสิทธิ์ผู้ดูแลระบบ</p>
+                    <h2 className="text-3xl font-bold text-gray-800">จัดการผู้ใช้งาน</h2>
+                    <p className="text-gray-700 font-medium">ควบคุมสิทธิ์และข้อมูลผู้ใช้งานในระบบ</p>
                   </div>
                 </div>
-              </AdminCard>
+              </div>
 
-              {/* Messages */}
-              {message && (
-                <div className="mb-6 bg-green-50 border-2 border-green-300 text-green-800 px-5 py-4 rounded-xl font-semibold flex items-center gap-2">
-                  <span className="text-2xl">✓</span>
-                  {message}
-                </div>
-              )}
-
-              {error && (
-                <div className="mb-6 bg-red-50 border-2 border-red-300 text-red-800 px-5 py-4 rounded-xl font-semibold flex items-center gap-2">
-                  <span className="text-2xl">⚠</span>
-                  {error}
-                </div>
-              )}
-
-              {/* Form */}
-              <AdminCard variant="glass" hover={false} className="mb-6">
-                <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                  <span className="text-3xl">➕</span>
-                  เพิ่มสิทธิ์ Admin
+              {/* Existing Users Table */}
+              <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 rounded-xl shadow-lg p-6">
+                <h3 className="text-2xl font-bold mb-6 text-white flex items-center gap-2">
+                  <FaUsers />
+                  ผู้ใช้ทั้งหมดในระบบ
+                  <span className="text-sm font-normal opacity-75">({users.length} คน)</span>
                 </h3>
-                
-                <form onSubmit={handlePromoteUser} className="space-y-6">
-                  <div>
-                    <label className="block text-gray-800 font-bold mb-3 text-lg">
-                      📧 อีเมลผู้ใช้
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="email"
-                        value={searchEmail}
-                        onChange={(e) => setSearchEmail(e.target.value)}
-                        className="w-full p-4 pl-12 border-2 border-luxury-gold/30 rounded-xl focus:ring-4 focus:ring-luxury-gold/20 focus:border-luxury-gold text-gray-900 font-medium bg-white"
-                        placeholder="example@email.com"
-                        required
-                      />
-                      <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-luxury-gold text-xl" />
+
+                {/* Error Message */}
+                {error && (
+                  <div className="mb-4 bg-red-500 text-white px-4 py-3 rounded-lg flex items-center gap-2">
+                    <span className="text-xl">⚠️</span>
+                    <span>{error}</span>
+                  </div>
+                )}
+
+                {/* Success Message */}
+                {message && (
+                  <div className="mb-4 bg-green-500 text-white px-4 py-3 rounded-lg flex items-center gap-2">
+                    <span className="text-xl">✅</span>
+                    <span>{message}</span>
+                  </div>
+                )}
+
+                {/* User search */}
+                <div className="mb-6">
+                  <input
+                    type="text"
+                    placeholder="🔍 ค้นหาผู้ใช้ด้วยชื่อหรืออีเมล..."
+                    value={userSearch}
+                    onChange={(e) => setUserSearch(e.target.value)}
+                    className="w-full px-5 py-3 rounded-xl border-2 border-white/50 bg-white/90 text-gray-900 placeholder-gray-500 focus:border-white focus:ring-2 focus:ring-white/50 focus:bg-white transition-all backdrop-blur-sm font-medium shadow-lg"
+                  />
+                </div>
+
+                <div className="bg-white/10 backdrop-blur-md rounded-xl overflow-hidden shadow-xl">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="bg-white/20 text-white">
+                          <th className="px-6 py-4 text-left font-bold">ชื่อ</th>
+                          <th className="px-6 py-4 text-left font-bold">อีเมล</th>
+                          <th className="px-6 py-4 text-left font-bold">สิทธิ์</th>
+                          <th className="px-6 py-4 text-left font-bold">สถานะ</th>
+                          <th className="px-6 py-4 text-left font-bold">วันที่สมัคร</th>
+                          <th className="px-6 py-4 text-center font-bold">จัดการ</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredUsers.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="px-6 py-12 text-center text-white/80">
+                              <FaUsers className="mx-auto text-5xl mb-3 text-white/40" />
+                              <p className="text-lg font-medium">ไม่พบผู้ใช้ที่ค้นหา</p>
+                            </td>
+                          </tr>
+                        ) : (
+                          filteredUsers.map(user => (
+                            <tr 
+                              key={user.id}
+                              className="border-b border-white/10 hover:bg-white/5 transition-colors"
+                            >
+                              <td className="px-6 py-4 text-white font-medium">{user.name || 'ไม่ระบุ'}</td>
+                              <td className="px-6 py-4 text-white/90">{user.email}</td>
+                              <td className="px-6 py-4">
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                  user.role === 'admin' 
+                                    ? 'bg-luxury-gold text-gray-900' 
+                                    : 'bg-white/20 text-white'
+                                }`}>
+                                  {user.role === 'admin' ? '👑 Admin' : '👤 User'}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                                  user.isVerified 
+                                    ? 'bg-green-500/80 text-white' 
+                                    : 'bg-yellow-500/80 text-gray-900'
+                                }`}>
+                                  {user.isVerified ? '✓ Verified' : '⏳ Pending'}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 text-white/80 text-sm">
+                                {new Date(user.createdAt).toLocaleDateString('th-TH')}
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="flex justify-center gap-2">
+                                  {user.role !== 'admin' ? (
+                                    <button
+                                      onClick={() => handlePromoteToAdmin(user.id)}
+                                      className="px-4 py-2 bg-gradient-to-r from-luxury-gold to-luxury-bronze text-gray-900 rounded-lg font-bold hover:shadow-xl hover:scale-105 transition-all text-sm shadow-lg"
+                                    >
+                                      ↑ ให้สิทธิ์ Admin
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleDemoteFromAdmin(user.id)}
+                                      className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg font-bold hover:from-red-600 hover:to-red-700 hover:shadow-xl hover:scale-105 transition-all text-sm shadow-lg"
+                                    >
+                                      ↓ ถอดสิทธิ์ Admin
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="mt-6 p-5 bg-white/10 backdrop-blur-sm rounded-xl text-white">
+                  <p className="font-bold text-lg mb-2">📊 สรุปข้อมูลผู้ใช้</p>
+                  <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div>
+                      <span className="text-white/70">ทั้งหมด:</span>
+                      <span className="ml-2 font-bold text-lg">{users.length} คน</span>
                     </div>
-                    <p className="text-sm text-gray-700 mt-3 font-semibold">
-                      💡 กรอกอีเมลของผู้ใช้ที่ต้องการเพิ่มสิทธิ์ Admin
-                    </p>
-                  </div>
-
-                  <AdminButton
-                    type="submit"
-                    variant="luxury"
-                    size="lg"
-                    fullWidth
-                    loading={userLoading}
-                    icon={<FaUserShield />}
-                  >
-                    เพิ่มสิทธิ์ Admin
-                  </AdminButton>
-                </form>
-              </AdminCard>
-
-              {/* Demote Admin Section */}
-              <AdminCard variant="glass" hover={false}>
-                <h3 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                  <span className="text-3xl">➖</span>
-                  ถอดสิทธิ์ Admin
-                </h3>
-                
-                <form onSubmit={handleDemoteUser} className="space-y-6">
-                  <div>
-                    <label className="block text-gray-800 font-bold mb-3 text-lg">
-                      📧 อีเมลผู้ใช้
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="email"
-                        value={demoteEmail}
-                        onChange={(e) => setDemoteEmail(e.target.value)}
-                        className="w-full p-4 pl-12 border-2 border-red-300 rounded-xl focus:ring-4 focus:ring-red-200 focus:border-red-500 text-gray-900 font-medium bg-white"
-                        placeholder="example@email.com"
-                        required
-                      />
-                      <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-red-500 text-xl" />
+                    <div>
+                      <span className="text-white/70">Admin:</span>
+                      <span className="ml-2 font-bold text-lg text-luxury-gold">
+                        {users.filter(u => u.role === 'admin').length} คน
+                      </span>
                     </div>
-                    <p className="text-sm text-gray-700 mt-3 font-semibold">
-                      ⚠️ กรอกอีเมลของผู้ใช้ที่ต้องการถอดสิทธิ์ Admin
-                    </p>
+                    <div>
+                      <span className="text-white/70">User ธรรมดา:</span>
+                      <span className="ml-2 font-bold text-lg">
+                        {users.filter(u => u.role !== 'admin').length} คน
+                      </span>
+                    </div>
                   </div>
-
-                  <AdminButton
-                    type="submit"
-                    variant="danger"
-                    size="lg"
-                    fullWidth
-                    loading={demoteLoading}
-                    icon={<FaUserShield />}
-                  >
-                    ถอดสิทธิ์ Admin
-                  </AdminButton>
-                </form>
-
-                {/* Warning Box */}
-                <div className="mt-8 bg-red-50 border-2 border-red-300 rounded-xl p-5">
-                  <h3 className="font-semibold text-red-900 mb-2">⚠️ คำเตือน:</h3>
-                  <h3 className="font-semibold text-red-900 mb-2">คำเตือน:</h3>
-                  <ul className="text-sm text-red-800 space-y-1 list-disc list-inside font-medium">
-                    <li>การถอดสิทธิ์จะทำให้ผู้ใช้ไม่สามารถเข้าถึง Admin Mode ได้</li>
-                    <li>ไม่สามารถถอดสิทธิ์ตัวเองได้</li>
-                    <li>ใช้ความระมัดระวังในการถอดสิทธิ์ Admin</li>
-                  </ul>
                 </div>
-              </AdminCard>
+              </div>
 
-              {/* Info Box */}
-              <AdminCard variant="glass" hover={false} className="mt-6">
-                <h3 className="font-bold text-gray-800 mb-3 text-xl flex items-center gap-2">
-                  <span className="text-2xl">ℹ️</span>
-                  หมายเหตุสำคัญ
+              <div className="bg-gradient-to-br from-blue-500 via-blue-600 to-indigo-700 rounded-xl shadow-lg p-6 mt-6">
+                <h3 className="text-2xl font-bold mb-4 text-white flex items-center gap-2">
+                  <FaShieldAlt />
+                  ⚠️ คำเตือนการจัดการสิทธิ์
                 </h3>
-                <ul className="space-y-2 text-gray-700">
-                  <li className="flex items-start gap-2">
-                    <span className="text-blue-600 text-lg font-bold">✓</span>
-                    <span className="font-medium">เฉพาะ Admin เท่านั้นที่สามารถจัดการสิทธิ์ได้</span>
+                <ul className="space-y-3 text-white">
+                  <li className="flex items-start gap-3">
+                    <span className="text-red-400 text-lg font-bold">🔒</span>
+                    <span className="font-medium">Admin มีสิทธิ์เต็มในการจัดการทุกส่วนของเว็บไซต์</span>
                   </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-green-600 text-lg font-bold">✓</span>
-                    <span className="font-medium">ผู้ใช้ที่ได้รับสิทธิ์ Admin จะสามารถเข้าถึง Admin Mode ได้</span>
+                  <li className="flex items-start gap-3">
+                    <span className="text-yellow-400 text-lg font-bold">👤</span>
+                    <span className="font-medium">ตรวจสอบตัวตนของผู้ใช้ก่อนให้สิทธิ์ Admin</span>
                   </li>
-                  <li className="flex items-start gap-2">
+                  <li className="flex items-start gap-3">
                     <span className="text-orange-600 text-lg font-bold">⚠</span>
                     <span className="font-medium">ใช้ความระมัดระวังในการให้และถอดสิทธิ์ Admin</span>
                   </li>
                 </ul>
-              </AdminCard>
+              </div>
+            </div>
+          )}
+
+          {/* System Settings Tab */}
+          {activeTab === 'settings' && (
+            <div>
+              <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-2 border-gray-200">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-3 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-xl">
+                    <FaDatabase className="text-3xl text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-bold text-gray-800">ตั้งค่าระบบ</h2>
+                    <p className="text-gray-700 font-medium">เปิด/ปิดระบบต่างๆ ในหน้า Admin</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Error Message */}
+              {error && (
+                <div className="mb-4 bg-red-500 text-white px-4 py-3 rounded-lg flex items-center gap-2">
+                  <span className="text-xl">⚠️</span>
+                  <span>{error}</span>
+                </div>
+              )}
+
+              {/* Success Message */}
+              {message && (
+                <div className="mb-4 bg-green-500 text-white px-4 py-3 rounded-lg flex items-center gap-2">
+                  <span className="text-xl">✅</span>
+                  <span>{message}</span>
+                </div>
+              )}
+
+              {/* System Settings Grid */}
+              <div className="bg-gradient-to-br from-purple-500 via-indigo-600 to-blue-600 rounded-xl shadow-lg p-6">
+                <h3 className="text-2xl font-bold mb-6 text-white flex items-center gap-2">
+                  <FaDatabase />
+                  ระบบทั้งหมด
+                  <span className="text-sm font-normal opacity-75">({systemSettings.length} ระบบ)</span>
+                </h3>
+
+                {systemSettings.length === 0 ? (
+                  <div className="text-center py-12 text-white">
+                    <FaDatabase className="mx-auto text-5xl mb-3 text-white/40" />
+                    <p className="text-lg font-medium">กำลังโหลดการตั้งค่า...</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {systemSettings.map(setting => (
+                      <div 
+                        key={setting.id}
+                        className={`bg-white/10 backdrop-blur-md rounded-xl p-5 border-2 transition-all duration-300 ${
+                          setting.isEnabled 
+                            ? 'border-green-400 shadow-lg shadow-green-500/20' 
+                            : 'border-white/20 opacity-70'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <h4 className="text-white font-bold text-lg mb-1">
+                              {setting.systemName}
+                            </h4>
+                            {setting.description && (
+                              <p className="text-white/70 text-sm">
+                                {setting.description}
+                              </p>
+                            )}
+                          </div>
+                          <div className={`ml-3 px-3 py-1 rounded-full text-xs font-bold ${
+                            setting.isEnabled 
+                              ? 'bg-green-500 text-white' 
+                              : 'bg-gray-500 text-white'
+                          }`}>
+                            {setting.isEnabled ? '🟢 เปิด' : '🔴 ปิด'}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 mt-4">
+                          <button
+                            onClick={() => toggleSystemSetting(setting.systemKey, setting.isEnabled)}
+                            disabled={settingsLoading}
+                            className={`flex-1 px-4 py-2 rounded-lg font-bold transition-all duration-300 ${
+                              setting.isEnabled
+                                ? 'bg-red-500 hover:bg-red-600 text-white shadow-lg hover:shadow-xl'
+                                : 'bg-green-500 hover:bg-green-600 text-white shadow-lg hover:shadow-xl'
+                            } ${settingsLoading ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
+                          >
+                            {settingsLoading ? '⏳ กำลังอัพเดท...' : setting.isEnabled ? '🔴 ปิดระบบ' : '🟢 เปิดระบบ'}
+                          </button>
+                        </div>
+
+                        <div className="mt-3 pt-3 border-t border-white/10 text-xs text-white/60">
+                          Key: {setting.systemKey}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="mt-6 p-5 bg-white/10 backdrop-blur-sm rounded-xl text-white">
+                  <p className="font-bold text-lg mb-2">📊 สรุปการตั้งค่า</p>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-white/70">ระบบที่เปิดใช้งาน:</span>
+                      <span className="ml-2 font-bold text-lg text-green-300">
+                        {systemSettings.filter(s => s.isEnabled).length} ระบบ
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-white/70">ระบบที่ปิด:</span>
+                      <span className="ml-2 font-bold text-lg text-red-300">
+                        {systemSettings.filter(s => !s.isEnabled).length} ระบบ
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-yellow-500 via-orange-600 to-red-600 rounded-xl shadow-lg p-6 mt-6">
+                <h3 className="text-2xl font-bold mb-4 text-white flex items-center gap-2">
+                  <FaShieldAlt />
+                  ⚠️ คำเตือนการตั้งค่าระบบ
+                </h3>
+                <ul className="space-y-3 text-white">
+                  <li className="flex items-start gap-3">
+                    <span className="text-red-400 text-lg font-bold">🔒</span>
+                    <span className="font-medium">การเปิด/ปิดระบบจะมีผลทันทีกับผู้ใช้ทุกคน</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-yellow-400 text-lg font-bold">⚡</span>
+                    <span className="font-medium">ระบบที่ปิดจะไม่แสดงในหน้า Admin Dashboard</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-orange-600 text-lg font-bold">📝</span>
+                    <span className="font-medium">ตรวจสอบให้แน่ใจก่อนปิดระบบสำคัญ</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          )}
+
+          {/* Bookings Tab */}
+          {activeTab === 'bookings' && (
+            <div>
+              <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-2 border-gray-200">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-3 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl">
+                    <FaCalendarCheck className="text-3xl text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-bold text-gray-800">จัดการการจอง</h2>
+                    <p className="text-gray-700 font-medium">ดูและจัดการการจองทั้งหมด</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-600 rounded-xl shadow-lg p-6">
+                <h3 className="text-2xl font-bold mb-6 text-white flex items-center gap-2">
+                  <FaCalendarCheck />
+                  ระบบจัดการการจอง
+                </h3>
+                <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 text-center">
+                  <FaCalendarCheck className="mx-auto text-6xl text-white/40 mb-4" />
+                  <p className="text-white text-lg font-medium">ระบบนี้พร้อมใช้งาน</p>
+                  <p className="text-white/70 text-sm mt-2">เชื่อมต่อกับ database แล้ว</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Payments Tab */}
+          {activeTab === 'payments' && (
+            <div>
+              <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-2 border-gray-200">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-3 bg-gradient-to-br from-green-600 to-emerald-600 rounded-xl">
+                    <FaDollarSign className="text-3xl text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-bold text-gray-800">จัดการการชำระเงิน</h2>
+                    <p className="text-gray-700 font-medium">ดูประวัติและจัดการการชำระเงิน</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-green-500 via-emerald-600 to-teal-600 rounded-xl shadow-lg p-6">
+                <h3 className="text-2xl font-bold mb-6 text-white flex items-center gap-2">
+                  <FaDollarSign />
+                  ระบบจัดการการชำระเงิน
+                </h3>
+                <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 text-center">
+                  <FaDollarSign className="mx-auto text-6xl text-white/40 mb-4" />
+                  <p className="text-white text-lg font-medium">ระบบนี้พร้อมใช้งาน</p>
+                  <p className="text-white/70 text-sm mt-2">เชื่อมต่อกับ database แล้ว</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Promotions Tab */}
+          {activeTab === 'promotions' && (
+            <div>
+              <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-2 border-gray-200">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-3 bg-gradient-to-br from-orange-600 to-red-600 rounded-xl">
+                    <FaFire className="text-3xl text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-bold text-gray-800">จัดการโปรโมชั่น</h2>
+                    <p className="text-gray-700 font-medium">สร้างและจัดการโปรโมชั่นส่วนลด</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-orange-500 via-red-600 to-pink-600 rounded-xl shadow-lg p-6">
+                <h3 className="text-2xl font-bold mb-6 text-white flex items-center gap-2">
+                  <FaFire />
+                  ระบบจัดการโปรโมชั่น
+                </h3>
+                <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 text-center">
+                  <FaFire className="mx-auto text-6xl text-white/40 mb-4" />
+                  <p className="text-white text-lg font-medium">ระบบนี้พร้อมใช้งาน</p>
+                  <p className="text-white/70 text-sm mt-2">เชื่อมต่อกับ database แล้ว</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Reports Tab */}
+          {activeTab === 'reports' && (
+            <div>
+              <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-2 border-gray-200">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-3 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl">
+                    <FaChartLine className="text-3xl text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-bold text-gray-800">รายงานและสถิติ</h2>
+                    <p className="text-gray-700 font-medium">ดูรายงานและสถิติต่างๆ ของระบบ</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-purple-500 via-pink-600 to-rose-600 rounded-xl shadow-lg p-6">
+                <h3 className="text-2xl font-bold mb-6 text-white flex items-center gap-2">
+                  <FaChartLine />
+                  ระบบรายงานและสถิติ
+                </h3>
+                <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 text-center">
+                  <FaChartLine className="mx-auto text-6xl text-white/40 mb-4" />
+                  <p className="text-white text-lg font-medium">ระบบนี้พร้อมใช้งาน</p>
+                  <p className="text-white/70 text-sm mt-2">เชื่อมต่อกับ database แล้ว</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Notifications Tab */}
+          {activeTab === 'notifications' && (
+            <div>
+              <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-2 border-gray-200">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-3 bg-gradient-to-br from-yellow-600 to-orange-600 rounded-xl">
+                    <FaEnvelope className="text-3xl text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-bold text-gray-800">จัดการการแจ้งเตือน</h2>
+                    <p className="text-gray-700 font-medium">ส่งและจัดการการแจ้งเตือนให้ผู้ใช้</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-yellow-500 via-orange-600 to-amber-600 rounded-xl shadow-lg p-6">
+                <h3 className="text-2xl font-bold mb-6 text-white flex items-center gap-2">
+                  <FaEnvelope />
+                  ระบบจัดการการแจ้งเตือน
+                </h3>
+                <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 text-center">
+                  <FaEnvelope className="mx-auto text-6xl text-white/40 mb-4" />
+                  <p className="text-white text-lg font-medium">ระบบนี้พร้อมใช้งาน</p>
+                  <p className="text-white/70 text-sm mt-2">เชื่อมต่อกับ database แล้ว</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Reviews Tab */}
+          {activeTab === 'reviews' && (
+            <div>
+              <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-2 border-gray-200">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-3 bg-gradient-to-br from-purple-600 to-purple-800 rounded-xl">
+                    <FaCrown className="text-3xl text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-bold text-gray-800">จัดการรีวิว</h2>
+                    <p className="text-gray-700 font-medium">ตรวจสอบและจัดการรีวิวจากลูกค้า</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-blue-500 via-purple-600 to-purple-700 rounded-xl shadow-lg p-6">
+                <h3 className="text-2xl font-bold mb-6 text-white flex items-center gap-2">
+                  <FaCrown />
+                  ระบบจัดการรีวิว
+                </h3>
+                <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 text-center">
+                  <FaCrown className="mx-auto text-6xl text-white/40 mb-4" />
+                  <p className="text-white text-lg font-medium">ระบบนี้พร้อมใช้งาน</p>
+                  <p className="text-white/70 text-sm mt-2">เชื่อมต่อกับ database แล้ว</p>
+                  <button
+                    onClick={() => window.location.href = '/admin/reviews'}
+                    className="mt-6 px-6 py-3 bg-white text-purple-700 rounded-xl font-bold hover:bg-gray-100 transition-colors"
+                  >
+                    เปิดหน้าจัดการรีวิวแบบเต็ม →
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Articles Tab */}
+          {activeTab === 'articles' && (
+            <div>
+              <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-2 border-gray-200">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-3 bg-gradient-to-br from-teal-600 to-blue-700 rounded-xl">
+                    <FaDatabase className="text-3xl text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-bold text-gray-800">จัดการบทความ</h2>
+                    <p className="text-gray-700 font-medium">สร้างและจัดการบทความและข่าวสาร</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-teal-500 via-blue-600 to-blue-700 rounded-xl shadow-lg p-6">
+                <h3 className="text-2xl font-bold mb-6 text-white flex items-center gap-2">
+                  <FaDatabase />
+                  ระบบจัดการบทความ
+                </h3>
+                <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 text-center">
+                  <FaDatabase className="mx-auto text-6xl text-white/40 mb-4" />
+                  <p className="text-white text-lg font-medium">ระบบนี้พร้อมใช้งาน</p>
+                  <p className="text-white/70 text-sm mt-2">เชื่อมต่อกับ database แล้ว</p>
+                  <button
+                    onClick={() => window.location.href = '/admin-articles'}
+                    className="mt-6 px-6 py-3 bg-white text-teal-700 rounded-xl font-bold hover:bg-gray-100 transition-colors"
+                  >
+                    เปิดหน้าจัดการบทความแบบเต็ม →
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Videos Tab */}
+          {activeTab === 'videos' && (
+            <div>
+              <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border-2 border-gray-200">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-3 bg-gradient-to-br from-red-600 to-pink-600 rounded-xl">
+                    <FaChartLine className="text-3xl text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-bold text-gray-800">จัดการวิดีโอ</h2>
+                    <p className="text-gray-700 font-medium">อัพโหลดและจัดการวิดีโอประชาสัมพันธ์</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-gradient-to-br from-red-500 via-pink-600 to-purple-600 rounded-xl shadow-lg p-6">
+                <h3 className="text-2xl font-bold mb-6 text-white flex items-center gap-2">
+                  <FaChartLine />
+                  ระบบจัดการวิดีโอ
+                </h3>
+                <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 text-center">
+                  <FaChartLine className="mx-auto text-6xl text-white/40 mb-4" />
+                  <p className="text-white text-lg font-medium">ระบบนี้พร้อมใช้งาน</p>
+                  <p className="text-white/70 text-sm mt-2">เชื่อมต่อกับ database แล้ว</p>
+                  <div className="mt-6 space-y-3">
+                    <p className="text-white/90 text-sm">รองรับ:</p>
+                    <div className="flex flex-wrap gap-2 justify-center">
+                      <span className="px-3 py-1 bg-white/20 rounded-full text-white text-sm">YouTube</span>
+                      <span className="px-3 py-1 bg-white/20 rounded-full text-white text-sm">Vimeo</span>
+                      <span className="px-3 py-1 bg-white/20 rounded-full text-white text-sm">MP4</span>
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={() => router.push('/admin-videos')}
+                    className="mt-6 px-8 py-3 bg-white text-red-600 rounded-xl font-bold hover:shadow-xl transition-all duration-300 hover:scale-105 inline-flex items-center gap-2"
+                  >
+                    <FaChartLine />
+                    ไปหน้าจัดการวิดีโอ
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -1542,7 +1785,7 @@ export default function AdminPage() {
                   name="name"
                   value={roomFormData.name}
                   onChange={handleRoomFormChange}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white"
                   placeholder="เช่น Deluxe Suite"
                   required
                 />
@@ -1558,7 +1801,7 @@ export default function AdminPage() {
                     name="price"
                     value={roomFormData.price}
                     onChange={handleRoomFormChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white"
                     placeholder="2500"
                     min="0"
                     required
@@ -1574,7 +1817,7 @@ export default function AdminPage() {
                     name="guests"
                     value={roomFormData.guests}
                     onChange={handleRoomFormChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white"
                     placeholder="4"
                     min="1"
                     required
@@ -1590,7 +1833,7 @@ export default function AdminPage() {
                   name="description"
                   value={roomFormData.description}
                   onChange={handleRoomFormChange}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white"
                   placeholder="อธิบายเกี่ยวกับบ้านพัก..."
                   rows={3}
                   required
@@ -1607,7 +1850,7 @@ export default function AdminPage() {
                     name="beds"
                     value={roomFormData.beds}
                     onChange={handleRoomFormChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white"
                     placeholder="2"
                     min="1"
                   />
@@ -1622,7 +1865,7 @@ export default function AdminPage() {
                     name="size"
                     value={roomFormData.size}
                     onChange={handleRoomFormChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white"
                     placeholder="45"
                     min="1"
                   />
@@ -1638,7 +1881,7 @@ export default function AdminPage() {
                   name="location"
                   value={roomFormData.location}
                   onChange={handleRoomFormChange}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white"
                   placeholder="กรุงเทพ"
                 />
               </div>
@@ -1755,7 +1998,7 @@ export default function AdminPage() {
                       name="deposit"
                       value={roomFormData.deposit}
                       onChange={handleRoomFormChange}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white"
                       placeholder="300"
                       min="0"
                     />
@@ -1770,7 +2013,7 @@ export default function AdminPage() {
                       name="minNights"
                       value={roomFormData.minNights}
                       onChange={handleRoomFormChange}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white"
                       placeholder="1"
                       min="1"
                     />
@@ -1787,7 +2030,7 @@ export default function AdminPage() {
                       name="checkInTime"
                       value={roomFormData.checkInTime}
                       onChange={handleRoomFormChange}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white"
                     />
                   </div>
 
@@ -1800,7 +2043,7 @@ export default function AdminPage() {
                       name="checkOutTime"
                       value={roomFormData.checkOutTime}
                       onChange={handleRoomFormChange}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white"
                     />
                   </div>
                 </div>
@@ -1815,7 +2058,7 @@ export default function AdminPage() {
                       name="bedrooms"
                       value={roomFormData.bedrooms}
                       onChange={handleRoomFormChange}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white"
                       placeholder="1"
                       min="0"
                     />
@@ -1830,7 +2073,7 @@ export default function AdminPage() {
                       name="bathrooms"
                       value={roomFormData.bathrooms}
                       onChange={handleRoomFormChange}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white"
                       placeholder="1"
                       min="0"
                     />
@@ -1846,7 +2089,7 @@ export default function AdminPage() {
                     name="singleRoomPrice"
                     value={roomFormData.singleRoomPrice}
                     onChange={handleRoomFormChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white"
                     placeholder="700"
                     min="0"
                   />
@@ -1912,7 +2155,7 @@ export default function AdminPage() {
                     name="extraEquipment"
                     value={roomFormData.extraEquipment}
                     onChange={handleRoomFormChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white"
                     placeholder="เช่น เครื่องเสียง, โทรทัศน์, ไมโครเวฟ"
                     rows={2}
                   />
@@ -1931,7 +2174,7 @@ export default function AdminPage() {
                     name="houseRules"
                     value={roomFormData.houseRules}
                     onChange={handleRoomFormChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white"
                     placeholder="กฎการเข้าพัก เช่น ห้ามสูบบุหรี่, ห้ามนำสัตว์เลี้ยง"
                     rows={3}
                   />
@@ -1945,7 +2188,7 @@ export default function AdminPage() {
                     name="promotion"
                     value={roomFormData.promotion}
                     onChange={handleRoomFormChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white"
                     placeholder="โปรโมชั่นพิเศษ เช่น จอง 3 คืน ลด 10%"
                     rows={2}
                   />
@@ -1959,7 +2202,7 @@ export default function AdminPage() {
                     name="cancellationPolicy"
                     value={roomFormData.cancellationPolicy}
                     onChange={handleRoomFormChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-black"
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900 bg-white"
                     placeholder="นโยบายการยกเลิกการจอง"
                     rows={3}
                   />

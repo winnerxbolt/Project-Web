@@ -45,6 +45,11 @@ function ArticlesAdminContent() {
     tags: '',
     published: true
   })
+  const [tagInput, setTagInput] = useState('')
+  const [tagSuggestions] = useState([
+    'พัทยา', 'ชลบุรี', 'เที่ยวทะเล', 'pool villa', 'พักผ่อน',
+    'ครอบครัว', 'โรแมนติก', 'ทริปเที่ยว', 'ที่พัก', 'รีวิว'
+  ])
 
   useEffect(() => {
     fetchArticles()
@@ -68,6 +73,32 @@ function ArticlesAdminContent() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // ฟังก์ชั่นแปลง iframe youtube ให้ responsive
+  const makeYoutubeResponsive = (content: string): string => {
+    // แปลง iframe youtube ทั้งหมด
+    return content.replace(
+      /<iframe([^>]*?)src=["']([^"']*?youtube[^"']*?)["']([^>]*?)>.*?<\/iframe>/gi,
+      '<div class="relative w-full" style="padding-bottom: 56.25%;"><iframe$1src="$2"$3 class="absolute top-0 left-0 w-full h-full rounded-lg" allowfullscreen></iframe></div>'
+    )
+  }
+
+  // เพิ่ม tag
+  const addTag = (tag: string) => {
+    const currentTags = formData.tags.split(',').map(t => t.trim()).filter(t => t)
+    if (!currentTags.includes(tag)) {
+      const newTags = [...currentTags, tag].join(', ')
+      setFormData({ ...formData, tags: newTags })
+    }
+    setTagInput('')
+  }
+
+  // ลบ tag
+  const removeTag = (tagToRemove: string) => {
+    const currentTags = formData.tags.split(',').map(t => t.trim()).filter(t => t)
+    const newTags = currentTags.filter(t => t !== tagToRemove).join(', ')
+    setFormData({ ...formData, tags: newTags })
   }
 
   const handleCreate = () => {
@@ -102,6 +133,7 @@ function ArticlesAdminContent() {
     e.preventDefault()
     
     const tags = formData.tags.split(',').map(t => t.trim()).filter(t => t)
+    // content ถูกแปลง responsive แล้วตอน onChange ไม่ต้องแปลงซ้ำ
     
     const body = {
       ...formData,
@@ -360,12 +392,19 @@ function ArticlesAdminContent() {
                     <textarea
                       required
                       value={formData.content}
-                      onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                      onChange={(e) => {
+                        const newContent = e.target.value
+                        // แปลง YouTube iframe อัตโนมัติทันทีที่พิมพ์
+                        const convertedContent = makeYoutubeResponsive(newContent)
+                        setFormData({ ...formData, content: convertedContent })
+                      }}
                       rows={12}
                       className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all resize-none text-gray-900 leading-relaxed"
-                      placeholder="เขียนเนื้อหาบทความ... (รองรับ HTML)"
+                      placeholder="เขียนเนื้อหาบทความ... (รองรับ HTML และ YouTube iframe จะแปลงเป็น responsive อัตโนมัติ)"
                     />
-                    <p className="text-xs text-gray-500 mt-1">รองรับ HTML tags เช่น &lt;p&gt;, &lt;strong&gt;, &lt;em&gt;, &lt;ul&gt;, &lt;ol&gt;, &lt;a&gt;</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      รองรับ HTML tags และ YouTube iframe (แปลง responsive อัตโนมัติ) ✨
+                    </p>
                   </div>
 
                   {/* Excerpt */}
@@ -436,15 +475,89 @@ function ArticlesAdminContent() {
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       <FiTag className="inline mr-1" />
-                      แท็ก (คั่นด้วยเครื่องหมายจุลภาค)
+                      แท็ก
                     </label>
-                    <input
-                      type="text"
-                      value={formData.tags}
-                      onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-gray-900"
-                      placeholder="พัทยา, เที่ยวทะเล, pool villa"
-                    />
+                    
+                    {/* แสดง tags ที่เลือกแล้ว */}
+                    {formData.tags && (
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {formData.tags.split(',').map(t => t.trim()).filter(t => t).map((tag, idx) => (
+                          <span
+                            key={idx}
+                            className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm font-medium"
+                          >
+                            {tag}
+                            <button
+                              type="button"
+                              onClick={() => removeTag(tag)}
+                              className="hover:bg-blue-200 rounded-full p-0.5 transition-colors"
+                            >
+                              <FiX className="text-xs" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Input สำหรับเพิ่ม tag */}
+                    <div className="flex gap-2 mb-3">
+                      <input
+                        type="text"
+                        value={tagInput}
+                        onChange={(e) => setTagInput(e.target.value)}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault()
+                            if (tagInput.trim()) {
+                              addTag(tagInput.trim())
+                            }
+                          }
+                        }}
+                        className="flex-1 px-4 py-2 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all text-gray-900"
+                        placeholder="พิมพ์แท็กและกด Enter"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (tagInput.trim()) {
+                            addTag(tagInput.trim())
+                          }
+                        }}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+                      >
+                        เพิ่ม
+                      </button>
+                    </div>
+
+                    {/* Tag suggestions */}
+                    <div className="space-y-2">
+                      <p className="text-xs text-gray-500">แท็กแนะนำ:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {tagSuggestions.map((tag) => (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => addTag(tag)}
+                            className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-blue-100 hover:text-blue-700 transition-colors"
+                          >
+                            + {tag}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* YouTube Info */}
+                  <div className="bg-green-50 border-2 border-green-200 rounded-xl p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="text-2xl">✅</div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-green-900 mb-1">YouTube Responsive - เปิดใช้งานอัตโนมัติ</h4>
+                        <p className="text-sm text-green-700">
+                          วาง iframe YouTube ลงในเนื้อหา ระบบจะแปลงให้ responsive อัตโนมัติทันที ไม่ต้องกดปุ่มใดๆ! 🎉
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
 

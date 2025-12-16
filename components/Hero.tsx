@@ -171,23 +171,15 @@ function Hero() {
               </label>
               <div className="relative">
                 <FaUsers className="absolute left-4 top-1/2 -translate-y-1/2 text-luxury-gold text-xl" />
-                <select
-                  className="w-full pl-12 pr-4 py-4 text-base text-gray-900 bg-white border-2 border-luxury-gold/50 rounded-2xl focus:ring-4 focus:ring-luxury-gold/30 focus:border-luxury-gold outline-none transition-all duration-300 hover:border-luxury-gold cursor-pointer appearance-none"
+                <input
+                  type="number"
+                  min="1"
+                  max="20"
+                  placeholder="2"
+                  className="w-full pl-12 pr-4 py-4 text-base text-gray-900 placeholder-gray-400 bg-white border-2 border-luxury-gold/50 rounded-2xl focus:ring-4 focus:ring-luxury-gold/30 focus:border-luxury-gold outline-none transition-all duration-300 hover:border-luxury-gold"
                   value={searchData.guests}
                   onChange={(e) => setSearchData({ ...searchData, guests: e.target.value })}
-                >
-                  <option value="1">1 {t('rooms.guests')}</option>
-                  <option value="2">2 {t('rooms.guests')}</option>
-                  <option value="3">3 {t('rooms.guests')}</option>
-                  <option value="4">4 {t('rooms.guests')}</option>
-                  <option value="5">5 {t('rooms.guests')}</option>
-                  <option value="6">6+ {t('rooms.guests')}</option>
-                </select>
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
+                />
               </div>
             </div>
           </div>
