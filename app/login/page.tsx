@@ -1,11 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import SocialLogin from '@/components/SocialLogin'
-import { FaHome } from 'react-icons/fa'
+import { FaHome, FaClock } from 'react-icons/fa'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -14,10 +14,32 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [remainingSeconds, setRemainingSeconds] = useState(0)
+  const [isDelayed, setIsDelayed] = useState(false)
+
+  // Countdown timer
+  useEffect(() => {
+    if (remainingSeconds > 0) {
+      const timer = setTimeout(() => {
+        setRemainingSeconds(remainingSeconds - 1)
+        if (remainingSeconds - 1 === 0) {
+          setIsDelayed(false)
+          setError('')
+        }
+      }, 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [remainingSeconds])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    
+    if (isDelayed && remainingSeconds > 0) {
+      setError(`กรุณารอ ${remainingSeconds} วินาที ก่อนลองอีกครั้ง`)
+      return
+    }
+    
     if (!email || !password) {
       setError('กรุณากรอกอีเมลและรหัสผ่าน')
       return
@@ -28,9 +50,35 @@ export default function LoginPage() {
     setLoading(false)
     
     if (success) {
+      setRemainingSeconds(0)
+      setIsDelayed(false)
       router.push('/')
     } else {
-      setError('อีเมลหรือรหัสผ่านไม่ถูกต้อง')
+      // ตรวจสอบว่ามี delay หรือไม่
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.trim(), password }),
+          credentials: 'include'
+        })
+        
+        const data = await response.json()
+        
+        if (response.status === 429 && data.remainingSeconds) {
+          setRemainingSeconds(data.remainingSeconds)
+          setIsDelayed(true)
+          setError(`❌ รหัสผ่านไม่ถูกต้อง กรุณารอ ${data.remainingSeconds} วินาที ก่อนลองอีกครั้ง`)
+        } else {
+          setRemainingSeconds(30)
+          setIsDelayed(true)
+          setError('❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง กรุณารอ 30 วินาที ก่อนลองอีกครั้ง')
+        }
+      } catch (err) {
+        setRemainingSeconds(30)
+        setIsDelayed(true)
+        setError('❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง กรุณารอ 30 วินาที ก่อนลองอีกครั้ง')
+      }
     }
   }
 
@@ -61,6 +109,7 @@ export default function LoginPage() {
               placeholder="example@email.com"
               required
               autoComplete="email"
+              disabled={isDelayed && remainingSeconds > 0}
             />
           </div>
 
@@ -83,14 +132,30 @@ export default function LoginPage() {
               placeholder="รหัสผ่าน"
               required
               autoComplete="current-password"
+              disabled={isDelayed && remainingSeconds > 0}
             />
           </div>
 
-          {error && <div className="text-sm text-red-600">{error}</div>}
+          {/* Countdown Timer */}
+          {isDelayed && remainingSeconds > 0 && (
+            <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-md">
+              <FaClock className="text-red-600 text-xl animate-pulse" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-red-800">กรุณารอก่อนลองอีกครั้ง</p>
+                <p className="text-xs text-red-600">เหลือเวลา: <span className="font-bold text-lg">{remainingSeconds}</span> วินาที</p>
+              </div>
+            </div>
+          )}
+
+          {error && <div className="text-sm text-red-600 font-medium">{error}</div>}
 
           <div className="flex items-center justify-between">
-            <button type="submit" disabled={loading} className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md disabled:opacity-60">
-              {loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ'}
+            <button 
+              type="submit" 
+              disabled={loading || (isDelayed && remainingSeconds > 0)} 
+              className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+            >
+              {loading ? 'กำลังเข้าสู่ระบบ...' : isDelayed && remainingSeconds > 0 ? `รอ ${remainingSeconds}s` : 'เข้าสู่ระบบ'}
             </button>
 
             <Link href="/register" className="text-sm text-primary-600 hover:underline">ยังไม่เป็นสมาชิก? สมัครเลย</Link>

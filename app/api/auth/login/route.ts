@@ -1,6 +1,14 @@
 import { NextResponse } from 'next/server'
 import { findUserByEmail, verifyUserPassword, createSession } from '../../../../lib/server/auth'
-import { checkLoginRateLimit, getClientIdentifier } from '../../../../lib/security/rateLimit'
+import { 
+  checkLoginRateLimit, 
+  getClientIdentifier
+} from '../../../../lib/security/rateLimit'
+import {
+  checkFailedLoginDelay,
+  recordFailedLoginAttempt,
+  clearFailedLoginAttempt
+} from '../../../../lib/server/failedLoginAttempts'
 import { isValidEmail, sanitizeString } from '../../../../lib/security/validation'
 import { addSecurityHeaders, getRateLimitHeaders } from '../../../../lib/security/headers'
 import { createSecureToken } from '../../../../lib/security/jwt'
@@ -12,6 +20,21 @@ export async function POST(req: Request) {
   try {
     // Rate limiting
     const clientId = getClientIdentifier(req)
+    
+    // ตรวจสอบว่าต้อง delay หรือไม่ (หลังจาก login ผิด) - จาก Database
+    const delayCheck = await checkFailedLoginDelay(clientId)
+    if (!delayCheck.allowed) {
+      const response = NextResponse.json(
+        { 
+          error: `กรุณารอ ${delayCheck.remainingSeconds} วินาที ก่อนลองอีกครั้ง`,
+          remainingSeconds: delayCheck.remainingSeconds
+        },
+        { status: 429 }
+      )
+      response.headers.set('Retry-After', delayCheck.remainingSeconds.toString())
+      return addSecurityHeaders(response)
+    }
+    
     const rateLimit = checkLoginRateLimit(clientId)
     
     if (rateLimit.limited) {
@@ -48,6 +71,8 @@ export async function POST(req: Request) {
 
     const user = await findUserByEmail(sanitizedEmail)
     if (!user) {
+      // บันทึก failed login attempt ลง database
+      await recordFailedLoginAttempt(clientId)
       // Generic error message to prevent email enumeration
       return addSecurityHeaders(
         NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
@@ -56,10 +81,15 @@ export async function POST(req: Request) {
 
     const ok = await verifyUserPassword(user, password)
     if (!ok) {
+      // บันทึก failed login attempt ลง database
+      await recordFailedLoginAttempt(clientId)
       return addSecurityHeaders(
         NextResponse.json({ error: 'Invalid credentials' }, { status: 401 })
       )
     }
+
+    // ✅ Login สำเร็จ - ล้างข้อมูล failed attempts จาก database
+    await clearFailedLoginAttempt(clientId)
 
     // 🔒 สร้าง Secure JWT Token (Double-signed + Encrypted Payload)
     const token = createSecureToken({

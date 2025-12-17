@@ -7,6 +7,8 @@ type RateLimitStore = {
   [key: string]: {
     count: number
     resetTime: number
+    lastFailedAttempt?: number // เวลาที่พยายาม login ผิดครั้งล่าสุด
+    failedCount?: number // จำนวนครั้งที่ login ผิดติดต่อกัน
   }
 }
 
@@ -122,4 +124,67 @@ export function getClientIdentifier(request: Request): string {
  */
 export function resetRateLimit(identifier: string): void {
   delete store[identifier]
+}
+
+/**
+ * บันทึกความพยายาม login ที่ผิดพลาด
+ * @param identifier - IP address หรือ identifier ของ client
+ * @returns เวลาที่ต้องรอ (วินาที) ถ้ายังไม่ครบ 30 วินาที, หรือ 0 ถ้าพร้อม login ได้
+ */
+export function recordFailedLogin(identifier: string): number {
+  const now = Date.now()
+  
+  if (!store[identifier]) {
+    store[identifier] = {
+      count: 0,
+      resetTime: now + (15 * 60 * 1000),
+      lastFailedAttempt: now,
+      failedCount: 1
+    }
+    return 0
+  }
+
+  // อัพเดทข้อมูล
+  store[identifier].lastFailedAttempt = now
+  store[identifier].failedCount = (store[identifier].failedCount || 0) + 1
+  
+  return 0 // คืนค่า 0 เพื่อบันทึกเวลาไว้
+}
+
+/**
+ * ตรวจสอบว่าต้องรอก่อน login หรือไม่
+ * @param identifier - IP address หรือ identifier ของ client
+ * @returns { allowed: boolean, remainingSeconds: number } - allowed = false หมายถึงต้องรอ
+ */
+export function checkFailedLoginDelay(identifier: string): { 
+  allowed: boolean
+  remainingSeconds: number 
+} {
+  const now = Date.now()
+  const delayMs = 30 * 1000 // 30 วินาที
+  
+  if (!store[identifier] || !store[identifier].lastFailedAttempt) {
+    return { allowed: true, remainingSeconds: 0 }
+  }
+
+  const timeSinceLastFailed = now - (store[identifier].lastFailedAttempt || 0)
+  
+  if (timeSinceLastFailed < delayMs) {
+    const remainingMs = delayMs - timeSinceLastFailed
+    const remainingSeconds = Math.ceil(remainingMs / 1000)
+    return { allowed: false, remainingSeconds }
+  }
+
+  return { allowed: true, remainingSeconds: 0 }
+}
+
+/**
+ * ล้างข้อมูล failed login เมื่อ login สำเร็จ
+ * @param identifier - IP address หรือ identifier ของ client
+ */
+export function clearFailedLogin(identifier: string): void {
+  if (store[identifier]) {
+    store[identifier].lastFailedAttempt = undefined
+    store[identifier].failedCount = 0
+  }
 }
