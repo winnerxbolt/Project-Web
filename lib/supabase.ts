@@ -1,25 +1,41 @@
 // lib/supabase.ts - Server-side Supabase Client
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ffkzqihfaqscqnkhstnv.supabase.co'
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZma3pxaWhmYXFzY3Fua2hzdG52Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTcxNTcwMywiZXhwIjoyMDgxMDc1NzAzfQ.qH1E19FEPs7D7b5BpIlGsQa8wvJhWUEQiH5vLpxoMB4'
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZma3pxaWhmYXFzY3Fua2hzdG52Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU2Mjk5NDMsImV4cCI6MjA4MTIwNTk0M30.NBGfhSQnYnVuWPkqRS5YzOzrndZzawiLNOE5o5R6F9k'
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+if (!supabaseUrl) {
+  throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL environment variable')
+}
+
+if (!supabaseServiceKey && !supabaseAnonKey) {
+  throw new Error('Missing Supabase keys - need either SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY')
+}
 
 // Server-side client with service role key (for admin operations)
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey || supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
+export const supabaseAdmin = createClient(
+  supabaseUrl, 
+  supabaseServiceKey || supabaseAnonKey!, 
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
   }
-})
+)
 
 // Server-side client with anon key (for regular operations)
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true
+export const supabase = createClient(
+  supabaseUrl, 
+  supabaseAnonKey || supabaseServiceKey!, 
+  {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true
+    }
   }
-})
+)
 
 // Database types
 export type Database = {
